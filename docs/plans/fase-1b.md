@@ -1,6 +1,6 @@
 # Piano della fase 1b — Archivi, formati, job in background
 
-Stato: **da approvare**. Branch: `phase/1b-archive`.
+Stato: **approvato** il 2026-10-12. Branch: `phase/1b-archive`.
 
 Riferimenti: spec §3 (pipeline, tipi di job), §4 (gestori, politiche XMP, D21), §10 (invarianti, I4 dopo B1, archivi grandi), §13 (fase 1b), §14 (dati di test); D4, D21; P8; tavole 3a, 3g, Librerie e Impostazioni (gruppo C); decisione B1.
 

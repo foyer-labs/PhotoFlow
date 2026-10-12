@@ -87,4 +87,4 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 
 ## Prossimo passo
 
-Approvazione del piano della fase 1b ([docs/plans/fase-1b.md](plans/fase-1b.md)), branch `phase/1b-archive`.
+Fase 1b in corso su `phase/1b-archive` (piano approvato): tappa 1b.0.
