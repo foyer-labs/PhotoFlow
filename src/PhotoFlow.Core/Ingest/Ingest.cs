@@ -63,7 +63,8 @@ public interface ICopyEngine
 /// <summary>A file whose primary copy is verified: the hand-off point to the next pipeline stages.</summary>
 public sealed record VerifiedFile(IngestFile File, ulong Hash, string PrimaryPath, IReadOnlyList<DestinationResult> Destinations);
 
-public sealed record IngestRequest(IReadOnlyList<IngestFile> Files, IReadOnlyList<IngestDestination> Destinations, int MaxParallelFiles = 2);
+/// <param name="SourceRoot">Root of the import source (card or folder): no destination may lie inside it (I1).</param>
+public sealed record IngestRequest(IReadOnlyList<IngestFile> Files, IReadOnlyList<IngestDestination> Destinations, string? SourceRoot, int MaxParallelFiles = 2);
 
 public sealed record IngestProgress(int Completed, int Total, string? CurrentFile);
 

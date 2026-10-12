@@ -36,7 +36,7 @@ public abstract class IngestInvariantTestBase : IDisposable
     ];
 
     protected IngestRequest Request() =>
-        new(CardFiles.Select(f => new IngestFile(f, Path.Combine("2026", Path.GetFileName(f)), new FileInfo(f).Length)).ToList(), Destinations);
+        new(CardFiles.Select(f => new IngestFile(f, Path.Combine("2026", Path.GetFileName(f)), new FileInfo(f).Length)).ToList(), Destinations, SourceRoot: Card);
 
     protected static async Task<(IngestSummary Summary, IReadOnlyCollection<VerifiedFile> Verified)> RunAsync(IFileSystem fileSystem, IngestRequest request)
     {
