@@ -17,7 +17,7 @@ public sealed class ArchitectureTests
         ["PhotoFlow.Sources"] = ["System.IO.Hashing"],
         ["PhotoFlow.Metadata"] = [],
         ["PhotoFlow.Analysis"] = [],
-        ["PhotoFlow.Faces"] = [],
+        ["PhotoFlow.Faces"] = ["System.Security.Cryptography.ProtectedData"],
         ["PhotoFlow.Tagging"] = [],
         ["PhotoFlow.Data"] = ["Microsoft.Data.Sqlite", "Dapper"],
         ["PhotoFlow.Imaging"] = ["SkiaSharp", "Magick.NET"],

@@ -96,8 +96,8 @@ internal sealed class AnalysisStore(SqliteCatalog catalog) : IAnalysisStore
             {
                 await c.ExecuteAsync(new CommandDefinition(
                     """
-                    INSERT INTO Faces (AssetId, X1, Y1, X2, Y2, Landmarks, Confidence, LeftEye, RightEye, EncryptedEmbedding, PersonId, AssignmentOrigin, Similarity, ModelVersion)
-                    VALUES (@AssetId, @X1, @Y1, @X2, @Y2, @Landmarks, @Confidence, @LeftEye, @RightEye, @EncryptedEmbedding, @PersonId, @AssignmentOrigin, @Similarity, @ModelVersion);
+                    INSERT INTO Faces (AssetId, X1, Y1, X2, Y2, Landmarks, Confidence, LeftEye, RightEye, EncryptedEmbedding, PersonId, AssignmentOrigin, Similarity, ModelVersion, Keypoints, EmbeddingModel)
+                    VALUES (@AssetId, @X1, @Y1, @X2, @Y2, @Landmarks, @Confidence, @LeftEye, @RightEye, @EncryptedEmbedding, @PersonId, @AssignmentOrigin, @Similarity, @ModelVersion, @Keypoints, @EmbeddingModel);
                     """,
                     new
                     {
@@ -115,6 +115,8 @@ internal sealed class AnalysisStore(SqliteCatalog catalog) : IAnalysisStore
                         AssignmentOrigin = Db.Name(face.AssignmentOrigin),
                         face.Similarity,
                         face.ModelVersion,
+                        Keypoints = face.Keypoints is null ? null : MemoryMarshal.AsBytes(face.Keypoints.ToArray().AsSpan()).ToArray(),
+                        face.EmbeddingModel,
                     },
                     transaction, cancellationToken: ct)).ConfigureAwait(false);
             }
@@ -126,7 +128,7 @@ internal sealed class AnalysisStore(SqliteCatalog catalog) : IAnalysisStore
     public async Task<IReadOnlyList<Face>> GetFacesAsync(long assetId, CancellationToken ct) =>
         (await catalog.RunAsync(c => c.QueryAsync<FaceRow>(new CommandDefinition(
             """
-            SELECT Id, AssetId, X1, Y1, X2, Y2, Landmarks, Confidence, LeftEye, RightEye, EncryptedEmbedding, PersonId, AssignmentOrigin, Similarity, ModelVersion
+            SELECT Id, AssetId, X1, Y1, X2, Y2, Landmarks, Confidence, LeftEye, RightEye, EncryptedEmbedding, PersonId, AssignmentOrigin, Similarity, ModelVersion, Keypoints, EmbeddingModel
             FROM Faces WHERE AssetId = @assetId ORDER BY Id;
             """,
             new { assetId }, cancellationToken: ct)), ct).ConfigureAwait(false))
@@ -134,7 +136,8 @@ internal sealed class AnalysisStore(SqliteCatalog catalog) : IAnalysisStore
             r.Id, r.AssetId, new BoundingBox((float)r.X1, (float)r.Y1, (float)r.X2, (float)r.Y2),
             r.Landmarks is null ? null : MemoryMarshal.Cast<byte, Point2>(r.Landmarks).ToArray(),
             r.Confidence, Db.Parse<EyeState>(r.LeftEye), Db.Parse<EyeState>(r.RightEye), r.EncryptedEmbedding, r.PersonId,
-            Db.ParseOrNull<AssignmentOrigin>(r.AssignmentOrigin), r.Similarity, r.ModelVersion))
+            Db.ParseOrNull<AssignmentOrigin>(r.AssignmentOrigin), r.Similarity, r.ModelVersion,
+            r.Keypoints is null ? null : MemoryMarshal.Cast<byte, Point2>(r.Keypoints).ToArray(), r.EmbeddingModel))
         .ToList();
 
     private sealed class ResultRow
@@ -183,5 +186,9 @@ internal sealed class AnalysisStore(SqliteCatalog catalog) : IAnalysisStore
         public double? Similarity { get; set; }
 
         public string ModelVersion { get; set; } = "";
+
+        public byte[]? Keypoints { get; set; }
+
+        public string? EmbeddingModel { get; set; }
     }
 }

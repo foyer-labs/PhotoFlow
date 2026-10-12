@@ -294,7 +294,9 @@ public sealed record Face(
     long? PersonId,
     AssignmentOrigin? AssignmentOrigin,
     double? Similarity,
-    string ModelVersion);
+    string ModelVersion,
+    IReadOnlyList<Point2>? Keypoints = null,
+    string? EmbeddingModel = null);
 
 /// <summary>Unknown with sunglasses, small faces, or with YuNet/SFace (spec §6).</summary>
 public enum EyeState

@@ -31,6 +31,8 @@
 
   <ItemGroup Label="Ingest and catalog">
     <PackageVersion Include="System.IO.Hashing" Version="10.0.12" />
+    <!-- DPAPI for the fingerprint key (spec §7, D12; MIT). -->
+    <PackageVersion Include="System.Security.Cryptography.ProtectedData" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Data.Sqlite" Version="10.0.12" />
     <PackageVersion Include="Dapper" Version="2.1.89" />
   </ItemGroup>

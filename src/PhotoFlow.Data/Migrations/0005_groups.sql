@@ -35,3 +35,8 @@ CREATE TABLE PhotoProfiles (
     SuggestedConfidence REAL,
     PRIMARY KEY (JobId, AssetId)
 );
+
+-- Face fingerprints (spec §7): the 5 alignment keypoints (normalized, so that a lost key can be recomputed from the
+-- preview without detecting again) and the model of the fingerprint. The fingerprint itself is always encrypted.
+ALTER TABLE Faces ADD COLUMN Keypoints BLOB;
+ALTER TABLE Faces ADD COLUMN EmbeddingModel TEXT;

@@ -16,6 +16,32 @@ public interface IFaceDetector
     Task<IReadOnlyList<DetectedFace>> DetectAsync(RgbImage image, CancellationToken ct);
 }
 
+/// <summary>Face fingerprint (spec §7): an L2-normalized vector from the aligned face; same person ⇒ high cosine.</summary>
+public interface IFaceEmbedder
+{
+    string ModelVersion { get; }
+
+    int Dimensions { get; }
+
+    Task<float[]> EmbedAsync(RgbImage image, DetectedFace face, CancellationToken ct);
+}
+
+/// <summary>
+/// Encryption of the face fingerprints (D12, spec §7): a fingerprint never reaches the catalog in clear. When the key
+/// is not available (catalog opened by another account or PC) recognition is suspended (P13).
+/// </summary>
+public interface IFingerprintProtector
+{
+    bool IsAvailable { get; }
+
+    byte[] Protect(ReadOnlySpan<float> fingerprint);
+
+    /// <exception cref="FingerprintKeyUnavailableException">The key is missing or is not the one that encrypted the fingerprint.</exception>
+    float[] Unprotect(ReadOnlySpan<byte> protectedFingerprint);
+}
+
+public sealed class FingerprintKeyUnavailableException(string message) : InvalidOperationException(message);
+
 /// <summary>Box in pixels of the analyzed image.</summary>
 public readonly record struct PixelBox(float X1, float Y1, float X2, float Y2)
 {
