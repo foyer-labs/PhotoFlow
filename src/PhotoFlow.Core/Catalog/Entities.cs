@@ -78,6 +78,7 @@ public sealed record Job(
     JobType Type,
     string? Source,
     string? EventName,
+    DateOnly? EventDate,
     string? ProfileId,
     bool AutomaticProfile,
     string? FallbackProfileId,
@@ -115,6 +116,8 @@ public sealed record JobItem(
     long JobId,
     long? AssetId,
     string SourcePath,
+    string? TargetRelativePath,
+    string? ContentHash,
     PipelineStage LastCompletedStage,
     JobItemState State,
     string? Error);
@@ -186,7 +189,11 @@ public sealed record Decision(
     string? ModelVersion,
     CullingOutcome? UserOutcome,
     int? Rating,
-    string? Label);
+    string? Label)
+{
+    /// <summary>The user's decision when present, otherwise the automatic proposal (invariant I5).</summary>
+    public CullingOutcome? EffectiveOutcome => UserOutcome ?? AutomaticOutcome;
+}
 
 /// <summary>Culling outcomes of spec §6.</summary>
 public enum CullingOutcome
@@ -288,7 +295,7 @@ public sealed record EntryListItem(
 
 // --- Sync and system ---
 
-public sealed record XmpSyncState(long AssetId, DateTimeOffset? LastWrittenAt, string? XmpSignature, bool WritePending);
+public sealed record XmpSyncState(long AssetId, DateTimeOffset? LastWrittenAt, string? XmpSignature, bool WritePending, string? LastError);
 
 public sealed record UndoLogEntry(long Id, DateTimeOffset At, string Operation, string PayloadJson);
 

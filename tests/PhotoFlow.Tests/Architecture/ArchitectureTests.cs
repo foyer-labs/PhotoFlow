@@ -19,7 +19,7 @@ public sealed class ArchitectureTests
         ["PhotoFlow.Analysis"] = [],
         ["PhotoFlow.Faces"] = [],
         ["PhotoFlow.Tagging"] = [],
-        ["PhotoFlow.Data"] = [],
+        ["PhotoFlow.Data"] = ["Microsoft.Data.Sqlite", "Dapper"],
         ["PhotoFlow.Imaging"] = ["SkiaSharp"],
         ["PhotoFlow.Inference"] = ["Microsoft.ML.OnnxRuntime"],
         ["PhotoFlow.App"] = ["Avalonia", "CommunityToolkit.Mvvm", "Microsoft.Extensions.", "Serilog"],
