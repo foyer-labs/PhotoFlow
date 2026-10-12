@@ -268,8 +268,23 @@ public sealed class ArchiveJobRunner : IJobRunner
                 analyzed = members[0];
             }
 
-            // Already analyzed (e.g. imported before, or a twin analyzed in an earlier run): nothing to redo.
-            if (await catalog.Analysis.GetResultAsync(analyzed.AssetId, AnalyzerId, ct).ConfigureAwait(false) is null)
+            // Already analyzed and decided (e.g. imported before, or analyzed in an earlier run): nothing to redo. A run
+            // stopped between the analysis and the decision analyzes again; twins without a decision get the one of the
+            // analyzed photo (a stop between the members' decisions).
+            var existing = await catalog.Analysis.GetResultAsync(analyzed.AssetId, AnalyzerId, ct).ConfigureAwait(false) is not null
+                ? await catalog.Decisions.GetAsync(analyzed.AssetId, ct).ConfigureAwait(false)
+                : null;
+            if (existing is { AutomaticOutcome: { } outcome })
+            {
+                foreach (var id in members.Select(m => m.AssetId).Distinct().Where(id => id != analyzed.AssetId))
+                {
+                    if (await catalog.Decisions.GetAsync(id, ct).ConfigureAwait(false) is not { AutomaticOutcome: not null })
+                    {
+                        await catalog.Decisions.SetAutomaticAsync(id, outcome, existing.Reasons, existing.ModelVersion ?? string.Empty, done).ConfigureAwait(false);
+                    }
+                }
+            }
+            else
             {
                 var asset = await catalog.Assets.GetAsync(analyzed.AssetId, ct).ConfigureAwait(false);
                 PhotoProcessingResult result;
