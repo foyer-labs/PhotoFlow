@@ -23,7 +23,7 @@ public sealed class ClassificationTests
     [InlineData(new byte[] { 0x46, 0x55, 0x4A, 0x49, 0x46, 0x49, 0x4C, 0x4D }, ".RAF", MediaKind.Raw)]
     [InlineData(new byte[] { 0x23, 0x21, 0x2F, 0x62 }, ".txt", MediaKind.Other)]
     public void Kind_comes_from_the_content(byte[] header, string extension, MediaKind expected) =>
-        Assert.Equal(expected, SourceScanner.Classify(header, extension));
+        Assert.Equal(expected, MediaClassifier.Classify(header, extension));
 }
 
 [Trait(TestCategory.Name, TestCategory.Unit)]
