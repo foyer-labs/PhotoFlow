@@ -119,7 +119,7 @@ public interface IBatchStage { Task RunAsync(JobContext job, IProgress<StageProg
 public interface ITagger { TaggingLevel Level { get; } Task<IReadOnlyList<TagResult>> TagAsync(PhotoContext photo, CancellationToken ct); }
 public interface IInferenceProvider { HardwareInfo Detected { get; } Task<IInferenceSession> CreateSessionAsync(ModelDescriptor model, ExecutionTarget target, CancellationToken ct); }
 public interface IInferenceSession : IDisposable { Task<IReadOnlyList<NamedTensor>> RunAsync(IReadOnlyList<NamedTensor> inputs, CancellationToken ct); }
-public interface IMetadataWriter { Task WriteAsync(Asset asset, MetadataChanges changes, WritePolicy policy, CancellationToken ct); }
+public interface IMetadataWriter { Task<MetadataWriteResult> WriteAsync(MetadataTarget target, MetadataChanges changes, WritePolicy policy, CancellationToken ct); } // MetadataTarget: percorso + RAW sì/no (Asset non contiene il percorso)
 public interface IObjectDetector { Task<IReadOnlyList<Detection>> DetectAsync(RgbImage image, CancellationToken ct); }
 public interface IImageOperations { /* decodifica e ridimensionamento: isola SkiaSharp */ }
 public interface ISearchIndex { /* FTS e ricerca vettoriale, isolati per un futuro PostgreSQL */ }

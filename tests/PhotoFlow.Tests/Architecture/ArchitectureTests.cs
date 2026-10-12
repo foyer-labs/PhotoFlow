@@ -14,7 +14,7 @@ public sealed class ArchitectureTests
     private static readonly Dictionary<string, string[]> AllowedPackages = new()
     {
         ["PhotoFlow.Core"] = [],
-        ["PhotoFlow.Sources"] = [],
+        ["PhotoFlow.Sources"] = ["System.IO.Hashing"],
         ["PhotoFlow.Metadata"] = [],
         ["PhotoFlow.Analysis"] = [],
         ["PhotoFlow.Faces"] = [],
