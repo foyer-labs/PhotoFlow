@@ -381,7 +381,7 @@ public sealed class ImportJobRunner : IJobRunner
             PhotoProcessingResult result;
             try
             {
-                result = await owner._processor.ProcessAsync(new PhotoInput(path, hash, exifSummary), settings.ProfileId, ct).ConfigureAwait(false);
+                result = await owner._processor.ProcessAsync(new PhotoInput(path, hash, exifSummary), new ProcessingOptions(settings.ProfileId, settings.Faces), ct).ConfigureAwait(false);
             }
             catch (Exception e) when (e is not OperationCanceledException)
             {

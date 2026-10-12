@@ -6,7 +6,10 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using PhotoFlow.App.Localization;
+using PhotoFlow.App.Services;
 using PhotoFlow.App.ViewModels;
+using PhotoFlow.Core.Catalog;
 using PhotoFlow.App.Views;
 using PhotoFlow.Core.Paths;
 using Serilog;
@@ -17,6 +20,7 @@ public sealed class App : Application
 {
     private readonly ThemeVariant? _startupTheme;
     private ServiceProvider? _services;
+    private PhotoFlowHost? _host;
 
     public App()
     {
@@ -40,11 +44,41 @@ public sealed class App : Application
             var logger = _services.GetRequiredService<ILogger<App>>();
             logger.LogInformation("PhotoFlow starting, version {Version}", typeof(App).Assembly.GetName().Version);
 
-            desktop.MainWindow = new MainWindow { DataContext = _services.GetRequiredService<MainWindowViewModel>() };
-            desktop.Exit += (_, _) => _services.Dispose();
+            var window = new MainWindow { DataContext = new MainWindowViewModel() };
+            desktop.MainWindow = window;
+            desktop.Exit += (_, _) =>
+            {
+                (window.DataContext as IDisposable)?.Dispose();
+                _host?.DisposeAsync().AsTask().GetAwaiter().GetResult();
+                _services.Dispose();
+            };
+            _ = StartHostAsync(window, _services.GetRequiredService<IAppPaths>(), logger);
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    /// <summary>Opens catalog, exiftool and the other services off the UI thread, then shows the real pages.</summary>
+    private async Task StartHostAsync(MainWindow window, IAppPaths paths, Microsoft.Extensions.Logging.ILogger logger)
+    {
+        try
+        {
+            _host = await Task.Run(() => PhotoFlowHost.StartAsync(paths, CancellationToken.None));
+            var viewModel = new MainWindowViewModel(_host);
+            viewModel.RefreshStatus();
+            window.DataContext = viewModel;
+            await viewModel.CurrentPage.ActivateAsync();
+        }
+        catch (CatalogLockedException e)
+        {
+            logger.LogWarning(e, "Catalog in use by another window");
+            ((MainWindowViewModel)window.DataContext!).StatusText = Strings.Get("Status.CatalogLocked");
+        }
+        catch (Exception e) when (e is IOException or InvalidOperationException or CatalogCorruptException)
+        {
+            logger.LogError(e, "Startup failed");
+            ((MainWindowViewModel)window.DataContext!).StatusText = Strings.Format("Status.StartupFailed", e.Message);
+        }
     }
 
     private static ServiceProvider ConfigureServices()
@@ -62,7 +96,6 @@ public sealed class App : Application
         var services = new ServiceCollection();
         services.AddSingleton(paths);
         services.AddLogging(builder => builder.AddSerilog(serilog, dispose: true));
-        services.AddSingleton<MainWindowViewModel>();
         return services.BuildServiceProvider();
     }
 }

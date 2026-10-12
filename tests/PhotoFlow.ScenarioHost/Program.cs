@@ -50,7 +50,7 @@ internal sealed class LoggingProcessor(string log, int delayMs) : IPhotoProcesso
 {
     private readonly object _gate = new();
 
-    public async Task<PhotoProcessingResult> ProcessAsync(PhotoInput photo, string profileId, CancellationToken ct)
+    public async Task<PhotoProcessingResult> ProcessAsync(PhotoInput photo, ProcessingOptions options, CancellationToken ct)
     {
         await Task.Delay(delayMs, ct);
         lock (_gate)

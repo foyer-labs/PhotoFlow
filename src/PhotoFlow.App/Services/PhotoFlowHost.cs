@@ -200,7 +200,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     /// <summary>Loads the models when the first photo reaches the analysis, not at startup.</summary>
     private sealed class LazyProcessor(PhotoFlowHost host) : IPhotoProcessor
     {
-        public async Task<PhotoProcessingResult> ProcessAsync(PhotoInput photo, string profileId, CancellationToken ct) =>
-            await (await host.GetProcessorAsync(ct).ConfigureAwait(false)).ProcessAsync(photo, profileId, ct).ConfigureAwait(false);
+        public async Task<PhotoProcessingResult> ProcessAsync(PhotoInput photo, ProcessingOptions options, CancellationToken ct) =>
+            await (await host.GetProcessorAsync(ct).ConfigureAwait(false)).ProcessAsync(photo, options, ct).ConfigureAwait(false);
     }
 }

@@ -19,6 +19,14 @@
     <v:IconKeyConverter x:Key="IconKey" />
   </Window.Resources>
 
+  <Window.DataTemplates>
+    <DataTemplate DataType="vm:HomeViewModel"><v:HomeView /></DataTemplate>
+    <DataTemplate DataType="vm:ImportWizardViewModel"><v:ImportWizardView /></DataTemplate>
+    <DataTemplate DataType="vm:JobsViewModel"><v:JobsView /></DataTemplate>
+    <DataTemplate DataType="vm:ReviewViewModel"><v:ReviewView /></DataTemplate>
+    <DataTemplate DataType="vm:PlaceholderPageViewModel"><v:PlaceholderView /></DataTemplate>
+  </Window.DataTemplates>
+
   <Window.Styles>
     <Style Selector="Border#Navigation">
       <Setter Property="Width" Value="{StaticResource PF.Size.Navigation}" />
@@ -92,14 +100,14 @@
         </DockPanel>
       </Border>
 
-      <!-- Toolbar + empty content area -->
+      <!-- Toolbar + page of the selected section -->
       <Grid Grid.Column="1" RowDefinitions="40,*">
         <Border Grid.Row="0" Background="{DynamicResource PF.Brush.Window}"
                 BorderBrush="{DynamicResource PF.Brush.Border}" BorderThickness="0,0,0,1">
-          <TextBlock Classes="subtitle" Margin="16,0" VerticalAlignment="Center" Text="{Binding SelectedSection.Label}" />
+          <TextBlock x:Name="PageTitle" Classes="subtitle" Margin="16,0" VerticalAlignment="Center" Text="{Binding PageTitle}" />
         </Border>
         <Border Grid.Row="1" Background="{DynamicResource PF.Brush.GridArea}">
-          <TextBlock Classes="body tertiary" HorizontalAlignment="Center" VerticalAlignment="Center" Text="{Binding PageEmptyText}" />
+          <ContentControl x:Name="PageHost" Content="{Binding CurrentPage}" />
         </Border>
       </Grid>
     </Grid>

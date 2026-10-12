@@ -32,10 +32,16 @@ public sealed class CullingPhotoProcessor : IPhotoProcessor
         _thumbnails = thumbnails;
     }
 
-    public async Task<PhotoProcessingResult> ProcessAsync(PhotoInput photo, string profileId, CancellationToken ct)
+    public async Task<PhotoProcessingResult> ProcessAsync(PhotoInput photo, ProcessingOptions options, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(photo);
-        var profile = _profiles(profileId);
+        ArgumentNullException.ThrowIfNull(options);
+        var profile = _profiles(options.ProfileId);
+        if (options.Faces is { } faceMode)
+        {
+            profile = profile with { Faces = faceMode };
+        }
+
         var preview = await _previews.GetPreviewAsync(photo.Path, CullingSignals.ReferenceLongSide, ct).ConfigureAwait(false);
         if (_thumbnails is not null && photo.ContentHash is { } hash && !_thumbnails.Exists(hash))
         {

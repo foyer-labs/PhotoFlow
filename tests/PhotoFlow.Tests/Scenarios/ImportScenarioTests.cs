@@ -189,7 +189,7 @@ public sealed class ImportScenarioTests : IDisposable
     {
         var plan = await PlanAsync(catalog, card);
         return await ImportJobs.CreateAsync(catalog, plan, selection, card, [new IngestDestination("library", library, DestinationKind.Primary)],
-            "Scenario", plan.ProposedEventDate, "events", Ct);
+            "Scenario", plan.ProposedEventDate, "events", null, Ct);
     }
 
     private static async Task<ImportPlan> PlanAsync(ICatalog catalog, string card)

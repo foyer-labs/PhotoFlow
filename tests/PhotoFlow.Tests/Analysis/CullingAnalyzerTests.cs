@@ -96,7 +96,7 @@ public sealed class CullingPhotoProcessorTests : IDisposable
             BuiltInProfiles.Get,
             thumbnails);
 
-        var result = await processor.ProcessAsync(new PhotoInput(path, "0123456789abcdef", null), "events", TestContext.Current.CancellationToken);
+        var result = await processor.ProcessAsync(new PhotoInput(path, "0123456789abcdef", null), new ProcessingOptions("events", FaceMode.Off), TestContext.Current.CancellationToken);
 
         Assert.True(thumbnails.Exists("0123456789abcdef"));
         Assert.Equal(CullingAnalyzer.AnalyzerId, result.Analysis.AnalyzerId);

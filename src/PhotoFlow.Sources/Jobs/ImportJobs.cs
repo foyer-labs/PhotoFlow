@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+using PhotoFlow.Core.Analysis;
 using PhotoFlow.Core.Catalog;
 using PhotoFlow.Core.Ingest;
 using PhotoFlow.Core.Metadata;
@@ -24,6 +25,7 @@ public static class ImportJobs
         string eventName,
         DateOnly eventDate,
         string profileId,
+        FaceMode? faces,
         CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(catalog);
@@ -37,7 +39,7 @@ public static class ImportJobs
             new Library(0, Path.GetFileName(Path.TrimEndingDirectorySeparator(primary.RootPath)) is { Length: > 0 } name ? name : primary.RootPath,
                 primary.RootPath, WritePolicy.EmbeddedForNonRaw, false, LibraryOrigin.Import, null), ct).ConfigureAwait(false);
 
-        var settings = new ImportJobSettings(libraryId, sourceRoot, destinations, profileId);
+        var settings = new ImportJobSettings(libraryId, sourceRoot, destinations, profileId, Faces: faces);
         var jobId = await catalog.Jobs.CreateAsync(new Job(
             0, JobType.Import, sourceRoot, eventName, eventDate, profileId, false, null, JobState.Pending, JobPriority.Normal,
             ImportJobRunner.SerializeSettings(settings), DateTimeOffset.UtcNow), ct).ConfigureAwait(false);

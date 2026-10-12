@@ -24,7 +24,7 @@ internal sealed class RecordingProcessor : IPhotoProcessor
 
     public Action<int>? AfterProcessed { get; set; }
 
-    public Task<PhotoProcessingResult> ProcessAsync(PhotoInput photo, string profileId, CancellationToken ct)
+    public Task<PhotoProcessingResult> ProcessAsync(PhotoInput photo, ProcessingOptions options, CancellationToken ct)
     {
         var path = photo.Path;
         ct.ThrowIfCancellationRequested();
@@ -237,7 +237,7 @@ public sealed class ImportJobTests : IDisposable
         var plan = await new ImportPlanner(new PhysicalFileSystem(), new FakeExifReader(p => times[p]), catalog.Assets)
             .PlanAsync(scanned, "Test", null, new PathTemplate(PathTemplate.Default), Ct);
         var jobId = await ImportJobs.CreateAsync(catalog, plan, ImportSelection.All, card,
-            [new IngestDestination("library", library, DestinationKind.Primary)], "Test", plan.ProposedEventDate, "events", Ct);
+            [new IngestDestination("library", library, DestinationKind.Primary)], "Test", plan.ProposedEventDate, "events", null, Ct);
         return jobId;
     }
 

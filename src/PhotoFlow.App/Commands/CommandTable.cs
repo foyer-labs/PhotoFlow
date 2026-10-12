@@ -57,12 +57,17 @@ public sealed class CommandTable
             var items = group.ToList();
             var keys = items.Count == 1
                 ? FormatGesture(items[0].Gesture)
-                : $"{FormatGesture(items[0].Gesture)}–{FormatKey(items[^1].Gesture.Key)}";
+                : IsDigitRange(items)
+                    ? $"{FormatGesture(items[0].Gesture)}–{FormatKey(items[^1].Gesture.Key)}"
+                    : string.Join(' ', items.Select(i => FormatGesture(i.Gesture)));
             hints.Add(new StatusHint(keys, Strings.Get(group.Key)));
         }
 
         return hints;
     }
+
+    private static bool IsDigitRange(IReadOnlyList<CommandDefinition> items) =>
+        items.All(i => i.Gesture.Key is >= Key.D0 and <= Key.D9);
 
     /// <summary>Display form used across the UI: "Ctrl K", "Ctrl ,", "Maiusc R".</summary>
     public static string FormatGesture(KeyGesture gesture)
@@ -93,6 +98,12 @@ public sealed class CommandTable
         >= Key.D0 and <= Key.D9 => ((int)(key - Key.D0)).ToString(System.Globalization.CultureInfo.InvariantCulture),
         Key.OemComma => ",",
         Key.Return => "↵",
+        Key.Escape => "Esc",
+        Key.Space => Strings.Get("Key.Space"),
+        Key.Left => "←",
+        Key.Right => "→",
+        Key.Up => "↑",
+        Key.Down => "↓",
         _ => key.ToString(),
     };
 }

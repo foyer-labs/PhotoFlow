@@ -18,7 +18,8 @@ public sealed record ImportJobSettings(
     IReadOnlyList<IngestDestination> Destinations,
     string ProfileId,
     int MaxParallelFiles = 2,
-    int AnalysisWorkers = 2);
+    int AnalysisWorkers = 2,
+    FaceMode? Faces = null);
 
 /// <summary>Runs or resumes a job until it completes, pauses (cancellation, unavailable destination or source) or fails.</summary>
 public interface IJobRunner
@@ -51,8 +52,11 @@ public enum JobPauseReason
 /// <summary>Preview, analysis and proposed decision of one verified photo (stages Preview → Analyzers → Decision).</summary>
 public interface IPhotoProcessor
 {
-    Task<PhotoProcessingResult> ProcessAsync(PhotoInput photo, string profileId, CancellationToken ct);
+    Task<PhotoProcessingResult> ProcessAsync(PhotoInput photo, ProcessingOptions options, CancellationToken ct);
 }
+
+/// <param name="Faces">Face analysis chosen for the job (board 3e); null keeps the profile's mode.</param>
+public sealed record ProcessingOptions(string ProfileId, FaceMode? Faces = null);
 
 /// <param name="Path">Verified copy in the library (never the source).</param>
 /// <param name="ContentHash">xxHash3 of the file (thumbnail key).</param>
