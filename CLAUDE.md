@@ -22,7 +22,7 @@ Istruzioni permanenti per Claude Code su questo repository. Leggile all'inizio d
 | I1 | Nessuna scrittura né cancellazione sulla sorgente di import (scheda SD o cartella sorgente) |
 | I2 | I file RAW non vengono mai modificati: solo sidecar `.xmp` |
 | I3 | Nessuna fase successiva parte su un file la cui copia non è stata verificata (xxHash3) |
-| I4 | Nessun file viene eliminato automaticamente; scarti e duplicati si spostano solo su richiesta esplicita |
+| I4 | Nessun file dell'utente viene eliminato automaticamente; scarti e duplicati si spostano solo su richiesta esplicita (i file interni di PhotoFlow nelle cartelle di `IAppPaths` seguono le regole di `docs/spec.md` §10, decisione B1) |
 | I5 | Tag, decisioni e assegnazioni manuali non vengono mai sovrascritti da processi automatici |
 
 Il test di un'invariante si scrive **prima** del codice che la riguarda.

@@ -555,8 +555,10 @@ Le invarianti di sicurezza dei dati non sono configurabili e vanno coperte da te
 | I1 | Nessuna scrittura né cancellazione sulla sorgente di import (sorgente dei job `Import`; i file di una libreria seguono la sua politica XMP, vedi D21) |
 | I2 | RAW mai modificati (solo sidecar) |
 | I3 | Nessuna fase successiva su un file non verificato |
-| I4 | Nessun file eliminato automaticamente; gli scarti si spostano solo su richiesta |
+| I4 | Nessun file dell'utente eliminato automaticamente; gli scarti si spostano solo su richiesta |
 | I5 | Tag e decisioni manuali mai sovrascritti da processi automatici |
+
+Ambito di I4 (decisione B1, 12 ott 2026): "file dell'utente" sono foto, RAW, sidecar, copie `_original`, file delle sorgenti e delle destinazioni di import, cartelle delle librerie. I file interni di PhotoFlow, solo dentro le sue cartelle di `IAppPaths` (backup del catalogo, cache delle miniature, temporanei, download dei modelli e del pacchetto GPU), si possono ruotare o pulire con regole scritte qui: backup del catalogo oltre gli ultimi N; cache delle miniature oltre un limite di spazio (si ricostruisce); temporanei di sessioni concluse; archivi scaricati dopo l'installazione verificata. Un test vieta qualunque cancellazione fuori da quelle cartelle.
 
 ### Affidabilità
 

@@ -65,6 +65,7 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 | 2026-10-12 | Tecnica (fase 1.7): volti buffalo\_l con preparazione antialias e parità insightface 2.1 (CPU identica); punto AF dalle coordinate Nikon (`AFAreaXPosition`…, mirrorless e live view; punti nominali delle reflex senza posizione: zona successiva); nitidezza assoluta = 1 − blur effect multi-scala (il Laplaciano dipende dal contenuto: muri, notturne, panning), Laplaciano per la classifica in raffica; occhi sconosciuti di profilo o rivolti in basso; esposizione solo nella zona del soggetto; analisi a 2048 px. Dettagli e misure in spec §6 e §14 |
 | 2026-10-12 | Tecnica (fase 1.8): job di import in `PhotoFlow.Sources` (QuickHash/xxHash non possono stare in Core); unità di pipeline = foto (gemelli RAW+JPEG), in analisi solo con tutti i file verificati (I3), analisi sul JPEG se presente; impostazioni del job salvate nel job (ripresa identica); in pausa il lavoro già calcolato viene registrato; un job "in esecuzione" all'apertura del catalogo (lock esclusivo) è un'interruzione → in pausa; un job completato con errori si può rilanciare per ritentare i soli file falliti |
 | 2026-10-12 | Tecnica (fase 1.9-1.10): interfaccia con pagine per sezione e sezioni future visibili ma disattivate (F1-6); scorciatoie per vista legate alla vista; griglia di Revisione virtualizzata a righe; mappa XMP di fase 1 (spec §4); Ctrl I globale; lock del catalogo con nuovi tentativi per 2 s; analisi in parallelo automatica (un terzo dei thread, 2-8; misurato: 1.000 foto in ~1,6 min con copia verificata, D-FINE M e buffalo\_l su RTX 3090) |
+| 2026-10-12 | Report della fase 1 approvato. B1: I4 chiarita — protegge i file dell'utente; i file interni di PhotoFlow nelle cartelle di `IAppPaths` (backup, cache, temporanei, download) si possono ruotare o pulire con regole in spec §10 e un test che vieta cancellazioni altrove. spec §10 e CLAUDE.md aggiornati |
 | 2026-10-12 | A1 — Tavole rinominate come in §12bis (`PhotoFlow_*_dc.html`); specifica invariata |
 | 2026-10-12 | A10 — Ricostruite le celle troncate di §8 (Volti: `Persone\|Nome`; OCR: `Motorsport\|Numero N`, `Motorsport\|Pilota\|Nome`, `Motorsport\|Team\|Nome`) e §17 (Album → D6), con pipe protetti |
 
@@ -73,7 +74,6 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 | # | Tema | Sintesi |
 |---|---|---|
 | N5-N6 | Modelli quantizzati | RAM++ int8/CLIP quantizzato non accelerano su GPU; RAM++ int8 non supera la parità (52 JPG reali: 12/52 insiemi identici, Jaccard 0,866) — fase 3 |
-| B1 | Rotazione dei backup del catalogo ("N versioni", §9) | Richiede di cancellare backup vecchi: in conflitto con la lettera di I4. In fase 1 i backup si accumulano; proposta di chiarimento di I4 (file interni di PhotoFlow in cartelle proprie) da sottoporre a fine fase |
 | Z5 II | NEF Z5 II non disponibili | Prima attività della fase 1 (§13) da rinviare a dopo l'implementazione: proposta nel piano della fase 1 |
 | N1-N4 | Note per fasi successive | CLIP scheda modello (fase 2), DirectML (0.6→R3), GridSample fp16 CUDA (fase 1), YuNet ingresso fisso (fase 1) |
 
