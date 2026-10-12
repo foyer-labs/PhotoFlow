@@ -28,6 +28,7 @@ public sealed class SqliteCatalog : ICatalog
         Jobs = new JobStore(this);
         Decisions = new DecisionStore(this);
         XmpSync = new XmpSyncStore(this);
+        DeferredCopies = new DeferredCopyStore(this);
     }
 
     public ILibraryStore Libraries { get; }
@@ -39,6 +40,8 @@ public sealed class SqliteCatalog : ICatalog
     public IDecisionStore Decisions { get; }
 
     public IXmpSyncStore XmpSync { get; }
+
+    public IDeferredCopyStore DeferredCopies { get; }
 
     public static async Task<SqliteCatalog> OpenAsync(CatalogOpenOptions options, CancellationToken ct)
     {

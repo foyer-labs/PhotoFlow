@@ -69,6 +69,18 @@ public sealed class CopyEngine : ICopyEngine
             return Result(file, null, primary, destinations, results, sourceError);
         }
 
+        if (file.ExpectedHash is { } expected && sourceHash != expected)
+        {
+            // The source is not the file that was verified earlier: nothing is finalized (temporary files are left to be overwritten).
+            const string mismatch = "The source no longer matches its verified hash.";
+            foreach (var target in targets)
+            {
+                results[target.Destination.Id] = new DestinationResult(target.Destination.Id, CopyOutcome.Failed, null, mismatch);
+            }
+
+            return Result(file, sourceHash, primary, destinations, results, mismatch);
+        }
+
         // 3. Existing files: identical means already present; different means a new, non-colliding name.
         var collisions = new List<Target>();
         foreach (var target in targets.Except(toWrite))

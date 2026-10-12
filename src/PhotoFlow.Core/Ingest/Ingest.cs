@@ -3,7 +3,8 @@
 namespace PhotoFlow.Core.Ingest;
 
 /// <summary>A source file to import, with its destination path relative to each destination root.</summary>
-public sealed record IngestFile(string SourcePath, string TargetRelativePath, long Length);
+/// <param name="ExpectedHash">When set, the source must have this xxHash3 or nothing is finalized (e.g. a deferred copy made from a verified library file).</param>
+public sealed record IngestFile(string SourcePath, string TargetRelativePath, long Length, ulong? ExpectedHash = null);
 
 public enum DestinationKind
 {

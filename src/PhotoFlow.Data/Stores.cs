@@ -426,3 +426,71 @@ internal sealed class XmpSyncStore(SqliteCatalog catalog) : IXmpSyncStore
         public string? LastError { get; set; }
     }
 }
+
+internal sealed class DeferredCopyStore(SqliteCatalog catalog) : IDeferredCopyStore
+{
+    private const string Columns =
+        "Id, JobId, SourcePath, DestinationId, DestinationRoot, TargetRelativePath, ContentHash, Attempts, NextAttemptMs, State, LastError";
+
+    public Task EnqueueAsync(DeferredCopy copy, CancellationToken ct) =>
+        catalog.RunAsync(c => c.ExecuteAsync(new CommandDefinition(
+            """
+            INSERT OR IGNORE INTO DeferredCopies (JobId, SourcePath, DestinationId, DestinationRoot, TargetRelativePath, ContentHash, Attempts, NextAttemptMs, State, LastError)
+            VALUES (@JobId, @SourcePath, @DestinationId, @DestinationRoot, @TargetRelativePath, @ContentHash, 0, @NextAttemptMs, 'Pending', NULL);
+            """,
+            new
+            {
+                copy.JobId,
+                copy.SourcePath,
+                copy.DestinationId,
+                copy.DestinationRoot,
+                copy.TargetRelativePath,
+                copy.ContentHash,
+                NextAttemptMs = Db.Ms(copy.NextAttemptAt),
+            },
+            cancellationToken: ct)), ct);
+
+    public async Task<IReadOnlyList<DeferredCopy>> ListDueAsync(DateTimeOffset now, int limit, CancellationToken ct) =>
+        (await catalog.RunAsync(c => c.QueryAsync<Row>(new CommandDefinition(
+            $"SELECT {Columns} FROM DeferredCopies WHERE State = 'Pending' AND NextAttemptMs <= @now ORDER BY NextAttemptMs, Id LIMIT @limit;",
+            new { now = Db.Ms(now), limit }, cancellationToken: ct)), ct).ConfigureAwait(false))
+        .Select(Map).ToList();
+
+    public Task UpdateAsync(DeferredCopy copy, CancellationToken ct) =>
+        catalog.RunAsync(c => c.ExecuteAsync(new CommandDefinition(
+            "UPDATE DeferredCopies SET Attempts = @Attempts, NextAttemptMs = @NextAttemptMs, State = @State, LastError = @LastError WHERE Id = @Id;",
+            new { copy.Id, copy.Attempts, NextAttemptMs = Db.Ms(copy.NextAttemptAt), State = copy.State.ToString(), copy.LastError },
+            cancellationToken: ct)), ct);
+
+    public Task<int> CountPendingAsync(CancellationToken ct) =>
+        catalog.RunAsync(c => c.ExecuteScalarAsync<int>(new CommandDefinition("SELECT COUNT(*) FROM DeferredCopies WHERE State = 'Pending';", cancellationToken: ct)), ct);
+
+    private static DeferredCopy Map(Row r) =>
+        new(r.Id, r.JobId, r.SourcePath, r.DestinationId, r.DestinationRoot, r.TargetRelativePath, r.ContentHash, r.Attempts,
+            Db.Instant(r.NextAttemptMs)!.Value, Db.Parse<DeferredCopyState>(r.State), r.LastError);
+
+    private sealed class Row
+    {
+        public long Id { get; set; }
+
+        public long? JobId { get; set; }
+
+        public string SourcePath { get; set; } = "";
+
+        public string DestinationId { get; set; } = "";
+
+        public string DestinationRoot { get; set; } = "";
+
+        public string TargetRelativePath { get; set; } = "";
+
+        public string ContentHash { get; set; } = "";
+
+        public int Attempts { get; set; }
+
+        public long NextAttemptMs { get; set; }
+
+        public string State { get; set; } = "";
+
+        public string? LastError { get; set; }
+    }
+}

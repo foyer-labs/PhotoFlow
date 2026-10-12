@@ -14,6 +14,8 @@ public interface ICatalog : IAsyncDisposable
     IDecisionStore Decisions { get; }
 
     IXmpSyncStore XmpSync { get; }
+
+    IDeferredCopyStore DeferredCopies { get; }
 }
 
 public interface ILibraryStore
@@ -82,6 +84,18 @@ public interface IXmpSyncStore
     Task MarkWrittenAsync(long assetId, string signature, CancellationToken ct);
 
     Task<IReadOnlyList<long>> ListPendingAsync(CancellationToken ct);
+}
+
+/// <summary>Persistent queue of copies to deferred destinations (NAS), retried until verified.</summary>
+public interface IDeferredCopyStore
+{
+    Task EnqueueAsync(DeferredCopy copy, CancellationToken ct);
+
+    Task<IReadOnlyList<DeferredCopy>> ListDueAsync(DateTimeOffset now, int limit, CancellationToken ct);
+
+    Task UpdateAsync(DeferredCopy copy, CancellationToken ct);
+
+    Task<int> CountPendingAsync(CancellationToken ct);
 }
 
 public sealed class CatalogLockedException(string message) : IOException(message);

@@ -131,6 +131,29 @@ public enum JobItemState
     Skipped,
 }
 
+/// <summary>A pending copy of a verified primary file to a deferred destination (NAS).</summary>
+public sealed record DeferredCopy(
+    long Id,
+    long? JobId,
+    string SourcePath,
+    string DestinationId,
+    string DestinationRoot,
+    string TargetRelativePath,
+    string ContentHash,
+    int Attempts,
+    DateTimeOffset NextAttemptAt,
+    DeferredCopyState State,
+    string? LastError);
+
+public enum DeferredCopyState
+{
+    Pending,
+    Done,
+
+    /// <summary>The primary copy no longer matches its verified hash: never propagated, reported.</summary>
+    Failed,
+}
+
 // --- Models and analysis ---
 
 public sealed record ModelRecord(
