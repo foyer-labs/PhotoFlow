@@ -1,0 +1,181 @@
+// SPDX-License-Identifier: Apache-2.0
+
+using PhotoFlow.Core.Imaging;
+
+namespace PhotoFlow.Imaging;
+
+/// <summary>
+/// Separable convolution resampling with the same coefficients and 8-bit fixed-point arithmetic as
+/// Pillow's <c>Image.resize</c> (libImaging/Resample.c): horizontal pass, then vertical pass, with the
+/// filter support scaled by the reduction factor (antialiasing on downsampling). Model preprocessing
+/// in the Python references uses Pillow, so matching it keeps the parity tests tight.
+/// </summary>
+public static class PillowResampler
+{
+    private const int PrecisionBits = 32 - 8 - 2;
+
+    public static RgbImage Resize(RgbImage image, int width, int height, ResampleMode mode)
+    {
+        ArgumentNullException.ThrowIfNull(image);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
+        if (mode != ResampleMode.Bilinear)
+        {
+            throw new ArgumentOutOfRangeException(nameof(mode), mode, "Unsupported resample mode.");
+        }
+
+        if (width == image.Width && height == image.Height)
+        {
+            return image;
+        }
+
+        var source = image.Pixels.Span;
+        byte[] horizontal;
+        if (width != image.Width)
+        {
+            horizontal = new byte[width * image.Height * 3];
+            var (bounds, coeffs, kernelSize) = PrecomputeCoefficients(image.Width, width);
+            ResampleHorizontal(source, image.Width, image.Height, horizontal, width, bounds, coeffs, kernelSize);
+        }
+        else
+        {
+            horizontal = source.ToArray();
+        }
+
+        if (height == image.Height)
+        {
+            return new RgbImage(width, height, horizontal);
+        }
+
+        var output = new byte[width * height * 3];
+        var (vBounds, vCoeffs, vKernelSize) = PrecomputeCoefficients(image.Height, height);
+        ResampleVertical(horizontal, width, output, height, vBounds, vCoeffs, vKernelSize);
+        return new RgbImage(width, height, output);
+    }
+
+    private static double Triangle(double x)
+    {
+        if (x < 0.0)
+        {
+            x = -x;
+        }
+
+        return x < 1.0 ? 1.0 - x : 0.0;
+    }
+
+    /// <summary>Port of <c>precompute_coeffs</c> + <c>normalize_coeffs_8bpc</c> for the bilinear (triangle) filter.</summary>
+    private static (int[] Bounds, int[] Coefficients, int KernelSize) PrecomputeCoefficients(int inSize, int outSize)
+    {
+        const double filterSupport = 1.0;
+        var scale = (double)inSize / outSize;
+        var filterScale = Math.Max(scale, 1.0);
+        var support = filterSupport * filterScale;
+        var kernelSize = (int)Math.Ceiling(support) * 2 + 1;
+
+        var bounds = new int[outSize * 2];
+        var coefficients = new int[outSize * kernelSize];
+        var weights = new double[kernelSize];
+
+        for (var xx = 0; xx < outSize; xx++)
+        {
+            var center = (xx + 0.5) * scale;
+            var ss = 1.0 / filterScale;
+
+            // C casts truncate toward zero.
+            var xmin = (int)(center - support + 0.5);
+            if (xmin < 0)
+            {
+                xmin = 0;
+            }
+
+            var xmax = (int)(center + support + 0.5);
+            if (xmax > inSize)
+            {
+                xmax = inSize;
+            }
+
+            xmax -= xmin;
+
+            var total = 0.0;
+            Array.Clear(weights);
+            for (var x = 0; x < xmax; x++)
+            {
+                var w = Triangle((x + xmin - center + 0.5) * ss);
+                weights[x] = w;
+                total += w;
+            }
+
+            for (var x = 0; x < xmax; x++)
+            {
+                var normalized = total != 0.0 ? weights[x] / total : weights[x];
+                coefficients[xx * kernelSize + x] = normalized < 0
+                    ? (int)(-0.5 + normalized * (1 << PrecisionBits))
+                    : (int)(0.5 + normalized * (1 << PrecisionBits));
+            }
+
+            bounds[xx * 2] = xmin;
+            bounds[xx * 2 + 1] = xmax;
+        }
+
+        return (bounds, coefficients, kernelSize);
+    }
+
+    private static byte Clip8(int value)
+    {
+        var shifted = value >> PrecisionBits;
+        return shifted < 0 ? (byte)0 : shifted > 255 ? (byte)255 : (byte)shifted;
+    }
+
+    private static void ResampleHorizontal(
+        ReadOnlySpan<byte> input, int inWidth, int rows, Span<byte> output, int outWidth, int[] bounds, int[] coefficients, int kernelSize)
+    {
+        var inStride = inWidth * 3;
+        var outStride = outWidth * 3;
+        for (var y = 0; y < rows; y++)
+        {
+            var inRow = input.Slice(y * inStride, inStride);
+            var outRow = output.Slice(y * outStride, outStride);
+            for (var xx = 0; xx < outWidth; xx++)
+            {
+                var xmin = bounds[xx * 2];
+                var xmax = bounds[xx * 2 + 1];
+                var k = coefficients.AsSpan(xx * kernelSize, kernelSize);
+                int r = 1 << (PrecisionBits - 1), g = r, b = r;
+                for (var x = 0; x < xmax; x++)
+                {
+                    var p = (x + xmin) * 3;
+                    r += inRow[p] * k[x];
+                    g += inRow[p + 1] * k[x];
+                    b += inRow[p + 2] * k[x];
+                }
+
+                outRow[xx * 3] = Clip8(r);
+                outRow[xx * 3 + 1] = Clip8(g);
+                outRow[xx * 3 + 2] = Clip8(b);
+            }
+        }
+    }
+
+    private static void ResampleVertical(
+        ReadOnlySpan<byte> input, int width, Span<byte> output, int outHeight, int[] bounds, int[] coefficients, int kernelSize)
+    {
+        var stride = width * 3;
+        for (var yy = 0; yy < outHeight; yy++)
+        {
+            var ymin = bounds[yy * 2];
+            var ymax = bounds[yy * 2 + 1];
+            var k = coefficients.AsSpan(yy * kernelSize, kernelSize);
+            var outRow = output.Slice(yy * stride, stride);
+            for (var i = 0; i < stride; i++)
+            {
+                var sum = 1 << (PrecisionBits - 1);
+                for (var y = 0; y < ymax; y++)
+                {
+                    sum += input[(y + ymin) * stride + i] * k[y];
+                }
+
+                outRow[i] = Clip8(sum);
+            }
+        }
+    }
+}

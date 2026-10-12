@@ -6,9 +6,9 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 
 | Voce | Valore |
 |---|---|
-| Fase corrente | 0 — Setup e laboratorio (non ancora avviata: in attesa di conferma) |
-| Branch | nessuno (repository git inizializzato localmente, nessun commit) |
-| Remoto | https://github.com/foyer-labs/PhotoFlow.git (pubblico, vuoto) |
+| Fase corrente | 0 — Setup e laboratorio: **criteri superati sulle foto reali, report in attesa di approvazione** ([docs/reports/fase-0.md](reports/fase-0.md)) |
+| Branch | `phase/0-setup` (pushato; pull request verso `main` da approvare) |
+| Remoto | https://github.com/foyer-labs/PhotoFlow.git (pubblico) |
 | Autore dei commit | Foyer Labs <foyerlabs@gmail.com> (config locale del repository) |
 | Ultimo aggiornamento | 2026-10-12 |
 
@@ -21,7 +21,7 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 | uv | 0.11.28 | |
 | git / gh | 2.51 / 2.101 | gh autenticato come foyer-labs |
 | GPU | NVIDIA RTX 3090, 24 GB | Driver 610.88 (CUDA 12/13) |
-| exiftool | non installato | Serve al benchmark (anteprime RAW) |
+| exiftool | 13.59 (solo laboratorio) | In `PHOTOFLOW_TESTDATA/tools/exiftool-13.59`, SHA-256 verificato |
 | `PHOTOFLOW_TESTDATA` | `E:\AI\PhotoFlowTestData` | Variabile utente impostata il 2026-10-12 (i processi già aperti non la vedono finché non vengono riavviati) |
 
 ## Attività completate
@@ -32,6 +32,9 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 - `git init` locale con identità Foyer Labs e remoto `origin`; nessun commit.
 - Installato .NET SDK 10.0.401 (winget).
 - Risolti con l'utente i punti A1-A11 (vedi decisioni); spec.md aggiornata in §2 (D21), §3, §4, §5, §6, §7, §8, §10 (I1), §13, §14, §17 (P11, backlog).
+- Fase 0 sviluppata su phase/0-setup (7 commit): soluzione e Core, guscio Avalonia, CI, hook, manifest, laboratorio, parità D-FINE, benchmark, verifica RAM++, verifiche 0.6. Dettagli ed evidenze in [docs/reports/fase-0.md](reports/fase-0.md).
+- Modelli scaricati e verificati in PHOTOFLOW_TESTDATA/models (buffalo_l con accettazione della licenza per uso di laboratorio).
+- Immagini di sviluppo: 8 COCO val2017 in PHOTOFLOW_TESTDATA/photos-dev (solo per provare gli script).
 
 ## Decisioni prese con l'utente
 
@@ -48,17 +51,27 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 | 2026-10-12 | A9 — Ripresa: `JobItems` e ripresa dell'Import in fase 1 (Home 3c); job d'archivio in background, parallelo, pausa in 1b. spec.md §13 aggiornata. Da proporre nel piano fase 1: copia su `.pftmp` + rinomina dopo verifica, sovrascrittura del temporaneo alla ripresa (nessuna eliminazione, I4) |
 | 2026-10-12 | A11 — `PROMPT_Claude_Code.md` resta solo locale: da inserire in `.gitignore` (fase 0.1), mai committato |
 | 2026-10-12 | Piano fase 0 approvato (`docs/plans/fase-0.md`): Avalonia 12.1.4, xUnit v3 3.2.2 fissato, download del laboratorio (~7 GB) e push su GitHub autorizzati. spec §3 (+`IObjectDetector`, `IImageOperations`) e §15 (YuNet MIT) aggiornate |
+| 2026-10-12 | `IInferenceProvider.CreateSessionAsync(model, target, ct)` asincrono (conformità a CLAUDE.md §4). spec §3 aggiornata |
+| 2026-10-12 | Verifiche 0.6 applicate a spec.md: §15 licenze (Velopack, PanAndZoom, HdbscanSharp, RapidOcrNet, Magick.NET, DirectML/Windows ML, CLIP, RAM++), §16 rischi R15-R20, note di laboratorio in §5, §17 verifiche tecniche aggiornate. T1 (tolleranza parità tensori) rinviata: si decide dopo la misura sulle foto reali |
+| 2026-10-12 | Nessun NEF della Z5 II disponibile fino a dopo l'implementazione: la "primissima attività della fase 1" (§13, verifica anteprima/HE/punto AF sui NEF Z5 II) va rinviata; proposta da fare nel piano della fase 1. Set di test reale: 240 file in `PHOTOFLOW_TESTDATA/photos` (178 NEF Nikon D40 lossy + D5100 lossless, 52 JPG di cui 49 Samsung SM-A500FU, 11 .xmp preesistenti, mai toccati) |
+| 2026-10-12 | T1 — Parità livello tensori: query abbinate con assegnazione ottima prima del confronto; punteggi (sigmoide) ≤ 5e-3, riquadri ≤ 5e-4 (misurati 2,7e-3 e 1,5e-4 su 40 foto reali). spec.md §14 e `DFineParityTests` aggiornati |
 | 2026-10-12 | A1 — Tavole rinominate come in §12bis (`PhotoFlow_*_dc.html`); specifica invariata |
 | 2026-10-12 | A10 — Ricostruite le celle troncate di §8 (Volti: `Persone\|Nome`; OCR: `Motorsport\|Numero N`, `Motorsport\|Pilota\|Nome`, `Motorsport\|Team\|Nome`) e §17 (Album → D6), con pipe protetti |
 
 ## Problemi aperti
 
-Nessuno.
+| # | Tema | Sintesi |
+|---|---|---|
+| R16-R17 | Backend di inferenza | Una sola ORT per processo; DirectML vs Windows ML: da decidere nel piano della fase 1 |
+| N5-N6 | Modelli quantizzati | RAM++ int8/CLIP quantizzato non accelerano su GPU; RAM++ int8 non supera la parità (52 JPG reali: 12/52 insiemi identici, Jaccard 0,866) — fase 3 |
+| Z5 II | NEF Z5 II non disponibili | Prima attività della fase 1 (§13) da rinviare a dopo l'implementazione: proposta nel piano della fase 1 |
+| N1-N4 | Note per fasi successive | CLIP scheda modello (fase 2), DirectML (0.6→R3), GridSample fp16 CUDA (fase 1), YuNet ingresso fisso (fase 1) |
 
 ## Verifiche manuali in attesa (per l'utente)
 
-Nessuna.
+1. ~~Avviare l'app~~ — fatto dall'utente il 2026-10-12: si apre e mostra la navigazione (comportamento atteso per la fase 0). Da controllare ancora, se possibile: pulsanti di sistema, trascinamento e doppio clic sulla barra del titolo, `-- --theme light`.
+2. ~~Foto di test~~ — fornite il 2026-10-12 (240 file).
 
 ## Prossimo passo
 
-Piano della fase 0 scritto in `docs/plans/fase-0.md`, in attesa di approvazione → sviluppo su `phase/0-setup`.
+Approvazione del report di fase 0 (tutti i criteri superati sulle foto reali) → merge della PR #1 in `main` → piano della fase 1 → pull request `phase/0-setup` → `main` → piano della fase 1.

@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Avalonia MVVM user interface; composition root. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <ApplicationIcon>Assets\photoflow.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PhotoFlow.Core\PhotoFlow.Core.csproj" />
+    <ProjectReference Include="..\PhotoFlow.Sources\PhotoFlow.Sources.csproj" />
+    <ProjectReference Include="..\PhotoFlow.Imaging\PhotoFlow.Imaging.csproj" />
+    <ProjectReference Include="..\PhotoFlow.Metadata\PhotoFlow.Metadata.csproj" />
+    <ProjectReference Include="..\PhotoFlow.Inference\PhotoFlow.Inference.csproj" />
+    <ProjectReference Include="..\PhotoFlow.Analysis\PhotoFlow.Analysis.csproj" />
+    <ProjectReference Include="..\PhotoFlow.Faces\PhotoFlow.Faces.csproj" />
+    <ProjectReference Include="..\PhotoFlow.Tagging\PhotoFlow.Tagging.csproj" />
+    <ProjectReference Include="..\PhotoFlow.Data\PhotoFlow.Data.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Microsoft.Extensions.Logging" />
+    <PackageReference Include="Serilog" />
+    <PackageReference Include="Serilog.Extensions.Logging" />
+    <PackageReference Include="Serilog.Sinks.File" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\**" />
+  </ItemGroup>
+</Project>
