@@ -31,6 +31,7 @@ ram = [
     "clip @ git+https://github.com/openai/CLIP@d05afc436d78f1c48dc0dbf8e5980a9d471f35f6",
     "timm==0.4.12",
     "fairscale==0.4.4",
+    "scipy>=1.14",  # imported by ram/models/swin_transformer.py, not declared upstream
 ]
 
 [tool.uv]

@@ -119,6 +119,37 @@ def download(url: str, target: Path, expected_sha256: str, expected_size: int) -
     print(f"  ok (verified) {target.name}")
 
 
+EXIFTOOL_VERSION = "13.59"
+EXIFTOOL_URL = "https://sourceforge.net/projects/exiftool/files/exiftool-13.59_64.zip/download"
+EXIFTOOL_SHA256 = "44b512b25af500724ba579d0a53c8fc5851628b692dd5e5d94ae4a15c2cba9ec"  # https://exiftool.org/checksums.txt
+EXIFTOOL_SIZE = 11183675
+
+
+def ensure_exiftool() -> Path:
+    """exiftool for the lab, downloaded once into PHOTOFLOW_TESTDATA/tools (Windows build, SHA-256 verified)."""
+    import shutil
+    import zipfile
+
+    folder = output_dir("tools", f"exiftool-{EXIFTOOL_VERSION}")
+    exe = folder / "exiftool.exe"
+    if exe.exists():
+        return exe
+    if platform.system() != "Windows":
+        found = shutil.which("exiftool")
+        if found:
+            return Path(found)
+        sys.exit("exiftool not found: install it with your package manager.")
+    archive = folder / "exiftool.zip"
+    download(EXIFTOOL_URL, archive, EXIFTOOL_SHA256, EXIFTOOL_SIZE)
+    with zipfile.ZipFile(archive) as zf:
+        zf.extractall(folder)
+    inner = next(folder.glob("exiftool-*_64"))
+    for item in inner.iterdir():
+        item.replace(folder / item.name)
+    (folder / "exiftool(-k).exe").replace(exe)
+    return exe
+
+
 def list_images(folder: Path, include_raw: bool = False) -> list[Path]:
     allowed = IMAGE_EXTENSIONS | (RAW_EXTENSIONS if include_raw else set())
     return sorted(p for p in folder.rglob("*") if p.is_file() and p.suffix.lower() in allowed)
