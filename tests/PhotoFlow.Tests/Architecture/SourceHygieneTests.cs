@@ -35,7 +35,7 @@ public sealed partial class SourceHygieneTests
         var offenders = SourceFiles("*.cs", "src")
             .Concat(SourceFiles("*.axaml", "src"))
             .SelectMany(f => File.ReadLines(f).Select((line, i) => (File: f, Line: i + 1, Text: line)))
-            .Where(l => AbsolutePath().IsMatch(l.Text))
+            .Where(l => AbsolutePath().IsMatch(l.Text) && !l.Text.Contains("path-hygiene: allowed", StringComparison.Ordinal))
             .Select(l => $"{l.File}:{l.Line}: {l.Text.Trim()}")
             .ToList();
         Assert.True(offenders.Count == 0, "Absolute paths must go through IAppPaths:\n" + string.Join('\n', offenders));

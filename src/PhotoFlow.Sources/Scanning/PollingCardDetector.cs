@@ -12,6 +12,14 @@ public sealed class PollingCardDetector : ICardDetector
 {
     public static readonly TimeSpan DefaultInterval = TimeSpan.FromSeconds(2);
 
+    /// <summary>Where macOS and Linux mount removable media: operating-system conventions, not application paths.</summary>
+    private static readonly string[] RemovableMountRoots =
+    [
+        "/Volumes/", // path-hygiene: allowed (macOS mount point for removable media)
+        "/media/", // path-hygiene: allowed (Linux udisks mount point)
+        "/run/media/", // path-hygiene: allowed (Linux udisks2 mount point)
+    ];
+
     private readonly Func<IEnumerable<CardVolume>> _probe;
     private readonly TimeSpan _interval;
     private readonly TimeProvider _timeProvider;
@@ -91,9 +99,7 @@ public sealed class PollingCardDetector : ICardDetector
             {
                 var candidate = OperatingSystem.IsWindows()
                     ? drive.DriveType == DriveType.Removable
-                    : drive.RootDirectory.FullName.StartsWith("/Volumes/", StringComparison.Ordinal)
-                      || drive.RootDirectory.FullName.StartsWith("/media/", StringComparison.Ordinal)
-                      || drive.RootDirectory.FullName.StartsWith("/run/media/", StringComparison.Ordinal);
+                    : RemovableMountRoots.Any(root => drive.RootDirectory.FullName.StartsWith(root, StringComparison.Ordinal));
                 if (candidate && drive.IsReady && Directory.Exists(Path.Combine(drive.RootDirectory.FullName, "DCIM")))
                 {
                     card = new CardVolume(drive.RootDirectory.FullName, drive.VolumeLabel, drive.TotalSize);
