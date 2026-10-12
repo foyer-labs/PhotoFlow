@@ -221,6 +221,8 @@ Tutti i modelli girano in ONNX Runtime; ogni funzione ha un modello attivo selez
 
 Qwen3-VL è escluso finché ONNX Runtime GenAI non lo supporta nativamente.
 
+Note dal laboratorio (fase 0, 12 ott 2026): RAM++ int8 e CLIP quantizzato non accelerano su GPU (la quantizzazione dinamica gira in CPU: RAM++ int8 528 ms/foto su RTX 3090 contro 614 su CPU), quindi su GPU vanno usate le varianti fp32/fp16. La RAM++ int8 della community non supera la parità con l'originale (stesso insieme di tag in 1 immagine su 8, Jaccard medio 0,895): in fase 3 si usa fp32 o un export verificato. D-FINE fp16 non è usabile con CUDA (GridSample solo fp32).
+
 ### Livelli di tagging
 
 | Livello | Contenuto | Default |
@@ -977,16 +979,17 @@ Il progetto è Apache 2.0; l'unico componente non commerciale (buffalo\_l) è op
 | --- | --- | --- |
 | .NET, Avalonia, CommunityToolkit.Mvvm, SkiaSharp | MIT | Verificato |
 | ONNX Runtime, ONNX Runtime GenAI | MIT | Verificato |
+| DirectML (`Microsoft.AI.DirectML`), runtime Windows ML | Licenze proprietarie Microsoft, ridistribuibili a condizioni; i provider di vendor di Windows ML hanno licenze proprie | Verificato 12 ott 2026 |
 | Microsoft.Data.Sqlite / SQLite | MIT / pubblico dominio | Verificato |
 | Dapper, Serilog, xUnit, OpenCvSharp | Apache 2.0 | Da conoscenza |
-| Magick.NET | Apache 2.0; decoder HEIC (libheif, libde265) LGPL, usati come librerie dinamiche | Da verificare |
+| Magick.NET (15.0.0) | Apache 2.0; libheif, libde265 (LGPL) e LibRaw **collegate staticamente** in Magick.Native: serve voce NOTICE, offerta dei sorgenti LGPL e revisione di conformità (R19) | Verificato 12 ott 2026 |
 | exiftool | Licenza di Perl (Artistic/GPL), ridistribuibile | Da conoscenza |
-| Velopack | MIT | Da verificare |
+| Velopack / vpk (1.2.161) | MIT; canali per variante, feed statico, ritorno indietro con `AllowVersionDowngrade` | Verificato 12 ott 2026 |
 | [Florence2-Sharp](https://docs.curiosity.ai/florence2-sharp/) | MIT | Verificato |
-| [RapidOcrNet](https://www.nuget.org/packages/rapidocrnet) | Codice: da verificare; modelli PaddleOCR: Apache 2.0 | Parziale |
-| [HdbscanSharp](https://www.nuget.org/packages/HdbscanSharp) | Da verificare | Aperto |
+| [RapidOcrNet](https://www.nuget.org/packages/rapidocrnet) (4.2.0) | Codice Apache 2.0; modelli PaddleOCR Apache 2.0 (da confermare alla fonte); dipende da ONNX Runtime ≥ 1.29 (R16) | Verificato 12 ott 2026 (codice) |
+| [HdbscanSharp](https://www.nuget.org/packages/HdbscanSharp) (3.0.1) | MIT; inattivo da maggio 2025; O(n²), non adatto a ~100.000 volti (R18) | Verificato 12 ott 2026 |
 | IBM Plex Sans / Plex Mono (font) | SIL Open Font License, incorporabile | Da design |
-| PanAndZoom (Avalonia) | MIT | Da design, da verificare |
+| PanAndZoom (pacchetto `PanAndZoom` ≥ 12.1.1, Avalonia 12) | MIT; `ZoomBorder` con `SetMatrix` / `MatrixChanged` per il confronto sincronizzato | Verificato 12 ott 2026 |
 | Avalonia DataGrid, AvaloniaEdit (opzionale) | MIT | Da verificare |
 | VirtualizingWrapPanel di terze parti (alternativa a ItemsRepeater) | Da verificare | Aperto, solo se adottato |
 
@@ -996,8 +999,8 @@ Il progetto è Apache 2.0; l'unico componente non commerciale (buffalo\_l) è op
 | --- | --- | --- |
 | [D-FINE](https://pypi.org/project/easydetect/) | Apache 2.0 (codice e pesi) | Sì |
 | [RF-DETR](https://pypi.org/project/rfdetr-onnx/) Nano-Large | Apache 2.0 (XLarge/2XLarge: PML 1.0, esclusi) | Sì |
-| [CLIP](https://huggingface.co/Xenova/clip-vit-base-patch32) | MIT | Sì |
-| [RAM++ (ONNX int8)](https://huggingface.co/anakhiu/ram-plus-onnx-int8) | Apache 2.0 | Sì |
+| [CLIP](https://huggingface.co/Xenova/clip-vit-base-patch32) | MIT (la scheda del modello OpenAI dichiara fuori ambito gli usi "deployed": indicazione d'uso, non licenza; da valutare in fase 2) | Sì |
+| [RAM++ (ONNX int8)](https://huggingface.co/anakhiu/ram-plus-onnx-int8) | Apache 2.0 (provenienza debole; non supera la parità, vedi §5) | Sì |
 | [Florence-2](https://huggingface.co/onnx-community/Florence-2-large) | MIT | Sì |
 | PaddleOCR | Apache 2.0 | Sì |
 | Qwen2.5-VL | Varia per dimensione | Da verificare |
@@ -1027,6 +1030,12 @@ Il rischio principale è l'allargamento continuo dell'ambito; questa specifica e
 | R12 | Cambio di licenza di un modello | Bassa | Medio | Versioni fissate con SHA-256, licenza registrata |
 | R13 | exiftool bloccato o lento | Bassa | Medio | `-stay_open`, controllo di salute, riavvio automatico |
 | R14 | Durata del progetto con impegno serale | Alta | Medio | Ogni fase produce un applicativo utilizzabile |
+| R15 | NEF High Efficiency (HE/HE*) non decodificabili da LibRaw pubblica (0.22.2); Z5 II non in elenco | Alta | Medio | Anteprima incorporata via exiftool, stato "RAW HE: solo anteprima"; aggiornare allo snapshot LibRaw annunciato per l'autunno 2026 |
+| R16 | Una sola distribuzione di ONNX Runtime per processo: DirectML NuGet 1.24.4, Windows ML 1.27.1, RapidOcrNet ≥ 1.29 | Alta | Medio | Scelta del backend nel piano della fase 1; RapidOcrNet dietro adattatore, eventualmente incorporato (Apache 2.0) |
+| R17 | DirectML in sustained engineering; CUDA in migrazione verso un plugin EP | Media | Medio | `IInferenceProvider`; valutare Windows ML (provider di vendor solo da Windows 11 24H2, DirectML/CPU anche su Windows 10) |
+| R18 | Clustering volti: HdbscanSharp O(n²) non scala a ~100.000 volti | Alta | Medio | HDBSCAN su grafo k-NN dietro interfaccia di Core, validato contro Python in `tools/lab` |
+| R19 | LGPL (libheif, libde265, LibRaw) collegate staticamente in Magick.Native | Media | Medio | NOTICE e offerta dei sorgenti; revisione di conformità prima della prima versione distribuita |
+| R20 | Perl di sistema deprecato su macOS (serve a exiftool) | Media | Basso | Controllo all'avvio con messaggio chiaro; in prospettiva Perl incluso nel pacchetto Mac |
 
 ## 17. Backlog e punti da verificare
 
@@ -1072,12 +1081,12 @@ Decisioni emerse in Design (confermate), funzioni rinviate a dopo la stabilizzaz
 ### Verifiche tecniche
 
 - [ ] Risoluzione dell'anteprima incorporata nei NEF della Z5 II
-- [ ] Decodifica dei NEF High Efficiency (LibRaw) e scelta del binding .NET di LibRaw
+- [ ] Decodifica dei NEF High Efficiency (LibRaw) e scelta del binding .NET di LibRaw (12 ott 2026: nessuna LibRaw pubblica decodifica HE/HE*, Z5 II non in elenco — R15; binding proposto: P/Invoke sottile sui binari ufficiali 0.22.x, Sdcb.LibRaw fermo a 0.21.1)
 - [ ] Punto AF Nikon leggibile con exiftool per la Z5 II
 - [ ] Lettura dei sidecar/incorporati in Esplora risorse, Photoshop/Camera Raw, Bridge, Lightroom
-- [ ] Stato di Velopack e di DirectML rispetto a Windows ML
-- [ ] Licenze aperte: HdbscanSharp, codice RapidOcrNet, Qwen2.5-VL, predittore estetico, decoder HEIC in Magick.NET
-- [ ] Perl disponibile sulle versioni recenti di macOS
+- [x] Stato di Velopack e di DirectML rispetto a Windows ML (12 ott 2026: Velopack attivo; DirectML in sustained engineering, NuGet fermo a 1.24.4; Windows ML GA con ORT 1.27.1 — R16, R17)
+- [ ] Licenze aperte: Qwen2.5-VL, predittore estetico (chiuse il 12 ott 2026: HdbscanSharp MIT, codice RapidOcrNet Apache 2.0, decoder HEIC in Magick.NET LGPL statici)
+- [x] Perl disponibile sulle versioni recenti di macOS (12 ott 2026: presente su macOS 26 per evidenza indiretta, deprecato da Apple dal 2019 — R20)
 - [ ] Riconoscimento di monoposto e prototipi da parte di D-FINE (COCO) sulle foto in pista
 - [ ] Qualità di YuNet/SFace rispetto a buffalo\_l
 - [ ] Tempi reali con il benchmark (sostituiscono le stime della sezione 5)

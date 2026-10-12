@@ -52,6 +52,7 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 | 2026-10-12 | A11 — `PROMPT_Claude_Code.md` resta solo locale: da inserire in `.gitignore` (fase 0.1), mai committato |
 | 2026-10-12 | Piano fase 0 approvato (`docs/plans/fase-0.md`): Avalonia 12.1.4, xUnit v3 3.2.2 fissato, download del laboratorio (~7 GB) e push su GitHub autorizzati. spec §3 (+`IObjectDetector`, `IImageOperations`) e §15 (YuNet MIT) aggiornate |
 | 2026-10-12 | `IInferenceProvider.CreateSessionAsync(model, target, ct)` asincrono (conformità a CLAUDE.md §4). spec §3 aggiornata |
+| 2026-10-12 | Verifiche 0.6 applicate a spec.md: §15 licenze (Velopack, PanAndZoom, HdbscanSharp, RapidOcrNet, Magick.NET, DirectML/Windows ML, CLIP, RAM++), §16 rischi R15-R20, note di laboratorio in §5, §17 verifiche tecniche aggiornate. T1 (tolleranza parità tensori) rinviata: si decide dopo la misura sulle foto reali |
 | 2026-10-12 | A1 — Tavole rinominate come in §12bis (`PhotoFlow_*_dc.html`); specifica invariata |
 | 2026-10-12 | A10 — Ricostruite le celle troncate di §8 (Volti: `Persone\|Nome`; OCR: `Motorsport\|Numero N`, `Motorsport\|Pilota\|Nome`, `Motorsport\|Team\|Nome`) e §17 (Album → D6), con pipe protetti |
 
@@ -60,8 +61,7 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 | # | Tema | Sintesi |
 |---|---|---|
 | T1 | Tolleranza parità tensori (§14) | Logit ORT vs PyTorch fino a 8,5e-3 (> 1e-3 provvisorio); proposta: punteggi ≤ 1e-3, riquadri ≤ 2e-4 |
-| L1-L2 | Inventario licenze §15 | Aggiornamenti da verifiche 0.6 proposti nel report |
-| R1-R5 | Nuovi rischi | NEF HE non decodificabili (LibRaw), una sola ORT per processo, DirectML vs Windows ML, HdbscanSharp O(n²), binding LibRaw |
+| R16-R17 | Backend di inferenza | Una sola ORT per processo; DirectML vs Windows ML: da decidere nel piano della fase 1 |
 | N5-N6 | Modelli quantizzati | RAM++ int8/CLIP quantizzato non accelerano su GPU; RAM++ int8 non supera la parità (Jaccard 0,895) |
 | N1-N4 | Note per fasi successive | CLIP scheda modello (fase 2), DirectML (0.6→R3), GridSample fp16 CUDA (fase 1), YuNet ingresso fisso (fase 1) |
 
@@ -72,4 +72,4 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 
 ## Prossimo passo
 
-Approvazione del report di fase 0 e delle proposte T1, L1-L2, R1-R5 → rieseguire parità e benchmark sulle foto reali → pull request `phase/0-setup` → `main` → piano della fase 1.
+Foto reali dell'utente → rieseguire parità, benchmark e verifica RAM++ → decisione T1 → approvazione del report di fase 0 → pull request `phase/0-setup` → `main` → piano della fase 1.
