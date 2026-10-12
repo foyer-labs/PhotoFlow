@@ -66,6 +66,7 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 | 2026-10-12 | Tecnica (fase 1.8): job di import in `PhotoFlow.Sources` (QuickHash/xxHash non possono stare in Core); unità di pipeline = foto (gemelli RAW+JPEG), in analisi solo con tutti i file verificati (I3), analisi sul JPEG se presente; impostazioni del job salvate nel job (ripresa identica); in pausa il lavoro già calcolato viene registrato; un job "in esecuzione" all'apertura del catalogo (lock esclusivo) è un'interruzione → in pausa; un job completato con errori si può rilanciare per ritentare i soli file falliti |
 | 2026-10-12 | Tecnica (fase 1.9-1.10): interfaccia con pagine per sezione e sezioni future visibili ma disattivate (F1-6); scorciatoie per vista legate alla vista; griglia di Revisione virtualizzata a righe; mappa XMP di fase 1 (spec §4); Ctrl I globale; lock del catalogo con nuovi tentativi per 2 s; analisi in parallelo automatica (un terzo dei thread, 2-8; misurato: 1.000 foto in ~1,6 min con copia verificata, D-FINE M e buffalo\_l su RTX 3090) |
 | 2026-10-12 | Report della fase 1 approvato. B1: I4 chiarita — protegge i file dell'utente; i file interni di PhotoFlow nelle cartelle di `IAppPaths` (backup, cache, temporanei, download) si possono ruotare o pulire con regole in spec §10 e un test che vieta cancellazioni altrove. spec §10 e CLAUDE.md aggiornati |
+| 2026-10-12 | PR della fase 1 unita in `main`. Fase 1b: subset d'archivio fornito dall'utente in `E:\AI\PhotoFlowTestDatarchive` (solo lettura); piano in `docs/plans/fase-1b.md` da approvare |
 | 2026-10-12 | A1 — Tavole rinominate come in §12bis (`PhotoFlow_*_dc.html`); specifica invariata |
 | 2026-10-12 | A10 — Ricostruite le celle troncate di §8 (Volti: `Persone\|Nome`; OCR: `Motorsport\|Numero N`, `Motorsport\|Pilota\|Nome`, `Motorsport\|Team\|Nome`) e §17 (Album → D6), con pipe protetti |
 
@@ -86,4 +87,4 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 
 ## Prossimo passo
 
-Fase 1 completata su `phase/1-import` (tappe 1.0-1.10): report in [docs/reports/fase-1.md](reports/fase-1.md). In attesa: approvazione del report, decisione B1, verifiche manuali e set etichettato (per il criterio 7). Poi merge della PR e piano della fase 1b.
+Approvazione del piano della fase 1b ([docs/plans/fase-1b.md](plans/fase-1b.md)), branch `phase/1b-archive`.
