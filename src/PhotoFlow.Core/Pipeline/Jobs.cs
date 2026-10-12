@@ -12,14 +12,25 @@ namespace PhotoFlow.Core.Pipeline;
 /// </summary>
 /// <param name="LibraryId">Library of the primary destination (assets get their location there).</param>
 /// <param name="SourceRoot">Card or folder imported (never written, I1).</param>
+/// <param name="AnalysisWorkers">Photos analyzed in parallel; 0 = automatic (see <see cref="PipelineDefaults.DefaultAnalysisWorkers"/>).</param>
 public sealed record ImportJobSettings(
     long LibraryId,
     string SourceRoot,
     IReadOnlyList<IngestDestination> Destinations,
     string ProfileId,
     int MaxParallelFiles = 2,
-    int AnalysisWorkers = 2,
+    int AnalysisWorkers = 0,
     FaceMode? Faces = null);
+
+public static class PipelineDefaults
+{
+    /// <summary>
+    /// A third of the logical processors, 2 to 8: the analysis is CPU bound (previews, resampling, signals) with the
+    /// models on the GPU. Measured on 230 real photos, 24 threads + RTX 3090: 2 workers 4.8 photos/s, 4 → 7.4,
+    /// 8 → 10.1-10.9, 12 → 9.1.
+    /// </summary>
+    public static int DefaultAnalysisWorkers => Math.Clamp(Environment.ProcessorCount / 3, 2, 8);
+}
 
 /// <summary>Runs or resumes a job until it completes, pauses (cancellation, unavailable destination or source) or fails.</summary>
 public interface IJobRunner

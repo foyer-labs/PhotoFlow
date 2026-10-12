@@ -143,7 +143,8 @@ public sealed class ImportJobRunner : IJobRunner
 
             // A failing worker stops the whole run (the producer could otherwise wait forever on a full channel).
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            var analysis = Enumerable.Range(0, Math.Max(1, settings.AnalysisWorkers)).Select(_ => AnalyzeAsync(linked)).ToList();
+            var workerCount = settings.AnalysisWorkers > 0 ? settings.AnalysisWorkers : PipelineDefaults.DefaultAnalysisWorkers;
+            var analysis = Enumerable.Range(0, workerCount).Select(_ => AnalyzeAsync(linked)).ToList();
             ct = linked.Token;
             JobPauseReason? pause = null;
             Exception? producerError = null;
