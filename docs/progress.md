@@ -57,6 +57,9 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 | 2026-10-12 | T1 — Parità livello tensori: query abbinate con assegnazione ottima prima del confronto; punteggi (sigmoide) ≤ 5e-3, riquadri ≤ 5e-4 (misurati 2,7e-3 e 1,5e-4 su 40 foto reali). spec.md §14 e `DFineParityTests` aggiornati |
 | 2026-10-12 | Report fase 0 approvato; PR #1 unita in `main` |
 | 2026-10-12 | F1-1..F1-7 — decisioni del piano della fase 1 (vedi `docs/plans/fase-1.md`): rinvio verifica Z5 II; CUDA + CPU (DirectML escluso per risultati errati); Magick.NET per RAW di riserva; analisi in C# con parità OpenCV; exiftool scaricato in build; layout completo con funzioni future disattivate; set qualità a cartelle. spec §3, §4, §5, §11, §13, §14, §15, §16, §17 e CLAUDE.md §3 aggiornati |
+| 2026-10-12 | Autonomia: da qui l'utente delega le scelte tecniche (verificare alternative, scegliere la più robusta, misurare dove serve); si ferma solo per decisioni operative e per i cancelli di fase |
+| 2026-10-12 | Tecnica (fase 1.0-1.2): `IFileSystem` senza cancellazione (I4 per costruzione); copia verificata `.pftmp` → verifica → rinomina, mai sovrascritture (nome libero `-2`); `IMetadataWriter` riceve `MetadataTarget` (spec §3); sidecar `nome.xmp` condiviso dalle coppie RAW+JPG; incorporamento XMP tramite sostituzione verificata (`ImageDataHash` invariato) con `_original` conservato per default; exiftool: distribuzione Perl dal tag GitHub dell'autore in CI/Linux/macOS, eseguibile Windows da SourceForge per le build locali (SourceForge rifiuta i runner CI); campioni RAW pubblici CC0 (raw.pixls.us) scaricati e verificati dai test, mai nel repository; JPG di test sintetici |
+| 2026-10-12 | Tecnica (fase 1.1): catalogo SQLite con connessione unica serializzata, file di lock tenuto aperto e mai cancellato, enumerazioni come testo e istanti in millisecondi Unix (niente gestori globali Dapper), backup con la backup API prima di ogni migrazione |
 | 2026-10-12 | A1 — Tavole rinominate come in §12bis (`PhotoFlow_*_dc.html`); specifica invariata |
 | 2026-10-12 | A10 — Ricostruite le celle troncate di §8 (Volti: `Persone\|Nome`; OCR: `Motorsport\|Numero N`, `Motorsport\|Pilota\|Nome`, `Motorsport\|Team\|Nome`) e §17 (Album → D6), con pipe protetti |
 
@@ -65,6 +68,7 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 | # | Tema | Sintesi |
 |---|---|---|
 | N5-N6 | Modelli quantizzati | RAM++ int8/CLIP quantizzato non accelerano su GPU; RAM++ int8 non supera la parità (52 JPG reali: 12/52 insiemi identici, Jaccard 0,866) — fase 3 |
+| B1 | Rotazione dei backup del catalogo ("N versioni", §9) | Richiede di cancellare backup vecchi: in conflitto con la lettera di I4. In fase 1 i backup si accumulano; proposta di chiarimento di I4 (file interni di PhotoFlow in cartelle proprie) da sottoporre a fine fase |
 | Z5 II | NEF Z5 II non disponibili | Prima attività della fase 1 (§13) da rinviare a dopo l'implementazione: proposta nel piano della fase 1 |
 | N1-N4 | Note per fasi successive | CLIP scheda modello (fase 2), DirectML (0.6→R3), GridSample fp16 CUDA (fase 1), YuNet ingresso fisso (fase 1) |
 
