@@ -48,7 +48,7 @@ public sealed class CommandTableTests
         {
             var hints = GlobalCommands.Create().CreateStatusHints();
             Assert.Equal(
-                [new StatusHint("Ctrl K", "Cerca"), new StatusHint("Ctrl 1–7", "Sezioni"), new StatusHint("Ctrl ,", "Impostazioni")],
+                [new StatusHint("Ctrl K", "Cerca"), new StatusHint("Ctrl 1–7", "Sezioni"), new StatusHint("Ctrl I", "Importa cartella"), new StatusHint("Ctrl ,", "Impostazioni")],
                 hints);
         }
         finally

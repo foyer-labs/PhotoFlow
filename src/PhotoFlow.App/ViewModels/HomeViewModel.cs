@@ -126,13 +126,11 @@ public sealed partial class HomeViewModel : PageViewModel, IDisposable
 
     public const string PrimaryCommand = "Home.Primary";
     public const string SecondaryCommand = "Home.Secondary";
-    public const string ImportFolderCommand = "Home.ImportFolder";
 
     private static readonly CommandTable Table = new(
     [
         new(PrimaryCommand, new KeyGesture(Key.Enter), "Home.Command.Primary", StatusGroupKey: "Home.Command.Primary"),
         new(SecondaryCommand, new KeyGesture(Key.Escape), "Home.Command.Secondary"),
-        new(ImportFolderCommand, new KeyGesture(Key.I, KeyModifiers.Control), "Home.QuickAction.ImportFolder", StatusGroupKey: "Home.QuickAction.ImportFolder"),
     ]);
 
     public override CommandTable Commands => Table;
@@ -144,7 +142,6 @@ public sealed partial class HomeViewModel : PageViewModel, IDisposable
     {
         PrimaryCommand => PrimaryActionCommand,
         SecondaryCommand => SecondaryActionCommand,
-        ImportFolderCommand => RequestFolderCommand,
         _ => base.ResolveCommand(id),
     };
 

@@ -192,6 +192,8 @@ Default per le librerie create da un import: `EmbeddedForNonRaw`, perché l'uten
 
 Nomi di persone, eventi e piloti non si traducono. Tag "non rivisti": solo inglese.
 
+Scrittura in fase 1 (12 ott 2026), solo dopo la conferma in Revisione e con la politica della libreria: le stelle dell'utente diventano `xmp:Rating`; uno scarto `xmp:Rating = -1` (prudente: etichetta rossa); da rivedere etichetta rossa. Le foto senza nulla da dire (tenute, simili, migliori senza stelle) non vengono toccate; se erano già state scritte, rating ed etichetta vengono azzerati. Le coppie RAW+JPEG ricevono gli stessi campi (sidecar per il RAW). Una scrittura non riuscita resta in sospeso in `XmpSync` e non blocca le altre.
+
 ### Sincronizzazione con modifiche esterne
 
 | Situazione | Comportamento |
@@ -495,7 +497,7 @@ Catalogo SQLite, foto identificate dall'hash del contenuto: tag, volti e decisio
 | Catalogo in rete: protezione | Comportamento |
 | --- | --- |
 | Modalità journal | Rollback automatico su percorso di rete (WAL non funziona su filesystem di rete) |
-| Un PC alla volta | File di lock; apertura rifiutata con messaggio chiaro |
+| Un PC alla volta | File di lock; apertura rifiutata con messaggio chiaro (dopo 2 s di nuovi tentativi: un processo appena terminato può rilasciare il lock in ritardo) |
 | Backup | A ogni chiusura e programmato, N versioni |
 | Integrità | Controllo all'apertura; ripristino proposto dall'ultimo backup |
 
@@ -831,6 +833,8 @@ Testi elastici: pulsanti e chip crescono col testo (minimo 72 px); le barre stru
 
 Le cifre cambiano significato per vista (stelle, numero, etichetta) e la barra di stato lo dichiara sempre.
 
+Le scorciatoie di una vista sono legate alla vista, non alla finestra: le lettere (P, X, cifre) non agiscono mentre si scrive in un campo di testo come la ricerca. In fase 1 `0` toglie le stelle e Ctrl Z annulla le decisioni della Revisione (l'annullamento globale arriva con le altre operazioni annullabili).
+
 ## 13. Guida per Claude Code
 
 Sviluppo per fasi, ognuna chiusa solo quando tutti i suoi criteri di accettazione sono soddisfatti; questa specifica vive nel repository in Markdown ed è il riferimento per ogni sessione.
@@ -1089,6 +1093,10 @@ Decisioni emerse in Design (confermate), funzioni rinviate a dopo la stabilizzaz
 | Catalogo su PostgreSQL (homelab) per uso multi-PC simultaneo | Sezione 9 |
 | Backend GPU per schede non NVIDIA (Windows ML con provider di vendor, o DirectML se corretto): ammesso solo dopo i test di parità | F1-2 |
 | Rivalutare OpenCvSharp se le fasi successive richiedono elaborazioni complesse | F1-4 |
+| Punto AF delle reflex (punti con nome, senza coordinate): mappa delle posizioni per modello | Tappa 1.7 |
+| Importazione del pacchetto offline dei modelli (oggi solo il pacchetto GPU) | Tappa 1.9 |
+| Annulla globale (Ctrl Z) oltre le decisioni della Revisione | Tappa 1.9 |
+| Accelerazione SIMD del ricampionamento e dei segnali (oggi l'analisi è limitata dalla CPU: 8 foto in parallelo su 24 thread) | Tappa 1.10 |
 | Cambio di politica XMP di una libreria: unione dei sidecar esistenti negli incorporati (o viceversa) | D21, fase 5 (sincronizzazione) |
 
 ### Verifiche tecniche

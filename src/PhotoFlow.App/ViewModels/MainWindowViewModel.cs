@@ -177,6 +177,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IShellNaviga
         GlobalCommands.Navigate => NavigateCommand,
         GlobalCommands.FocusSearch => FocusSearchCommand,
         GlobalCommands.OpenSettings => OpenSettingsCommand,
+        GlobalCommands.ImportFolder => ImportFolderCommand,
         _ => throw new ArgumentOutOfRangeException(nameof(id), id, "Unknown command."),
     };
 
@@ -206,6 +207,22 @@ public sealed partial class MainWindowViewModel : ObservableObject, IShellNaviga
 
     [RelayCommand]
     private void OpenSettings() => Navigate(SectionCatalog.Settings);
+
+    /// <summary>Ctrl I from anywhere: Home, then the folder picker of its view.</summary>
+    [RelayCommand]
+    private void ImportFolder()
+    {
+        if (_host is null)
+        {
+            return;
+        }
+
+        Navigate(SectionCatalog.Home);
+        if (CurrentPage is HomeViewModel { IsNormal: true } home)
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(() => home.RequestFolderCommand.Execute(null));
+        }
+    }
 
     [RelayCommand]
     private void ToggleNavigation() => IsNavigationCollapsedByUser = !IsNavigationCollapsedByUser;
