@@ -5,39 +5,126 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PhotoFlow.App.Commands;
 using PhotoFlow.App.Localization;
+using PhotoFlow.App.Services;
 
 namespace PhotoFlow.App.ViewModels;
 
-/// <summary>Window shell: navigation, title bar, status bar. No content in phase 0.</summary>
-public sealed partial class MainWindowViewModel : ObservableObject
+/// <summary>Window shell: navigation, title bar, status bar, and the page of the selected section.</summary>
+public sealed partial class MainWindowViewModel : ObservableObject, IShellNavigator, IDisposable
 {
+    private readonly PhotoFlowHost? _host;
+    private readonly Dictionary<string, PageViewModel> _pages = [];
     /// <summary>At or below this width the navigation collapses to icons automatically (board 04).</summary>
     public const double AutoCompactWidth = 1280;
 
-    public MainWindowViewModel()
+    public MainWindowViewModel(PhotoFlowHost? host = null)
     {
+        _host = host;
         Commands = GlobalCommands.Create();
-        StatusHints = Commands.CreateStatusHints();
+        _globalHints = Commands.CreateStatusHints();
+        _statusHints = _globalHints;
         MainSections = SectionCatalog.All.Where(s => !s.IsSecondary).ToList();
         SecondarySections = SectionCatalog.All.Where(s => s.IsSecondary).ToList();
         _selectedSection = SectionCatalog.All[0];
+        _currentPage = PageFor(_selectedSection);
+    }
+
+    /// <summary>Content of the main area: the page of the section, or a flow opened from it (import procedure).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PageTitle))]
+    private PageViewModel _currentPage;
+
+    public string PageTitle => CurrentPage.Title;
+
+    public void ShowSection(string sectionId) => Navigate(sectionId);
+
+    public void ShowPage(PageViewModel page)
+    {
+        ArgumentNullException.ThrowIfNull(page);
+        CurrentPage = page;
+        _ = page.ActivateAsync();
+    }
+
+    public void OpenReview(long jobId)
+    {
+        var section = SectionCatalog.All.First(s => s.Id == SectionCatalog.Review);
+        if (PageFor(section) is ReviewViewModel review)
+        {
+            review.JobId = jobId;
+        }
+
+        Navigate(section.Id);
+    }
+
+    public void Dispose()
+    {
+        foreach (var page in _pages.Values.OfType<IDisposable>())
+        {
+            page.Dispose();
+        }
+    }
+
+    partial void OnCurrentPageChanged(PageViewModel value)
+    {
+        StatusHints = [.. value.Commands?.CreateStatusHints() ?? [], .. _globalHints];
+        OnPropertyChanged(nameof(LibraryName));
+    }
+
+    partial void OnSelectedSectionChanged(Section value)
+    {
+        CurrentPage = PageFor(value);
+        _ = CurrentPage.ActivateAsync();
+    }
+
+    private PageViewModel PageFor(Section section)
+    {
+        if (_pages.TryGetValue(section.Id, out var page))
+        {
+            return page;
+        }
+
+        page = (_host, section.Id) switch
+        {
+            ({ } host, SectionCatalog.Home) => new HomeViewModel(host, this, (card, folder) => new ImportWizardViewModel(host, this, card, folder)),
+            ({ } host, SectionCatalog.Jobs) => new JobsViewModel(host, this),
+            ({ } host, SectionCatalog.Review) => new ReviewViewModel(host),
+            _ => new PlaceholderPageViewModel(section, PlaceholderPageViewModel.Phases.GetValueOrDefault(section.Id, "1")),
+        };
+        _pages[section.Id] = page;
+        return page;
     }
 
     public event EventHandler? SearchFocusRequested;
 
     public CommandTable Commands { get; }
 
-    public IReadOnlyList<StatusHint> StatusHints { get; }
+    private readonly IReadOnlyList<StatusHint> _globalHints;
+
+    /// <summary>Hints of the current page first, then the global ones (both from their command tables).</summary>
+    [ObservableProperty]
+    private IReadOnlyList<StatusHint> _statusHints;
 
     public IReadOnlyList<Section> MainSections { get; }
 
     public IReadOnlyList<Section> SecondarySections { get; }
 
-    public string LibraryName => Strings.Get("TitleBar.NoLibrary");
+    public string LibraryName => _host?.Settings.Import.PrimaryRoot is { } root ? Path.GetFileName(Path.TrimEndingDirectorySeparator(root)) : Strings.Get("TitleBar.NoLibrary");
 
-    public string StatusText => Strings.Get("Status.Ready");
+    /// <summary>Right side of the status bar: jobs, inference backend, catalog (board 3a).</summary>
+    [ObservableProperty]
+    private string _statusText = Strings.Get("Status.Ready");
 
-    public string PageEmptyText => Strings.Get("Page.Empty");
+    public void RefreshStatus()
+    {
+        if (_host is null)
+        {
+            return;
+        }
+
+        var setup = _host.DescribeAnalysis();
+        StatusText = Strings.Format("Status.Summary", setup.Backend == Core.Inference.ExecutionBackend.Cuda ? "CUDA" : "CPU",
+            Strings.Get(setup.EyesAvailable ? "Status.Faces.Eyes" : setup.FaceDetector is null ? "Status.Faces.None" : "Status.Faces.NoEyes"));
+    }
 
     public string SearchShortcut => CommandTable.FormatGesture(Commands.Commands.First(c => c.Id == GlobalCommands.FocusSearch).Gesture);
 
@@ -90,6 +177,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         GlobalCommands.Navigate => NavigateCommand,
         GlobalCommands.FocusSearch => FocusSearchCommand,
         GlobalCommands.OpenSettings => OpenSettingsCommand,
+        GlobalCommands.ImportFolder => ImportFolderCommand,
         _ => throw new ArgumentOutOfRangeException(nameof(id), id, "Unknown command."),
     };
 
@@ -97,7 +185,18 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private void Navigate(string? sectionId)
     {
         var section = SectionCatalog.All.FirstOrDefault(s => s.Id == sectionId);
-        if (section is not null)
+        if (section is null)
+        {
+            return;
+        }
+
+        if (section == SelectedSection)
+        {
+            // Back to the section page from a flow opened inside it (e.g. the import procedure).
+            CurrentPage = PageFor(section);
+            _ = CurrentPage.ActivateAsync();
+        }
+        else
         {
             SelectedSection = section;
         }
@@ -108,6 +207,22 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     [RelayCommand]
     private void OpenSettings() => Navigate(SectionCatalog.Settings);
+
+    /// <summary>Ctrl I from anywhere: Home, then the folder picker of its view.</summary>
+    [RelayCommand]
+    private void ImportFolder()
+    {
+        if (_host is null)
+        {
+            return;
+        }
+
+        Navigate(SectionCatalog.Home);
+        if (CurrentPage is HomeViewModel { IsNormal: true } home)
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(() => home.RequestFolderCommand.Execute(null));
+        }
+    }
 
     [RelayCommand]
     private void ToggleNavigation() => IsNavigationCollapsedByUser = !IsNavigationCollapsedByUser;

@@ -26,24 +26,6 @@ public sealed record PhotoContext(long? AssetId, string Path, PreviewImage Previ
 /// <summary>Every automatic result records the model version that produced it (CLAUDE.md §4).</summary>
 public sealed record AnalyzerResult(string AnalyzerId, string ModelVersion, IReadOnlyDictionary<string, double> Scores);
 
-public sealed record SceneProfile(
-    string Id,
-    string Name,
-    int Version,
-    bool IsBuiltIn,
-    FaceMode Faces,
-    ProfileWeights Weights);
-
-/// <summary>Composite score weights (spec §6), percentages summing to 100.</summary>
-public sealed record ProfileWeights(int Sharpness, int Eyes, int Exposure, int Subject, int Aesthetic);
-
-public enum FaceMode
-{
-    Off,
-    DetectOnly,
-    Recognize,
-}
-
 /// <summary>Box in normalized coordinates (0..1) relative to the analyzed image.</summary>
 public readonly record struct BoundingBox(float X1, float Y1, float X2, float Y2)
 {
@@ -52,6 +34,29 @@ public readonly record struct BoundingBox(float X1, float Y1, float X2, float Y2
     public float Height => Y2 - Y1;
 
     public float Area => Math.Max(0, Width) * Math.Max(0, Height);
+
+    /// <summary>
+    /// Maps a box from the stored (sensor) frame to the displayed frame of EXIF <paramref name="orientation"/> (1-8),
+    /// the same transform the image handlers apply to the pixels.
+    /// </summary>
+    public BoundingBox Orient(int? orientation)
+    {
+        (float X, float Y) Map(float x, float y) => orientation switch
+        {
+            2 => (1 - x, y),
+            3 => (1 - x, 1 - y),
+            4 => (x, 1 - y),
+            5 => (y, x),
+            6 => (1 - y, x),
+            7 => (1 - y, 1 - x),
+            8 => (y, 1 - x),
+            _ => (x, y),
+        };
+
+        var a = Map(X1, Y1);
+        var b = Map(X2, Y2);
+        return new BoundingBox(Math.Min(a.X, b.X), Math.Min(a.Y, b.Y), Math.Max(a.X, b.X), Math.Max(a.Y, b.Y));
+    }
 
     public float IntersectionOverUnion(BoundingBox other)
     {

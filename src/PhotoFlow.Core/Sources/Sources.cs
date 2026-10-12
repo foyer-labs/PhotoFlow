@@ -9,3 +9,42 @@ public interface ISource
 }
 
 public sealed record SourceItem(string FullPath, string RelativePath, long Length, DateTimeOffset LastWriteTime);
+
+/// <summary>Kind of a file, decided from its content (signature), not from its extension (spec §3).</summary>
+public enum MediaKind
+{
+    Raw,
+    Jpeg,
+    Png,
+    Tiff,
+    Heif,
+    WebP,
+    Video,
+
+    /// <summary>Not a photo or video PhotoFlow knows: copied, never analyzed.</summary>
+    Other,
+}
+
+public sealed record ScannedFile(SourceItem Item, MediaKind Kind)
+{
+    /// <summary>Formats analyzed in phase 1 (TIFF/PNG/HEIC/WebP handlers arrive in phase 1b).</summary>
+    public bool IsAnalyzable => Kind is MediaKind.Raw or MediaKind.Jpeg;
+
+    /// <summary>Directory + file name without extension: RAW and JPEG with the same key form one photo.</summary>
+    public string PairKey => Path.Combine(Path.GetDirectoryName(Item.RelativePath) ?? string.Empty, Path.GetFileNameWithoutExtension(Item.RelativePath));
+}
+
+/// <summary>A memory card: a removable volume with a DCIM folder.</summary>
+public sealed record CardVolume(string RootPath, string Label, long TotalBytes);
+
+/// <summary>Watches removable volumes and reports cards as they are inserted or removed.</summary>
+public interface ICardDetector : IDisposable
+{
+    event EventHandler<CardVolume>? CardInserted;
+
+    event EventHandler<CardVolume>? CardRemoved;
+
+    IReadOnlyList<CardVolume> Current { get; }
+
+    void Start();
+}

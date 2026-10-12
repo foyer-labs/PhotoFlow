@@ -3,4 +3,6 @@
   <ItemGroup>
     <ProjectReference Include="..\PhotoFlow.Core\PhotoFlow.Core.csproj" />
   </ItemGroup>
+  <!-- exiftool downloaded and verified at build time (F1-5). -->
+  <Import Project="..\..\build\ExifTool.targets" />
 </Project>

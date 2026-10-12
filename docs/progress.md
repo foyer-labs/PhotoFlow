@@ -6,8 +6,8 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 
 | Voce | Valore |
 |---|---|
-| Fase corrente | 0 — Setup e laboratorio: **criteri superati sulle foto reali, report in attesa di approvazione** ([docs/reports/fase-0.md](reports/fase-0.md)) |
-| Branch | `phase/0-setup` (pushato; pull request verso `main` da approvare) |
+| Fase corrente | 1 — Import, analisi base, XMP, catalogo: **piano approvato, sviluppo in corso** ([docs/plans/fase-1.md](plans/fase-1.md)). Fase 0 approvata e unita in `main` (PR #1) |
+| Branch | `phase/1-import` |
 | Remoto | https://github.com/foyer-labs/PhotoFlow.git (pubblico) |
 | Autore dei commit | Foyer Labs <foyerlabs@gmail.com> (config locale del repository) |
 | Ultimo aggiornamento | 2026-10-12 |
@@ -55,6 +55,17 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 | 2026-10-12 | Verifiche 0.6 applicate a spec.md: §15 licenze (Velopack, PanAndZoom, HdbscanSharp, RapidOcrNet, Magick.NET, DirectML/Windows ML, CLIP, RAM++), §16 rischi R15-R20, note di laboratorio in §5, §17 verifiche tecniche aggiornate. T1 (tolleranza parità tensori) rinviata: si decide dopo la misura sulle foto reali |
 | 2026-10-12 | Nessun NEF della Z5 II disponibile fino a dopo l'implementazione: la "primissima attività della fase 1" (§13, verifica anteprima/HE/punto AF sui NEF Z5 II) va rinviata; proposta da fare nel piano della fase 1. Set di test reale: 240 file in `PHOTOFLOW_TESTDATA/photos` (178 NEF Nikon D40 lossy + D5100 lossless, 52 JPG di cui 49 Samsung SM-A500FU, 11 .xmp preesistenti, mai toccati) |
 | 2026-10-12 | T1 — Parità livello tensori: query abbinate con assegnazione ottima prima del confronto; punteggi (sigmoide) ≤ 5e-3, riquadri ≤ 5e-4 (misurati 2,7e-3 e 1,5e-4 su 40 foto reali). spec.md §14 e `DFineParityTests` aggiornati |
+| 2026-10-12 | Report fase 0 approvato; PR #1 unita in `main` |
+| 2026-10-12 | F1-1..F1-7 — decisioni del piano della fase 1 (vedi `docs/plans/fase-1.md`): rinvio verifica Z5 II; CUDA + CPU (DirectML escluso per risultati errati); Magick.NET per RAW di riserva; analisi in C# con parità OpenCV; exiftool scaricato in build; layout completo con funzioni future disattivate; set qualità a cartelle. spec §3, §4, §5, §11, §13, §14, §15, §16, §17 e CLAUDE.md §3 aggiornati |
+| 2026-10-12 | Autonomia: da qui l'utente delega le scelte tecniche (verificare alternative, scegliere la più robusta, misurare dove serve); si ferma solo per decisioni operative e per i cancelli di fase |
+| 2026-10-12 | Tecnica (fase 1.0-1.2): `IFileSystem` senza cancellazione (I4 per costruzione); copia verificata `.pftmp` → verifica → rinomina, mai sovrascritture (nome libero `-2`); `IMetadataWriter` riceve `MetadataTarget` (spec §3); sidecar `nome.xmp` condiviso dalle coppie RAW+JPG; incorporamento XMP tramite sostituzione verificata (`ImageDataHash` invariato) con `_original` conservato per default; exiftool: distribuzione Perl dal tag GitHub dell'autore in CI/Linux/macOS, eseguibile Windows da SourceForge per le build locali (SourceForge rifiuta i runner CI); campioni RAW pubblici CC0 (raw.pixls.us) scaricati e verificati dai test, mai nel repository; JPG di test sintetici |
+| 2026-10-12 | Tecnica (fase 1.1): catalogo SQLite con connessione unica serializzata, file di lock tenuto aperto e mai cancellato, enumerazioni come testo e istanti in millisecondi Unix (niente gestori globali Dapper), backup con la backup API prima di ogni migrazione |
+| 2026-10-12 | L'utente accetta le licenze NVIDIA (CUDA Toolkit EULA, cuDNN SLA) per installare il pacchetto GPU su questo PC (sviluppo). Verifica licenze: ridistribuzione delle DLL di runtime permessa con l'app, solo su GPU NVIDIA, non modificate, LICENSE.txt conservati, accettazione richiesta all'utente nel primo avvio |
+| 2026-10-12 | Tecnica (fase 1.6): CUDA con TF32 disattivato (con TF32 la parità D-FINE crolla: Δ punteggi 0,16, senza guadagno di velocità); pacchetto GPU da archivi NVIDIA ufficiali (CUDA 13.0.3 + cuDNN 9.27), DLL estratte per nome, archivi conservati come pacchetto offline |
+| 2026-10-12 | Tecnica (fase 1.7): volti buffalo\_l con preparazione antialias e parità insightface 2.1 (CPU identica); punto AF dalle coordinate Nikon (`AFAreaXPosition`…, mirrorless e live view; punti nominali delle reflex senza posizione: zona successiva); nitidezza assoluta = 1 − blur effect multi-scala (il Laplaciano dipende dal contenuto: muri, notturne, panning), Laplaciano per la classifica in raffica; occhi sconosciuti di profilo o rivolti in basso; esposizione solo nella zona del soggetto; analisi a 2048 px. Dettagli e misure in spec §6 e §14 |
+| 2026-10-12 | Tecnica (fase 1.8): job di import in `PhotoFlow.Sources` (QuickHash/xxHash non possono stare in Core); unità di pipeline = foto (gemelli RAW+JPEG), in analisi solo con tutti i file verificati (I3), analisi sul JPEG se presente; impostazioni del job salvate nel job (ripresa identica); in pausa il lavoro già calcolato viene registrato; un job "in esecuzione" all'apertura del catalogo (lock esclusivo) è un'interruzione → in pausa; un job completato con errori si può rilanciare per ritentare i soli file falliti |
+| 2026-10-12 | Tecnica (fase 1.9-1.10): interfaccia con pagine per sezione e sezioni future visibili ma disattivate (F1-6); scorciatoie per vista legate alla vista; griglia di Revisione virtualizzata a righe; mappa XMP di fase 1 (spec §4); Ctrl I globale; lock del catalogo con nuovi tentativi per 2 s; analisi in parallelo automatica (un terzo dei thread, 2-8; misurato: 1.000 foto in ~1,6 min con copia verificata, D-FINE M e buffalo\_l su RTX 3090) |
+| 2026-10-12 | Report della fase 1 approvato. B1: I4 chiarita — protegge i file dell'utente; i file interni di PhotoFlow nelle cartelle di `IAppPaths` (backup, cache, temporanei, download) si possono ruotare o pulire con regole in spec §10 e un test che vieta cancellazioni altrove. spec §10 e CLAUDE.md aggiornati |
 | 2026-10-12 | A1 — Tavole rinominate come in §12bis (`PhotoFlow_*_dc.html`); specifica invariata |
 | 2026-10-12 | A10 — Ricostruite le celle troncate di §8 (Volti: `Persone\|Nome`; OCR: `Motorsport\|Numero N`, `Motorsport\|Pilota\|Nome`, `Motorsport\|Team\|Nome`) e §17 (Album → D6), con pipe protetti |
 
@@ -62,16 +73,17 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 
 | # | Tema | Sintesi |
 |---|---|---|
-| R16-R17 | Backend di inferenza | Una sola ORT per processo; DirectML vs Windows ML: da decidere nel piano della fase 1 |
 | N5-N6 | Modelli quantizzati | RAM++ int8/CLIP quantizzato non accelerano su GPU; RAM++ int8 non supera la parità (52 JPG reali: 12/52 insiemi identici, Jaccard 0,866) — fase 3 |
 | Z5 II | NEF Z5 II non disponibili | Prima attività della fase 1 (§13) da rinviare a dopo l'implementazione: proposta nel piano della fase 1 |
 | N1-N4 | Note per fasi successive | CLIP scheda modello (fase 2), DirectML (0.6→R3), GridSample fp16 CUDA (fase 1), YuNet ingresso fisso (fase 1) |
 
 ## Verifiche manuali in attesa (per l'utente)
 
+0. Preparare entro la tappa 1.10 il set etichettato: `E:\AI\PhotoFlowTestData\quality\buone` (≥ 100), `mosse` (30-50), `occhi_chiusi` (30-50).
+
 1. ~~Avviare l'app~~ — fatto dall'utente il 2026-10-12: si apre e mostra la navigazione (comportamento atteso per la fase 0). Da controllare ancora, se possibile: pulsanti di sistema, trascinamento e doppio clic sulla barra del titolo, `-- --theme light`.
 2. ~~Foto di test~~ — fornite il 2026-10-12 (240 file).
 
 ## Prossimo passo
 
-Approvazione del report di fase 0 (tutti i criteri superati sulle foto reali) → merge della PR #1 in `main` → piano della fase 1 → pull request `phase/0-setup` → `main` → piano della fase 1.
+Fase 1 completata su `phase/1-import` (tappe 1.0-1.10): report in [docs/reports/fase-1.md](reports/fase-1.md). In attesa: approvazione del report, decisione B1, verifiche manuali e set etichettato (per il criterio 7). Poi merge della PR e piano della fase 1b.

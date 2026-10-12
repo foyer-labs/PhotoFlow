@@ -12,6 +12,7 @@
     <Project Path="src/PhotoFlow.Tagging/PhotoFlow.Tagging.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/PhotoFlow.ScenarioHost/PhotoFlow.ScenarioHost.csproj" />
     <Project Path="tests/PhotoFlow.Tests/PhotoFlow.Tests.csproj" />
   </Folder>
 </Solution>

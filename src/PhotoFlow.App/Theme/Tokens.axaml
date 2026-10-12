@@ -12,6 +12,8 @@
     <!-- Dark theme (default): neutral greys that do not bias photo colors -->
     <ResourceDictionary x:Key="Dark">
       <Color x:Key="PF.Color.Viewer">#0E0E0E</Color>
+      <!-- Modal veil: black 60 %, no blur (board 2g) -->
+      <Color x:Key="PF.Color.Veil">#99000000</Color>
       <Color x:Key="PF.Color.GridArea">#151515</Color>
       <Color x:Key="PF.Color.Window">#1B1B1B</Color>
       <Color x:Key="PF.Color.Panel">#222222</Color>
@@ -33,6 +35,7 @@
 
       <!-- Brushes of this variant -->
       <SolidColorBrush x:Key="PF.Brush.Viewer" Color="{StaticResource PF.Color.Viewer}" />
+      <SolidColorBrush x:Key="PF.Brush.Veil" Color="{StaticResource PF.Color.Veil}" />
       <SolidColorBrush x:Key="PF.Brush.GridArea" Color="{StaticResource PF.Color.GridArea}" />
       <SolidColorBrush x:Key="PF.Brush.Window" Color="{StaticResource PF.Color.Window}" />
       <SolidColorBrush x:Key="PF.Brush.Panel" Color="{StaticResource PF.Color.Panel}" />
@@ -59,6 +62,7 @@
     <!-- Light theme: the viewer stays dark (exposure is always judged on a neutral dark background) -->
     <ResourceDictionary x:Key="Light">
       <Color x:Key="PF.Color.Viewer">#2A2A2A</Color>
+      <Color x:Key="PF.Color.Veil">#99000000</Color>
       <Color x:Key="PF.Color.GridArea">#DCDCDC</Color>
       <Color x:Key="PF.Color.Window">#F2F2F2</Color>
       <Color x:Key="PF.Color.Panel">#FAFAFA</Color>
@@ -80,6 +84,7 @@
 
       <!-- Brushes of this variant -->
       <SolidColorBrush x:Key="PF.Brush.Viewer" Color="{StaticResource PF.Color.Viewer}" />
+      <SolidColorBrush x:Key="PF.Brush.Veil" Color="{StaticResource PF.Color.Veil}" />
       <SolidColorBrush x:Key="PF.Brush.GridArea" Color="{StaticResource PF.Color.GridArea}" />
       <SolidColorBrush x:Key="PF.Brush.Window" Color="{StaticResource PF.Color.Window}" />
       <SolidColorBrush x:Key="PF.Brush.Panel" Color="{StaticResource PF.Color.Panel}" />

@@ -76,7 +76,7 @@ public sealed class DefaultAppPathsTests
         var paths = new DefaultAppPaths(Root);
         string[] all =
         [
-            paths.ConfigDirectory, paths.ProfilesDirectory, paths.CatalogPath, paths.BackupsDirectory, paths.ModelsDirectory,
+            paths.ConfigDirectory, paths.ProfilesDirectory, paths.CatalogPath, paths.BackupsDirectory, paths.ModelsDirectory, paths.GpuRuntimeDirectory,
             paths.CacheDirectory, paths.ThumbnailsDirectory, paths.LogsDirectory, paths.TempDirectory,
         ];
         Assert.All(all, p => Assert.StartsWith(Root, p, StringComparison.Ordinal));

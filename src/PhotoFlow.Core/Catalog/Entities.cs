@@ -64,7 +64,8 @@ public sealed record ExifSummary(
     double? Aperture,
     double? FocalLengthMm,
     double? ExposureCompensationEv,
-    string? AfPoint);
+    string? AfPoint,
+    BoundingBox? AfArea = null);
 
 public sealed record AssetLocation(long Id, long AssetId, long LibraryId, string RelativePath, DateTimeOffset LastSeenAt);
 
@@ -78,6 +79,7 @@ public sealed record Job(
     JobType Type,
     string? Source,
     string? EventName,
+    DateOnly? EventDate,
     string? ProfileId,
     bool AutomaticProfile,
     string? FallbackProfileId,
@@ -115,6 +117,8 @@ public sealed record JobItem(
     long JobId,
     long? AssetId,
     string SourcePath,
+    string? TargetRelativePath,
+    string? ContentHash,
     PipelineStage LastCompletedStage,
     JobItemState State,
     string? Error);
@@ -126,6 +130,29 @@ public enum JobItemState
     Done,
     Failed,
     Skipped,
+}
+
+/// <summary>A pending copy of a verified primary file to a deferred destination (NAS).</summary>
+public sealed record DeferredCopy(
+    long Id,
+    long? JobId,
+    string SourcePath,
+    string DestinationId,
+    string DestinationRoot,
+    string TargetRelativePath,
+    string ContentHash,
+    int Attempts,
+    DateTimeOffset NextAttemptAt,
+    DeferredCopyState State,
+    string? LastError);
+
+public enum DeferredCopyState
+{
+    Pending,
+    Done,
+
+    /// <summary>The primary copy no longer matches its verified hash: never propagated, reported.</summary>
+    Failed,
 }
 
 // --- Models and analysis ---
@@ -186,7 +213,11 @@ public sealed record Decision(
     string? ModelVersion,
     CullingOutcome? UserOutcome,
     int? Rating,
-    string? Label);
+    string? Label)
+{
+    /// <summary>The user's decision when present, otherwise the automatic proposal (invariant I5).</summary>
+    public CullingOutcome? EffectiveOutcome => UserOutcome ?? AutomaticOutcome;
+}
 
 /// <summary>Culling outcomes of spec §6.</summary>
 public enum CullingOutcome
@@ -288,7 +319,7 @@ public sealed record EntryListItem(
 
 // --- Sync and system ---
 
-public sealed record XmpSyncState(long AssetId, DateTimeOffset? LastWrittenAt, string? XmpSignature, bool WritePending);
+public sealed record XmpSyncState(long AssetId, DateTimeOffset? LastWrittenAt, string? XmpSignature, bool WritePending, string? LastError);
 
 public sealed record UndoLogEntry(long Id, DateTimeOffset At, string Operation, string PayloadJson);
 

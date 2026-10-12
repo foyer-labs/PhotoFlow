@@ -10,13 +10,34 @@ public interface IImageHandler
     Task<PreviewImage> GetPreviewAsync(string path, int maxSize, CancellationToken ct);
 }
 
+/// <summary>Upright preview of a file, whatever its format: the handler is chosen from the content (spec §3).</summary>
+public interface IPreviewProvider
+{
+    /// <exception cref="ImageDecodeException">No handler for the content, or the file cannot be decoded.</exception>
+    Task<PreviewImage> GetPreviewAsync(string path, int maxSize, CancellationToken ct);
+}
+
+/// <summary>Grid thumbnails keyed by the content hash (local, rebuildable cache, spec §9).</summary>
+public interface IThumbnailStore
+{
+    bool Exists(string contentHash);
+
+    Task<string> StoreAsync(string contentHash, RgbImage preview, CancellationToken ct);
+}
+
 /// <summary>Image decoding and resampling; isolates the imaging library.</summary>
 public interface IImageOperations
 {
     Task<RgbImage> DecodeAsync(Stream stream, CancellationToken ct);
 
     RgbImage Resize(RgbImage image, int width, int height, ResampleMode mode);
+
+    /// <summary>Resamples the fractional source <paramref name="box"/> (Pillow <c>box</c> semantics) to the given size.</summary>
+    RgbImage Resize(RgbImage image, SourceBox box, int width, int height, ResampleMode mode);
 }
+
+/// <summary>Fractional source rectangle in pixels (single precision, as Pillow's <c>box</c>).</summary>
+public readonly record struct SourceBox(float X0, float Y0, float X1, float Y1);
 
 public enum ResampleMode
 {

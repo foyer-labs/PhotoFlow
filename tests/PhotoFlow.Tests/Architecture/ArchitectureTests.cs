@@ -14,13 +14,13 @@ public sealed class ArchitectureTests
     private static readonly Dictionary<string, string[]> AllowedPackages = new()
     {
         ["PhotoFlow.Core"] = [],
-        ["PhotoFlow.Sources"] = [],
+        ["PhotoFlow.Sources"] = ["System.IO.Hashing"],
         ["PhotoFlow.Metadata"] = [],
         ["PhotoFlow.Analysis"] = [],
         ["PhotoFlow.Faces"] = [],
         ["PhotoFlow.Tagging"] = [],
-        ["PhotoFlow.Data"] = [],
-        ["PhotoFlow.Imaging"] = ["SkiaSharp"],
+        ["PhotoFlow.Data"] = ["Microsoft.Data.Sqlite", "Dapper"],
+        ["PhotoFlow.Imaging"] = ["SkiaSharp", "Magick.NET"],
         ["PhotoFlow.Inference"] = ["Microsoft.ML.OnnxRuntime"],
         ["PhotoFlow.App"] = ["Avalonia", "CommunityToolkit.Mvvm", "Microsoft.Extensions.", "Serilog"],
     };

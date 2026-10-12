@@ -17,6 +17,22 @@ public static class PillowResampler
     public static RgbImage Resize(RgbImage image, int width, int height, ResampleMode mode)
     {
         ArgumentNullException.ThrowIfNull(image);
+        if (width == image.Width && height == image.Height)
+        {
+            return image;
+        }
+
+        return Resize(image, width, height, mode, new SourceBox(0, 0, image.Width, image.Height));
+    }
+
+    /// <summary>
+    /// Pillow <c>Image.resize(size, BILINEAR, box)</c>: resamples the fractional source <paramref name="box"/>
+    /// (single precision, as Pillow) to <paramref name="width"/> × <paramref name="height"/>. Filter taps outside the
+    /// box but inside the image are used, as in Pillow.
+    /// </summary>
+    public static RgbImage Resize(RgbImage image, int width, int height, ResampleMode mode, SourceBox box)
+    {
+        ArgumentNullException.ThrowIfNull(image);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
         if (mode != ResampleMode.Bilinear)
@@ -24,17 +40,20 @@ public static class PillowResampler
             throw new ArgumentOutOfRangeException(nameof(mode), mode, "Unsupported resample mode.");
         }
 
-        if (width == image.Width && height == image.Height)
+        if (box.X0 < 0 || box.Y0 < 0 || box.X1 > image.Width || box.Y1 > image.Height || box.X1 < box.X0 || box.Y1 < box.Y0)
         {
-            return image;
+            throw new ArgumentOutOfRangeException(nameof(box), box, "The box must lie inside the image.");
         }
 
         var source = image.Pixels.Span;
+        var needHorizontal = width != image.Width || box.X0 != 0 || box.X1 != image.Width;
+        var needVertical = height != image.Height || box.Y0 != 0 || box.Y1 != image.Height;
+
         byte[] horizontal;
-        if (width != image.Width)
+        if (needHorizontal)
         {
             horizontal = new byte[width * image.Height * 3];
-            var (bounds, coeffs, kernelSize) = PrecomputeCoefficients(image.Width, width);
+            var (bounds, coeffs, kernelSize) = PrecomputeCoefficients(image.Width, box.X0, box.X1, width);
             ResampleHorizontal(source, image.Width, image.Height, horizontal, width, bounds, coeffs, kernelSize);
         }
         else
@@ -42,13 +61,13 @@ public static class PillowResampler
             horizontal = source.ToArray();
         }
 
-        if (height == image.Height)
+        if (!needVertical)
         {
             return new RgbImage(width, height, horizontal);
         }
 
         var output = new byte[width * height * 3];
-        var (vBounds, vCoeffs, vKernelSize) = PrecomputeCoefficients(image.Height, height);
+        var (vBounds, vCoeffs, vKernelSize) = PrecomputeCoefficients(image.Height, box.Y0, box.Y1, height);
         ResampleVertical(horizontal, width, output, height, vBounds, vCoeffs, vKernelSize);
         return new RgbImage(width, height, output);
     }
@@ -64,10 +83,10 @@ public static class PillowResampler
     }
 
     /// <summary>Port of <c>precompute_coeffs</c> + <c>normalize_coeffs_8bpc</c> for the bilinear (triangle) filter.</summary>
-    private static (int[] Bounds, int[] Coefficients, int KernelSize) PrecomputeCoefficients(int inSize, int outSize)
+    private static (int[] Bounds, int[] Coefficients, int KernelSize) PrecomputeCoefficients(int inSize, float in0, float in1, int outSize)
     {
         const double filterSupport = 1.0;
-        var scale = (double)inSize / outSize;
+        var scale = (double)(in1 - in0) / outSize;
         var filterScale = Math.Max(scale, 1.0);
         var support = filterSupport * filterScale;
         var kernelSize = (int)Math.Ceiling(support) * 2 + 1;
@@ -78,7 +97,7 @@ public static class PillowResampler
 
         for (var xx = 0; xx < outSize; xx++)
         {
-            var center = (xx + 0.5) * scale;
+            var center = in0 + (xx + 0.5) * scale;
             var ss = 1.0 / filterScale;
 
             // C casts truncate toward zero.
@@ -179,3 +198,4 @@ public static class PillowResampler
         }
     }
 }
+

@@ -81,10 +81,10 @@ Soluzione .NET a progetti separati: `Core` contiene dominio, interfacce e orches
 | --- | --- | --- |
 | `PhotoFlow.Core` | Entità, interfacce, orchestrazione della pipeline | Nessuna |
 | `PhotoFlow.Sources` | Sorgenti (SD, cartella), rilevamento SD, ingest, copia verificata, rinomina | System.IO.Hashing (xxHash3) |
-| `PhotoFlow.Imaging` | Gestori di formato (`IImageHandler`): anteprime, decodifica | exiftool, SkiaSharp, Magick.NET, LibRaw (binding da scegliere) |
+| `PhotoFlow.Imaging` | Gestori di formato (`IImageHandler`): anteprime, decodifica | exiftool, SkiaSharp, Magick.NET (include LibRaw 0.22.x: decodifica RAW di riserva, F1-3) |
 | `PhotoFlow.Metadata` | Lettura EXIF, scrittura/lettura XMP, sincronizzazione | exiftool (`-stay_open`) |
 | `PhotoFlow.Inference` | Selezione hardware, sessioni ONNX, registro modelli | ONNX Runtime, ONNX Runtime GenAI |
-| `PhotoFlow.Analysis` | Analizzatori del culling, raggruppamenti, decisioni | OpenCvSharp |
+| `PhotoFlow.Analysis` | Analizzatori del culling, raggruppamenti, decisioni | Nessuna: elaborazioni in C# verificate contro OpenCV nel laboratorio (F1-4; OpenCvSharp non ha runtime macOS aggiornati) |
 | `PhotoFlow.Faces` | Impronte, confronto, clustering, cifratura impronte | HdbscanSharp |
 | `PhotoFlow.Tagging` | CLIP zero-shot, RAM++, Florence-2, VLM, OCR, vocabolario | Florence2-Sharp, RapidOcrNet |
 | `PhotoFlow.Data` | Catalogo, migrazioni, indice di ricerca (`ISearchIndex`) | Microsoft.Data.Sqlite, Dapper |
@@ -119,7 +119,7 @@ public interface IBatchStage { Task RunAsync(JobContext job, IProgress<StageProg
 public interface ITagger { TaggingLevel Level { get; } Task<IReadOnlyList<TagResult>> TagAsync(PhotoContext photo, CancellationToken ct); }
 public interface IInferenceProvider { HardwareInfo Detected { get; } Task<IInferenceSession> CreateSessionAsync(ModelDescriptor model, ExecutionTarget target, CancellationToken ct); }
 public interface IInferenceSession : IDisposable { Task<IReadOnlyList<NamedTensor>> RunAsync(IReadOnlyList<NamedTensor> inputs, CancellationToken ct); }
-public interface IMetadataWriter { Task WriteAsync(Asset asset, MetadataChanges changes, WritePolicy policy, CancellationToken ct); }
+public interface IMetadataWriter { Task<MetadataWriteResult> WriteAsync(MetadataTarget target, MetadataChanges changes, WritePolicy policy, CancellationToken ct); } // MetadataTarget: percorso + RAW sì/no (Asset non contiene il percorso)
 public interface IObjectDetector { Task<IReadOnlyList<Detection>> DetectAsync(RgbImage image, CancellationToken ct); }
 public interface IImageOperations { /* decodifica e ridimensionamento: isola SkiaSharp */ }
 public interface ISearchIndex { /* FTS e ricerca vettoriale, isolati per un futuro PostgreSQL */ }
@@ -132,7 +132,7 @@ Inferenza senza dipendenze in `Core` (decisione del 12 ott 2026): `NamedTensor` 
 
 | Modulo | Scelta |
 | --- | --- |
-| Hardware | Prova CUDA → DirectML → CoreML → CPU; micro-benchmark al primo avvio |
+| Hardware | Prova CUDA → CoreML → CPU; micro-benchmark al primo avvio |
 | VRAM | Modelli caricati e scaricati fase per fase (funziona con GPU da 4-6 GB) |
 | Registro modelli | Manifest JSON: URL, SHA-256, dimensione, licenza, adattatore; download al primo uso |
 | Profili | File JSON versionati |
@@ -160,7 +160,7 @@ L'import da SD è un caso particolare dell'analisi di una raccolta; i metadati s
 
 | Formato | Anteprima | Libreria | Note |
 | --- | --- | --- | --- |
-| RAW (NEF, CR2/CR3, ARW, RAF, DNG…) | Anteprima incorporata | exiftool | Fallback: decodifica completa se l'anteprima è piccola |
+| RAW (NEF, CR2/CR3, ARW, RAF, DNG…) | Anteprima incorporata | exiftool | Fallback: decodifica completa con Magick.NET (LibRaw) se l'anteprima manca o è piccola; NEF High Efficiency: solo anteprima (R15) |
 | JPG, PNG, WebP | Decodifica diretta | SkiaSharp | Percorso veloce |
 | TIFF | Decodifica con riduzione | Magick.NET | 16 bit, multipagina, file grandi |
 | HEIC | Decodifica | Magick.NET (libheif) | Foto da smartphone |
@@ -191,6 +191,8 @@ Default per le librerie create da un import: `EmbeddedForNonRaw`, perché l'uten
 | Didascalia | `dc:description` (opzionale) |
 
 Nomi di persone, eventi e piloti non si traducono. Tag "non rivisti": solo inglese.
+
+Scrittura in fase 1 (12 ott 2026), solo dopo la conferma in Revisione e con la politica della libreria: le stelle dell'utente diventano `xmp:Rating`; uno scarto `xmp:Rating = -1` (prudente: etichetta rossa); da rivedere etichetta rossa. Le foto senza nulla da dire (tenute, simili, migliori senza stelle) non vengono toccate; se erano già state scritte, rating ed etichetta vengono azzerati. Le coppie RAW+JPEG ricevono gli stessi campi (sidecar per il RAW). Una scrittura non riuscita resta in sospeso in `XmpSync` e non blocca le altre.
 
 ### Sincronizzazione con modifiche esterne
 
@@ -236,8 +238,8 @@ Note dal laboratorio (fase 0, 12 ott 2026): RAM++ int8 e CLIP quantizzato non ac
 
 | Aspetto | Comportamento |
 | --- | --- |
-| Ordine di prova | CUDA → DirectML → CoreML → CPU |
-| Varianti di build | Windows: DirectML (default) e CUDA (opzionale); i due pacchetti non convivono |
+| Ordine di prova | CUDA → CoreML → CPU |
+| Varianti di build | Windows: CUDA per GPU NVIDIA + CPU per le altre (decisione F1-2 del 12 ott 2026). Le librerie CUDA/cuDNN sono un "pacchetto GPU" scaricato al primo uso dall'archivio di ridistribuzione NVIDIA con verifica SHA-256 (importabile offline). DirectML escluso: sulla RTX 3090 produce risultati errati con D-FINE e va in crash con CLIP quantizzato (laboratorio, 12 ott 2026). Ogni backend futuro (es. Windows ML) entra solo dopo aver superato i test di parità |
 | Primo avvio | Micro-benchmark su \~50 foto con stima dei tempi; su sola CPU propone un livello di tagging più leggero |
 | Selezione manuale | Per funzione, con licenza, spazio, memoria stimata e ultimo benchmark mostrati; pulsante "benchmark" prima dell'attivazione |
 | Compatibilità | Selezionabili solo modelli con un adattatore di input/output implementato |
@@ -277,9 +279,9 @@ Uno scarto avviene solo su un segnale ad alta affidabilità chiaramente oltre so
 
 | Segnale | Misura | Affidabilità |
 | --- | --- | --- |
-| Nitidezza | Varianza del Laplaciano sulla zona del profilo, dopo leggera sfocatura anti-rumore; assoluta + relativa nella raffica | Alta per il mosso grave |
-| Esposizione | % alte luci/ombre perse nella zona del soggetto; soglie tolleranti (l'anteprima JPEG è più severa del RAW) | Media |
-| Occhi | Apertura dagli 106 landmark, per volti rilevanti (≥ 40% del volto più grande); occhiali da sole = sconosciuto. Con YuNet/SFace (solo 5 landmark): sempre sconosciuto | Alta su volti grandi (solo buffalo\_l) |
+| Nitidezza | Assoluta: 1 − *blur effect* (Crété-Roffet 2007) multi-scala (1×, ½, ¼) sulla zona del profilo e sull'intero fotogramma; relativa nella raffica: varianza del Laplaciano sulla zona, dopo leggera sfocatura anti-rumore | Alta per il mosso grave |
+| Esposizione | % alte luci/ombre perse nella zona del soggetto; soglie tolleranti (l'anteprima JPEG è più severa del RAW). Senza soggetto (zona = intero fotogramma) solo il fotogramma vuoto (≥ 95% bruciato o nero) | Media |
+| Occhi | Apertura (rapporto altezza/larghezza dei contorni 33-42 e 87-96) dagli 106 landmark, per volti rilevanti (≥ 40% del volto più grande); sconosciuto con occhiali da sole, volto piccolo, di profilo o rivolto verso il basso (gli occhi aperti sembrano chiusi). Con YuNet/SFace (solo 5 landmark): sempre sconosciuto | Alta su volti grandi (solo buffalo\_l) |
 | Soggetto | Presenza, dimensione, posizione (D-FINE) | Alta per auto e persone |
 | Estetica | Predittore LAION | Bassa: solo spareggi |
 
@@ -296,6 +298,8 @@ Uno scarto avviene solo su un segnale ad alta affidabilità chiaramente oltre so
 | Migliore | Prima della raffica | Nessun rating forzato (opzionale 1 stella) |
 | Simile | Valida ma non prima | Solo catalogo |
 | Tenuta | Scatto singolo senza problemi | Nessuna scrittura |
+
+Fase 1 (scatti singoli, 12 ott 2026). Scarto solo con: fotogramma vuoto; nitidezza sotto la soglia di scarto **sia** nella zona **sia** sull'intero fotogramma (lo sfondo sfocato voluto, bokeh o panning, non basta); entrambi gli occhi chiusi del volto principale con volto ≥ 150 px (scala di riferimento 2048). Da rivedere: nitidezza sotto la soglia di revisione nella zona, un occhio chiuso o occhi chiusi in altri volti rilevanti, alte luci/ombre nella zona del soggetto. Misure sull'anteprima orientata ridotta a 2048 px di lato lungo. Scelta della misura (laboratorio `blur_metrics.py`, 230 foto reali sfocate artificialmente): con la soglia sulla peggiore foto originale la varianza del Laplaciano intercetta il 5-30% del mosso (9-25 px), il *blur effect* il 61-90%; la versione multi-scala evita la saturazione con sfocature molto ampie. Soglie iniziali (da tarare sul set etichettato, §14): scarto sotto 0,35 (nessuna originale; 74% delle sfocature gaussiane σ 2,5, 64-87% del mosso 15-100 px), revisione sotto 0,45 (2% delle originali). Esito sulle 230 foto reali con il profilo Eventi: nessuno scarto, 7,4% da rivedere.
 
 ### Sequenze speciali (mai trattate come raffiche)
 
@@ -318,6 +322,8 @@ Uno scarto avviene solo su un segnale ad alta affidabilità chiaramente oltre so
 Ogni correzione è salvata in `Corrections` con i segnali dell'epoca; dopo un numero sufficiente di correzioni per profilo, l'applicativo suggerisce di spostare le soglie. Non cambia nulla da solo e non addestra modelli.
 
 ### Profili predefiniti
+
+Definiti in `profiles/*.json` (versionati, incorporati nell'applicazione) con zone, soglie e pesi.
 
 | Profilo | Zona nitidezza | Esposizione | Volti | Soggetto | OCR |
 | --- | --- | --- | --- | --- | --- |
@@ -491,7 +497,7 @@ Catalogo SQLite, foto identificate dall'hash del contenuto: tag, volti e decisio
 | Catalogo in rete: protezione | Comportamento |
 | --- | --- |
 | Modalità journal | Rollback automatico su percorso di rete (WAL non funziona su filesystem di rete) |
-| Un PC alla volta | File di lock; apertura rifiutata con messaggio chiaro |
+| Un PC alla volta | File di lock; apertura rifiutata con messaggio chiaro (dopo 2 s di nuovi tentativi: un processo appena terminato può rilasciare il lock in ritardo) |
 | Backup | A ogni chiusura e programmato, N versioni |
 | Integrità | Controllo all'apertura; ripristino proposto dall'ultimo backup |
 
@@ -549,8 +555,10 @@ Le invarianti di sicurezza dei dati non sono configurabili e vanno coperte da te
 | I1 | Nessuna scrittura né cancellazione sulla sorgente di import (sorgente dei job `Import`; i file di una libreria seguono la sua politica XMP, vedi D21) |
 | I2 | RAW mai modificati (solo sidecar) |
 | I3 | Nessuna fase successiva su un file non verificato |
-| I4 | Nessun file eliminato automaticamente; gli scarti si spostano solo su richiesta |
+| I4 | Nessun file dell'utente eliminato automaticamente; gli scarti si spostano solo su richiesta |
 | I5 | Tag e decisioni manuali mai sovrascritti da processi automatici |
+
+Ambito di I4 (decisione B1, 12 ott 2026): "file dell'utente" sono foto, RAW, sidecar, copie `_original`, file delle sorgenti e delle destinazioni di import, cartelle delle librerie. I file interni di PhotoFlow, solo dentro le sue cartelle di `IAppPaths` (backup del catalogo, cache delle miniature, temporanei, download dei modelli e del pacchetto GPU), si possono ruotare o pulire con regole scritte qui: backup del catalogo oltre gli ultimi N; cache delle miniature oltre un limite di spazio (si ricostruisce); temporanei di sessioni concluse; archivi scaricati dopo l'installazione verificata. Un test vieta qualunque cancellazione fuori da quelle cartelle.
 
 ### Affidabilità
 
@@ -599,9 +607,9 @@ Pacchetto self-contained con Velopack, modelli scaricati al primo uso; durante l
 | --- | --- |
 | Runtime .NET | Incluso (self-contained) |
 | Installer e aggiornamenti | Velopack; feed come file statici su qualsiasi server HTTP |
-| Varianti | Windows: DirectML (default), CUDA (opzionale); Mac: CoreML; Linux: CPU/CUDA |
+| Varianti | Windows: CUDA (NVIDIA) + CPU, pacchetto GPU scaricato al primo uso; Mac: CoreML; Linux: CPU/CUDA |
 | Firma del codice | Nessuna per ora (avviso SmartScreen al primo avvio) |
-| exiftool | Windows: eseguibile incluso; Mac/Linux: script Perl incluso; percorso personalizzabile |
+| exiftool | Windows: eseguibile incluso; Mac/Linux: script Perl incluso; percorso personalizzabile. Scaricato in fase di build con versione fissata e SHA-256 (nessun binario nel repository, F1-5) |
 
 ### Modelli
 
@@ -827,6 +835,8 @@ Testi elastici: pulsanti e chip crescono col testo (minimo 72 px); le barre stru
 
 Le cifre cambiano significato per vista (stelle, numero, etichetta) e la barra di stato lo dichiara sempre.
 
+Le scorciatoie di una vista sono legate alla vista, non alla finestra: le lettere (P, X, cifre) non agiscono mentre si scrive in un campo di testo come la ricerca. In fase 1 `0` toglie le stelle e Ctrl Z annulla le decisioni della Revisione (l'annullamento globale arriva con le altre operazioni annullabili).
+
 ## 13. Guida per Claude Code
 
 Sviluppo per fasi, ognuna chiusa solo quando tutti i suoi criteri di accettazione sono soddisfatti; questa specifica vive nel repository in Markdown ed è il riferimento per ogni sessione.
@@ -860,7 +870,11 @@ Le parti senza interfaccia della fase 1 (ingest, metadati, analisi, catalogo) po
 
 ### Primissima attività della fase 1
 
-Verifica sui primi NEF della Z5 II: risoluzione dell'anteprima incorporata, decodificabilità dei NEF High Efficiency, disponibilità del punto AF tramite exiftool.
+Verifica sui primi NEF della Z5 II: risoluzione dell'anteprima incorporata, decodificabilità dei NEF High Efficiency, disponibilità del punto AF tramite exiftool. **Rinviata** (decisione F1-1 del 12 ott 2026): i NEF della Z5 II non sono disponibili prima dell'implementazione; il gestore RAW nasce generico (provato su D40/D5100 e RAW pubblici, NEF HE come solo anteprima) e la verifica diventa una checklist manuale dell'utente; se esistono NEF Z5 II pubblici con licenza chiara, si usano per un controllo anticipato.
+
+### Interfaccia nelle fasi
+
+Ogni fase realizza il layout completo delle tavole che la riguardano; i controlli di funzioni di fasi successive sono presenti ma disattivati, con il suggerimento "Arriva con la fase N" (decisione F1-6 del 12 ott 2026). La logica arriva solo nella fase prevista.
 
 ### Criteri di accettazione
 
@@ -934,6 +948,8 @@ Sei livelli di test; quelli che usano foto personali girano solo in locale, e il
 
 Riferimento: modello originale PyTorch con il preprocessore ufficiale. Immagini e riferimenti fuori dal repository (`PHOTOFLOW_TESTDATA`), report per immagine.
 
+Volti buffalo\_l (tappa 1.7, 12 ott 2026): riferimento insightface 2.1 (`tools/lab/face_refs.py`, ambiente separato). Gli ingressi di SCRFD (letterbox 640) e di 2d106det (ritaglio 1,5× il volto, 192 px) si preparano con ricampionamento antialias (semantica Pillow, anche con riquadro frazionario) invece di `cv2.resize`/`cv2.warpAffine`, che campionano senza filtro quando riducono anteprime grandi; il ritaglio è allineato alla convenzione dei centri pixel di `warpAffine`. Il riferimento usa la stessa preparazione e il codice insightface per modello e post-elaborazione. Criteri: ingressi identici bit a bit; tensori \|Δ punteggi\| ≤ 5e-3, \|Δ distanze\| ≤ 5e-3 (unità di stride), \|Δ landmark grezzi\| ≤ 5e-4; rilevamenti IoU ≥ 0,95, \|Δ punteggio\| ≤ 0,02, landmark ≤ 2e-3 del lato del volto, rapporto di apertura degli occhi ≤ 5e-3. Misurati su 40 foto reali (265 volti): CPU identica (Δ = 0), CUDA Δ punteggi 5e-7, landmark 4e-4 del volto. Differenza tra le due preparazioni (informativa, volti ≥ 80 px): landmark 0,35% del volto (mediana), rapporto occhi 0,005 (mediana). YuNet 2023mar (alternativa con licenza MIT): ingresso fisso 640×640 riempito come SCRFD, decodifica e NMS come `FaceDetectorYN` di OpenCV 5.0; su 40 foto (247 volti) IoU ≥ 0,99999, \|Δ punteggio\| ≤ 6e-7, CPU e CUDA.
+
 ### Test delle invarianti
 
 | Invariante | Verifica |
@@ -949,7 +965,7 @@ Riferimento: modello originale PyTorch con il preprocessore ufficiale. Immagini 
 | --- | --- | --- |
 | Formati | RAW di varie marche, TIFF 16 bit e multipagina, HEIC, PNG, file corrotti, estensioni sbagliate, foto senza EXIF | Repository pubblico (solo file con licenza libera verificata) |
 | Subset d'archivio | 1.000-2.000 foto varie dell'archivio esistente, non etichettate: benchmark, formati, frequenza tag, comportamento clustering | Solo locale |
-| Qualità | Foto etichettate dall'utente (obiettivo 300-500) | Solo locale |
+| Qualità | Foto etichettate dall'utente (obiettivo 300-500); in fase 1 cartelle `quality/buone`, `quality/mosse`, `quality/occhi_chiusi` in `PHOTOFLOW_TESTDATA` (decisione F1-7) | Solo locale |
 | Riferimenti di parità | Output dei modelli originali | Generati in locale, versionati con il modello |
 
 ### Set di qualità ed etichettatura
@@ -981,7 +997,8 @@ Il progetto è Apache 2.0; l'unico componente non commerciale (buffalo\_l) è op
 | ONNX Runtime, ONNX Runtime GenAI | MIT | Verificato |
 | DirectML (`Microsoft.AI.DirectML`), runtime Windows ML | Licenze proprietarie Microsoft, ridistribuibili a condizioni; i provider di vendor di Windows ML hanno licenze proprie | Verificato 12 ott 2026 |
 | Microsoft.Data.Sqlite / SQLite | MIT / pubblico dominio | Verificato |
-| Dapper, Serilog, xUnit, OpenCvSharp | Apache 2.0 | Da conoscenza |
+| Dapper, Serilog, xUnit | Apache 2.0 | Verificato |
+| OpenCvSharp | Apache 2.0; non adottato (F1-4) | Verificato 12 ott 2026 |
 | Magick.NET (15.0.0) | Apache 2.0; libheif, libde265 (LGPL) e LibRaw **collegate staticamente** in Magick.Native: serve voce NOTICE, offerta dei sorgenti LGPL e revisione di conformità (R19) | Verificato 12 ott 2026 |
 | exiftool | Licenza di Perl (Artistic/GPL), ridistribuibile | Da conoscenza |
 | Velopack / vpk (1.2.161) | MIT; canali per variante, feed statico, ritorno indietro con `AllowVersionDowngrade` | Verificato 12 ott 2026 |
@@ -1020,7 +1037,7 @@ Il rischio principale è l'allargamento continuo dell'ambito; questa specifica e
 | R2 | Culling poco affidabile | Media | Alto | Modalità prudente, metriche misurate, invarianti |
 | R3 | Anteprime Z5 II non a piena risoluzione o NEF High Efficiency non decodificabili | Media | Medio | Verifica come prima attività della fase 1; fallback di decodifica |
 | R4 | Export ONNX non fedele (RAM++, D-FINE) | Bassa | Medio | Test di parità; alternative CLIP zero-shot e RF-DETR |
-| R5 | Futuro di DirectML (spinta verso Windows ML) | Media | Medio | `IInferenceProvider`; build CUDA e CPU |
+| R5 | Futuro di DirectML (spinta verso Windows ML) | Chiuso | — | DirectML escluso (F1-2); Windows ML nel backlog con la parità come condizione |
 | R6 | Librerie piccole abbandonate | Media | Medio-basso | Interfacce; sostituzione o fork |
 | R7 | Corruzione del catalogo | Bassa | Alto | Rollback in rete, lock, backup, integrità |
 | R8 | Prestazioni insufficienti su sola CPU | Media | Basso | Livelli di tagging, esecuzione notturna |
@@ -1031,8 +1048,8 @@ Il rischio principale è l'allargamento continuo dell'ambito; questa specifica e
 | R13 | exiftool bloccato o lento | Bassa | Medio | `-stay_open`, controllo di salute, riavvio automatico |
 | R14 | Durata del progetto con impegno serale | Alta | Medio | Ogni fase produce un applicativo utilizzabile |
 | R15 | NEF High Efficiency (HE/HE*) non decodificabili da LibRaw pubblica (0.22.2); Z5 II non in elenco | Alta | Medio | Anteprima incorporata via exiftool, stato "RAW HE: solo anteprima"; aggiornare allo snapshot LibRaw annunciato per l'autunno 2026 |
-| R16 | Una sola distribuzione di ONNX Runtime per processo: DirectML NuGet 1.24.4, Windows ML 1.27.1, RapidOcrNet ≥ 1.29 | Alta | Medio | Scelta del backend nel piano della fase 1; RapidOcrNet dietro adattatore, eventualmente incorporato (Apache 2.0) |
-| R17 | DirectML in sustained engineering; CUDA in migrazione verso un plugin EP | Media | Medio | `IInferenceProvider`; valutare Windows ML (provider di vendor solo da Windows 11 24H2, DirectML/CPU anche su Windows 10) |
+| R16 | Una sola distribuzione di ONNX Runtime per processo | Bassa | Medio | Scelto ORT 1.31 (CUDA + CPU, F1-2): compatibile con RapidOcrNet (≥ 1.29); ogni nuovo backend o libreria con ORT propria va verificato |
+| R17 | CUDA in migrazione verso un plugin EP di ONNX Runtime; dimensione del pacchetto GPU (CUDA/cuDNN ~1-1,5 GB) | Media | Medio | `IInferenceProvider`; pacchetto GPU separato e facoltativo, con SHA-256; CPU sempre disponibile |
 | R18 | Clustering volti: HdbscanSharp O(n²) non scala a ~100.000 volti | Alta | Medio | HDBSCAN su grafo k-NN dietro interfaccia di Core, validato contro Python in `tools/lab` |
 | R19 | LGPL (libheif, libde265, LibRaw) collegate staticamente in Magick.Native | Media | Medio | NOTICE e offerta dei sorgenti; revisione di conformità prima della prima versione distribuita |
 | R20 | Perl di sistema deprecato su macOS (serve a exiftool) | Media | Basso | Controllo all'avvio con messaggio chiaro; in prospettiva Perl incluso nel pacchetto Mac |
@@ -1076,6 +1093,12 @@ Decisioni emerse in Design (confermate), funzioni rinviate a dopo la stabilizzaz
 | Firma del codice | Sezione 11 |
 | Mappa GPS | Sezione 1 |
 | Catalogo su PostgreSQL (homelab) per uso multi-PC simultaneo | Sezione 9 |
+| Backend GPU per schede non NVIDIA (Windows ML con provider di vendor, o DirectML se corretto): ammesso solo dopo i test di parità | F1-2 |
+| Rivalutare OpenCvSharp se le fasi successive richiedono elaborazioni complesse | F1-4 |
+| Punto AF delle reflex (punti con nome, senza coordinate): mappa delle posizioni per modello | Tappa 1.7 |
+| Importazione del pacchetto offline dei modelli (oggi solo il pacchetto GPU) | Tappa 1.9 |
+| Annulla globale (Ctrl Z) oltre le decisioni della Revisione | Tappa 1.9 |
+| Accelerazione SIMD del ricampionamento e dei segnali (oggi l'analisi è limitata dalla CPU: 8 foto in parallelo su 24 thread) | Tappa 1.10 |
 | Cambio di politica XMP di una libreria: unione dei sidecar esistenti negli incorporati (o viceversa) | D21, fase 5 (sincronizzazione) |
 
 ### Verifiche tecniche

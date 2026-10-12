@@ -126,4 +126,149 @@
   <Style Selector="Button.ghost:pointerover /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource PF.Brush.ControlHover}" />
   </Style>
+  <!-- Section header above a group of cards: micro, uppercase, tertiary -->
+  <Style Selector="TextBlock.overline">
+    <Setter Property="FontFamily" Value="{StaticResource PF.Font.Mono}" />
+    <Setter Property="FontSize" Value="{StaticResource PF.FontSize.Micro}" />
+    <Setter Property="LineHeight" Value="{StaticResource PF.LineHeight.Micro}" />
+    <Setter Property="Foreground" Value="{DynamicResource PF.Brush.TextTertiary}" />
+    <Setter Property="LetterSpacing" Value="0.5" />
+    <Setter Property="Margin" Value="0,0,0,8" />
+  </Style>
+  <Style Selector="TextBlock.toReview">
+    <Setter Property="Foreground" Value="{DynamicResource PF.Brush.Outcome.ToReview}" />
+  </Style>
+  <Style Selector="TextBlock.error">
+    <Setter Property="Foreground" Value="{DynamicResource PF.Brush.State.Error}" />
+  </Style>
+  <Style Selector="TextBlock.warning">
+    <Setter Property="Foreground" Value="{DynamicResource PF.Brush.State.Warning}" />
+  </Style>
+
+  <!-- Card: panel surface with a 1 px border; rows inside are separated by .divider borders -->
+  <Style Selector="Border.card">
+    <Setter Property="Background" Value="{DynamicResource PF.Brush.Panel}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource PF.Brush.Border}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{StaticResource PF.Radius.Control}" />
+  </Style>
+  <Style Selector="Border.cardError">
+    <Setter Property="BorderBrush" Value="{DynamicResource PF.Brush.State.Error}" />
+  </Style>
+  <Style Selector="Border.divider">
+    <Setter Property="BorderBrush" Value="{DynamicResource PF.Brush.Border}" />
+    <Setter Property="BorderThickness" Value="0,1,0,0" />
+  </Style>
+
+  <!-- Keyboard hint badge (e.g. "Esc", "Ctrl K") inside buttons and lists -->
+  <Style Selector="Border.key">
+    <Setter Property="BorderBrush" Value="{DynamicResource PF.Brush.BorderStrong}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="2" />
+    <Setter Property="Padding" Value="4,0" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.key TextBlock">
+    <Setter Property="FontFamily" Value="{StaticResource PF.Font.Mono}" />
+    <Setter Property="FontSize" Value="10" />
+    <Setter Property="Foreground" Value="{DynamicResource PF.Brush.TextTertiary}" />
+  </Style>
+
+  <!-- Buttons: primary (one per view), secondary, ghost -->
+  <Style Selector="Button.primary, Button.secondary">
+    <Setter Property="MinHeight" Value="32" />
+    <Setter Property="MinWidth" Value="{StaticResource PF.Size.ButtonMinWidth}" />
+    <Setter Property="Padding" Value="12,0" />
+    <Setter Property="CornerRadius" Value="{StaticResource PF.Radius.Control}" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.12" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Button.primary">
+    <Setter Property="Background" Value="{DynamicResource PF.Brush.PrimaryAction}" />
+    <Setter Property="Foreground" Value="{DynamicResource PF.Brush.PrimaryActionText}" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="Button.primary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource PF.Brush.PrimaryAction}" />
+    <Setter Property="Foreground" Value="{DynamicResource PF.Brush.PrimaryActionText}" />
+    <Setter Property="Opacity" Value="0.9" />
+  </Style>
+  <Style Selector="Button.secondary">
+    <Setter Property="Background" Value="{DynamicResource PF.Brush.Control}" />
+    <Setter Property="Foreground" Value="{DynamicResource PF.Brush.TextPrimary}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource PF.Brush.BorderStrong}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+  <Style Selector="Button.secondary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource PF.Brush.ControlHover}" />
+    <Setter Property="Foreground" Value="{DynamicResource PF.Brush.TextPrimary}" />
+  </Style>
+  <Style Selector="Button:disabled">
+    <Setter Property="Opacity" Value="0.45" />
+  </Style>
+
+  <!-- Thin progress bar of jobs and phases -->
+  <Style Selector="ProgressBar.thin">
+    <Setter Property="MinWidth" Value="0" />
+    <Setter Property="Height" Value="4" />
+    <Setter Property="MinHeight" Value="4" />
+    <Setter Property="CornerRadius" Value="2" />
+    <Setter Property="Background" Value="{DynamicResource PF.Brush.Control}" />
+    <Setter Property="Foreground" Value="{DynamicResource PF.Brush.Accent}" />
+  </Style>
+
+  <!-- Choice cards (selection, profiles): a ListBox whose items look like bordered tiles -->
+  <Style Selector="ListBox.choices">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Padding" Value="0" />
+  </Style>
+  <Style Selector="ListBox.choices ListBoxItem">
+    <Setter Property="Padding" Value="12,8" />
+    <Setter Property="Margin" Value="0,0,0,8" />
+    <Setter Property="CornerRadius" Value="{StaticResource PF.Radius.Control}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderBrush" Value="{DynamicResource PF.Brush.Border}" />
+    <Setter Property="Background" Value="{DynamicResource PF.Brush.Panel}" />
+  </Style>
+  <Style Selector="ListBox.choices ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource PF.Brush.Control}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource PF.Brush.TextPrimary}" />
+  </Style>
+  <Style Selector="ListBox.choices ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource PF.Brush.ControlHover}" />
+  </Style>
+
+  <!-- Text inputs in forms -->
+  <Style Selector="TextBox.field">
+    <Setter Property="MinHeight" Value="32" />
+    <Setter Property="Background" Value="{DynamicResource PF.Brush.Control}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource PF.Brush.BorderStrong}" />
+    <Setter Property="CornerRadius" Value="{StaticResource PF.Radius.Control}" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <!-- Lists of jobs: rows with two lines -->
+  <Style Selector="ListBox.jobs">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Padding" Value="0" />
+  </Style>
+  <Style Selector="ListBox.jobs ListBoxItem">
+    <Setter Property="Padding" Value="12,4" />
+    <Setter Property="Margin" Value="0,1" />
+    <Setter Property="CornerRadius" Value="{StaticResource PF.Radius.Control}" />
+  </Style>
+  <Style Selector="ListBox.jobs ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource PF.Brush.Control}" />
+  </Style>
+
+  <!-- Steps of a procedure: the current one is underlined with the accent -->
+  <Style Selector="Border.inactive">
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Opacity" Value="0.6" />
+  </Style>
 </Styles>

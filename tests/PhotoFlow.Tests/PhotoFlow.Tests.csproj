@@ -10,9 +10,14 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\PhotoFlow.Core\PhotoFlow.Core.csproj" />
     <ProjectReference Include="..\..\src\PhotoFlow.Imaging\PhotoFlow.Imaging.csproj" />
+    <ProjectReference Include="..\..\src\PhotoFlow.Sources\PhotoFlow.Sources.csproj" />
+    <ProjectReference Include="..\..\src\PhotoFlow.Metadata\PhotoFlow.Metadata.csproj" />
+    <ProjectReference Include="..\..\src\PhotoFlow.Data\PhotoFlow.Data.csproj" />
     <ProjectReference Include="..\..\src\PhotoFlow.Inference\PhotoFlow.Inference.csproj" />
     <ProjectReference Include="..\..\src\PhotoFlow.Analysis\PhotoFlow.Analysis.csproj" />
+    <ProjectReference Include="..\..\src\PhotoFlow.Faces\PhotoFlow.Faces.csproj" />
     <ProjectReference Include="..\..\src\PhotoFlow.App\PhotoFlow.App.csproj" />
+    <ProjectReference Include="..\PhotoFlow.ScenarioHost\PhotoFlow.ScenarioHost.csproj" />
   </ItemGroup>
 
   <ItemGroup>

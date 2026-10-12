@@ -176,3 +176,27 @@ def environment_info() -> dict:
         pass
     info["logical_cpus"] = os.cpu_count()
     return info
+
+
+def load_photo(path: Path):
+    """Photo as upright RGB Pillow image: the largest embedded JPEG for RAW files (orientation from the RAW)."""
+    import io
+    import subprocess
+
+    from PIL import Image, ImageOps
+
+    if path.suffix.lower() in RAW_EXTENSIONS:
+        exe = str(ensure_exiftool())
+        data = b""
+        for tag in ("JpgFromRaw", "PreviewImage"):
+            data = subprocess.run([exe, "-b", f"-{tag}", str(path)], capture_output=True, check=True).stdout
+            if len(data) > 1000:
+                break
+        image = Image.open(io.BytesIO(data))
+        orientation = subprocess.run([exe, "-n", "-s3", "-Orientation", str(path)], capture_output=True, text=True).stdout.strip()
+        image = image.convert("RGB")
+        transpose = {"2": Image.Transpose.FLIP_LEFT_RIGHT, "3": Image.Transpose.ROTATE_180, "4": Image.Transpose.FLIP_TOP_BOTTOM,
+                     "5": Image.Transpose.TRANSPOSE, "6": Image.Transpose.ROTATE_270, "7": Image.Transpose.TRANSVERSE,
+                     "8": Image.Transpose.ROTATE_90}.get(orientation)
+        return image.transpose(transpose) if transpose else image
+    return ImageOps.exif_transpose(Image.open(path)).convert("RGB")

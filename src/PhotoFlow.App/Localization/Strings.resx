@@ -29,4 +29,255 @@
   <data name="Key.Ctrl" xml:space="preserve"><value>Ctrl</value></data>
   <data name="Key.Shift" xml:space="preserve"><value>Shift</value></data>
   <data name="Key.Alt" xml:space="preserve"><value>Alt</value></data>
+  <data name="Common.Back" xml:space="preserve"><value>Back</value></data>
+  <data name="Common.Browse" xml:space="preserve"><value>Browse…</value></data>
+  <data name="Common.Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Common.Next" xml:space="preserve"><value>Next</value></data>
+  <data name="Common.ComesWithPhase2" xml:space="preserve"><value>Comes with phase 2</value></data>
+  <data name="Common.ComesWithPhase3" xml:space="preserve"><value>Comes with phase 3</value></data>
+  <data name="Common.ComesWithPhase5" xml:space="preserve"><value>Comes with phase 5</value></data>
+  <data name="Page.ComesWithPhase" xml:space="preserve"><value>This section comes with phase {0}.</value></data>
+  <data name="Duration.UnderMinute" xml:space="preserve"><value>&lt; 1 min</value></data>
+  <data name="Duration.Minutes" xml:space="preserve"><value>~{0} min</value></data>
+  <data name="Duration.HoursMinutes" xml:space="preserve"><value>~{0} h {1} min</value></data>
+  <data name="Status.Summary" xml:space="preserve"><value>{0} · {1} · local catalog</value></data>
+  <data name="Status.Faces.Eyes" xml:space="preserve"><value>faces and eyes</value></data>
+  <data name="Status.Faces.NoEyes" xml:space="preserve"><value>faces without eyes</value></data>
+  <data name="Status.Faces.None" xml:space="preserve"><value>no face model</value></data>
+  <data name="Status.CatalogLocked" xml:space="preserve"><value>The catalog is open in another PhotoFlow window.</value></data>
+  <data name="Status.StartupFailed" xml:space="preserve"><value>Startup failed: {0}</value></data>
+  <data name="FirstRun.Title" xml:space="preserve"><value>Set up PhotoFlow</value></data>
+  <data name="FirstRun.Intro" xml:space="preserve"><value>Three steps, then insert a card. Everything stays on this PC: no cloud, no telemetry.</value></data>
+  <data name="FirstRun.Hardware" xml:space="preserve"><value>Hardware</value></data>
+  <data name="FirstRun.NoGpu" xml:space="preserve"><value>no NVIDIA GPU</value></data>
+  <data name="FirstRun.Cpus" xml:space="preserve"><value>{0} logical CPUs</value></data>
+  <data name="FirstRun.GpuPack" xml:space="preserve"><value>To use the NVIDIA GPU, PhotoFlow downloads the CUDA and cuDNN libraries from NVIDIA (verified with SHA-256).</value></data>
+  <data name="FirstRun.AcceptNvidiaLabel" xml:space="preserve"><value>I accept the NVIDIA licenses (CUDA Toolkit EULA, cuDNN Software License Agreement)</value></data>
+  <data name="FirstRun.AcceptNvidia" xml:space="preserve"><value>Accept the NVIDIA licenses to download the GPU pack.</value></data>
+  <data name="FirstRun.DownloadGpuPack" xml:space="preserve"><value>Download GPU pack</value></data>
+  <data name="FirstRun.GpuPackRestart" xml:space="preserve"><value>GPU pack installed: restart PhotoFlow to use the GPU.</value></data>
+  <data name="FirstRun.Models" xml:space="preserve"><value>Models</value></data>
+  <data name="FirstRun.ModelsIntro" xml:space="preserve"><value>Phase 1: subject detection and faces. One face model is for non-commercial use only (buffalo_l): accept its license before the download, or choose YuNet.</value></data>
+  <data name="FirstRun.BuffaloNote" xml:space="preserve"><value>Detects closed eyes.</value></data>
+  <data name="FirstRun.YuNetNote" xml:space="preserve"><value>Permissive license; closed eyes are not detected (eyes always unknown).</value></data>
+  <data name="FirstRun.AcceptBuffalo" xml:space="preserve"><value>I accept the InsightFace license: non-commercial research use only</value></data>
+  <data name="FirstRun.AcceptModelLicense" xml:space="preserve"><value>Accept the license of {0} to download it.</value></data>
+  <data name="FirstRun.DownloadModels" xml:space="preserve"><value>Review licenses and download</value></data>
+  <data name="FirstRun.ImportOffline" xml:space="preserve"><value>Import offline pack</value></data>
+  <data name="FirstRun.OfflineLater" xml:space="preserve"><value>Comes with phase 1b</value></data>
+  <data name="FirstRun.Downloading" xml:space="preserve"><value>Downloading {0}…</value></data>
+  <data name="FirstRun.ModelsReady" xml:space="preserve"><value>Models ready.</value></data>
+  <data name="FirstRun.DownloadFailed" xml:space="preserve"><value>Download failed: {0}</value></data>
+  <data name="FirstRun.Library" xml:space="preserve"><value>First library</value></data>
+  <data name="FirstRun.LibraryIntro" xml:space="preserve"><value>A root folder where the photos live. Imports copy here, organized by event.</value></data>
+  <data name="FirstRun.LibraryInvalid" xml:space="preserve"><value>Choose a full folder path for the library.</value></data>
+  <data name="FirstRun.CatalogLocation" xml:space="preserve"><value>The catalog will be created in {0}.</value></data>
+  <data name="FirstRun.Finish" xml:space="preserve"><value>Start</value></data>
+  <data name="Models.License.Commercial" xml:space="preserve"><value>{0} · commercial use allowed</value></data>
+  <data name="Models.License.NonCommercial" xml:space="preserve"><value>{0} · non-commercial only</value></data>
+  <data name="Home.Card.Title" xml:space="preserve"><value>Card detected · {0} ({1})</value></data>
+  <data name="Home.Card.New" xml:space="preserve"><value>{0} new</value></data>
+  <data name="Home.Card.Already" xml:space="preserve"><value>{0} already imported</value></data>
+  <data name="Home.Card.Import" xml:space="preserve"><value>Import {0} photos</value></data>
+  <data name="Home.Card.Ignore" xml:space="preserve"><value>Ignore</value></data>
+  <data name="Home.Card.Choose" xml:space="preserve"><value>Choose what to import</value></data>
+  <data name="Home.Command.Primary" xml:space="preserve"><value>Import card</value></data>
+  <data name="Home.Command.Secondary" xml:space="preserve"><value>Ignore</value></data>
+  <data name="Home.ActiveJobs" xml:space="preserve"><value>ACTIVE JOBS · {0}</value></data>
+  <data name="Home.NoActiveJobs" xml:space="preserve"><value>No job running.</value></data>
+  <data name="Home.Job.CopyProgress" xml:space="preserve"><value>{0} · copy {1} / {2}</value></data>
+  <data name="Home.Job.AnalysisProgress" xml:space="preserve"><value>{0} · analysis {1} / {2}</value></data>
+  <data name="Home.ToReview" xml:space="preserve"><value>TO REVIEW</value></data>
+  <data name="Home.ToReview.Count" xml:space="preserve"><value>? {0} to review</value></data>
+  <data name="Home.Photos" xml:space="preserve"><value>{0} photos</value></data>
+  <data name="Home.OpenReview" xml:space="preserve"><value>Open review</value></data>
+  <data name="Home.Libraries" xml:space="preserve"><value>LIBRARIES</value></data>
+  <data name="Home.QuickActions" xml:space="preserve"><value>QUICK ACTIONS</value></data>
+  <data name="Home.QuickAction.ImportFolder" xml:space="preserve"><value>Import folder</value></data>
+  <data name="Home.QuickAction.SearchLater" xml:space="preserve"><value>Search comes with phase 3</value></data>
+  <data name="Home.QuickAction.PeopleLater" xml:space="preserve"><value>People comes with phase 2</value></data>
+  <data name="Home.QuickAction.DuplicatesLater" xml:space="preserve"><value>Duplicates comes with phase 3</value></data>
+  <data name="Home.Recovery.Title" xml:space="preserve"><value>PhotoFlow closed unexpectedly</value></data>
+  <data name="Home.Recovery.Body" xml:space="preserve"><value>These jobs can resume from the last saved point. No file was lost; at most the photos in progress are processed again.</value></data>
+  <data name="Home.Recovery.Resume" xml:space="preserve"><value>Resume {0} jobs</value></data>
+  <data name="Home.Recovery.Later" xml:space="preserve"><value>Later</value></data>
+  <data name="Home.Recovery.OpenLog" xml:space="preserve"><value>Open local report</value></data>
+  <data name="Library.Policy.EmbeddedForNonRaw" xml:space="preserve"><value>XMP embedded + sidecar</value></data>
+  <data name="Library.Policy.SidecarOnly" xml:space="preserve"><value>XMP sidecar only</value></data>
+  <data name="Library.Policy.CatalogOnly" xml:space="preserve"><value>catalog only</value></data>
+  <data name="Job.Unnamed" xml:space="preserve"><value>Untitled</value></data>
+  <data name="JobType.Import" xml:space="preserve"><value>Import</value></data>
+  <data name="JobType.AnalyzeInPlace" xml:space="preserve"><value>In-place analysis</value></data>
+  <data name="JobType.Reanalyze" xml:space="preserve"><value>Reanalysis</value></data>
+  <data name="Import.Title" xml:space="preserve"><value>Import</value></data>
+  <data name="Import.Loading" xml:space="preserve"><value>Reading the source…</value></data>
+  <data name="Import.Error.Source" xml:space="preserve"><value>The source cannot be read: {0}</value></data>
+  <data name="Import.Step.Source" xml:space="preserve"><value>Source and event</value></data>
+  <data name="Import.Step.Analysis" xml:space="preserve"><value>Analysis</value></data>
+  <data name="Import.Step.Destinations" xml:space="preserve"><value>Destinations and XMP</value></data>
+  <data name="Import.StepOf" xml:space="preserve"><value>Step {0} of {1}</value></data>
+  <data name="Import.Source" xml:space="preserve"><value>Source</value></data>
+  <data name="Import.Source.Card" xml:space="preserve"><value>Card {0} ({1})</value></data>
+  <data name="Import.Source.Detail" xml:space="preserve"><value>{0} files · {1}</value></data>
+  <data name="Import.WhatToImport" xml:space="preserve"><value>What to import</value></data>
+  <data name="Import.Selection.OnlyNew" xml:space="preserve"><value>Only new</value></data>
+  <data name="Import.Selection.All" xml:space="preserve"><value>All, including the {0} already imported</value></data>
+  <data name="Import.Note.Pairs" xml:space="preserve"><value>· {0} RAW+JPG pairs counted as one photo</value></data>
+  <data name="Import.Note.Videos" xml:space="preserve"><value>· {0} videos: copied, not analyzed</value></data>
+  <data name="Import.Note.Identity" xml:space="preserve"><value>· Already imported recognized by fingerprint + capture date</value></data>
+  <data name="Import.EventName" xml:space="preserve"><value>Event name</value></data>
+  <data name="Import.Event.Default" xml:space="preserve"><value>Import</value></data>
+  <data name="Import.EventDate" xml:space="preserve"><value>Event date</value></data>
+  <data name="Import.Event.FromShots" xml:space="preserve"><value>From the shots: {0}.</value></data>
+  <data name="Import.PathPreview" xml:space="preserve"><value>Path preview</value></data>
+  <data name="Import.TemplateNote" xml:space="preserve"><value>Template {yyyy}/{yyyy-MM-dd}_{evento}/… · change in Settings</value></data>
+  <data name="Import.Profile" xml:space="preserve"><value>Scene profile</value></data>
+  <data name="Import.Profile.Automatic" xml:space="preserve"><value>Automatic · per group</value></data>
+  <data name="Import.Faces" xml:space="preserve"><value>Faces</value></data>
+  <data name="Import.Faces.Off" xml:space="preserve"><value>Off</value></data>
+  <data name="Import.Faces.DetectOnly" xml:space="preserve"><value>Detection only</value></data>
+  <data name="Import.Faces.Recognize" xml:space="preserve"><value>Recognition</value></data>
+  <data name="Import.Faces.Note" xml:space="preserve"><value>Detection is needed for closed eyes; recognition of people comes with phase 2.</value></data>
+  <data name="Import.Tags" xml:space="preserve"><value>Automatic tags</value></data>
+  <data name="Import.Tags.A" xml:space="preserve"><value>A · Personal vocabulary (CLIP)</value></data>
+  <data name="Import.Tags.B" xml:space="preserve"><value>B · Generic tags (RAM++)</value></data>
+  <data name="Import.Tags.C" xml:space="preserve"><value>C · Captions (Florence-2)</value></data>
+  <data name="Import.Tags.D" xml:space="preserve"><value>D · VLM captions</value></data>
+  <data name="Import.Destinations" xml:space="preserve"><value>Destinations · verified copy with xxHash3 fingerprint</value></data>
+  <data name="Import.Destination.Primary" xml:space="preserve"><value>Main</value></data>
+  <data name="Import.Destination.Secondary" xml:space="preserve"><value>Backup</value></data>
+  <data name="Import.Destination.Deferred" xml:space="preserve"><value>NAS · asynchronous copy</value></data>
+  <data name="Import.Destination.Free" xml:space="preserve"><value>{0} · {1} free</value></data>
+  <data name="Import.Destination.NoSpace" xml:space="preserve"><value>Not enough space: {0} needed.</value></data>
+  <data name="Import.Destination.Ready" xml:space="preserve"><value>✓ Ready</value></data>
+  <data name="Import.Destination.Error" xml:space="preserve"><value>Error</value></data>
+  <data name="Import.Destination.Queued" xml:space="preserve"><value>Queued</value></data>
+  <data name="Import.Destination.Unreachable" xml:space="preserve"><value>Not reachable: the copy stays queued and retries</value></data>
+  <data name="Import.AddDestination" xml:space="preserve"><value>+ Add destination</value></data>
+  <data name="Import.Xmp" xml:space="preserve"><value>XMP writing</value></data>
+  <data name="Import.Xmp.Embedded" xml:space="preserve"><value>Embedded in JPG, sidecar for RAW · default</value></data>
+  <data name="Import.Xmp.EmbeddedNote" xml:space="preserve"><value>Visible in File Explorer and Photoshop</value></data>
+  <data name="Import.Xmp.Sidecar" xml:space="preserve"><value>Always sidecar .xmp</value></data>
+  <data name="Import.Xmp.Catalog" xml:space="preserve"><value>Catalog only</value></data>
+  <data name="Import.Xmp.AfterConfirm" xml:space="preserve"><value>XMP are written only after the confirmation in Review.</value></data>
+  <data name="Import.Summary" xml:space="preserve"><value>SUMMARY</value></data>
+  <data name="Import.Summary.SourceLabel" xml:space="preserve"><value>Source</value></data>
+  <data name="Import.Summary.EventLabel" xml:space="preserve"><value>Event</value></data>
+  <data name="Import.Summary.ProfileLabel" xml:space="preserve"><value>Profile</value></data>
+  <data name="Import.Summary.FacesLabel" xml:space="preserve"><value>Faces</value></data>
+  <data name="Import.Summary.CopiesLabel" xml:space="preserve"><value>Copies</value></data>
+  <data name="Import.Summary.Source" xml:space="preserve"><value>{0} · {1} files</value></data>
+  <data name="Import.Summary.Copies" xml:space="preserve"><value>{0} + {1} NAS</value></data>
+  <data name="Import.CardUntouched" xml:space="preserve"><value>The card is never modified or emptied.</value></data>
+  <data name="Import.Start" xml:space="preserve"><value>Start import · {0}</value></data>
+  <data name="Import.StartNow" xml:space="preserve"><value>Start now</value></data>
+  <data name="Import.Command.Next" xml:space="preserve"><value>Next</value></data>
+  <data name="Import.Command.StartNow" xml:space="preserve"><value>Start now</value></data>
+  <data name="Import.Command.Back" xml:space="preserve"><value>Back</value></data>
+  <data name="Import.Command.Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Jobs.Running" xml:space="preserve"><value>RUNNING</value></data>
+  <data name="Jobs.Queued" xml:space="preserve"><value>PAUSED OR QUEUED</value></data>
+  <data name="Jobs.Completed" xml:space="preserve"><value>COMPLETED</value></data>
+  <data name="Jobs.Detail" xml:space="preserve"><value>{0} · started {1} · {2} files · {3}</value></data>
+  <data name="Jobs.Pause" xml:space="preserve"><value>Pause</value></data>
+  <data name="Jobs.Resume" xml:space="preserve"><value>Resume</value></data>
+  <data name="Jobs.Paused" xml:space="preserve"><value>Paused: no stage starts on files that are not verified. Resume when ready.</value></data>
+  <data name="Jobs.Remaining" xml:space="preserve"><value>Remaining {0}</value></data>
+  <data name="Jobs.Elapsed" xml:space="preserve"><value>Elapsed {0}</value></data>
+  <data name="Jobs.Errors" xml:space="preserve"><value>ERRORS · {0} FILES — THE JOB GOES ON</value></data>
+  <data name="Jobs.Log" xml:space="preserve"><value>LOG</value></data>
+  <data name="Jobs.Log.Resumed" xml:space="preserve"><value>Job resumed</value></data>
+  <data name="Jobs.Empty.Title" xml:space="preserve"><value>No job running</value></data>
+  <data name="Jobs.Empty.Body" xml:space="preserve"><value>Insert a card or import a folder.</value></data>
+  <data name="Jobs.Command.PauseResume" xml:space="preserve"><value>Pause/resume</value></data>
+  <data name="Jobs.State.Pending" xml:space="preserve"><value>waiting</value></data>
+  <data name="Jobs.State.Running" xml:space="preserve"><value>running</value></data>
+  <data name="Jobs.State.Paused" xml:space="preserve"><value>paused</value></data>
+  <data name="Jobs.State.Completed" xml:space="preserve"><value>completed</value></data>
+  <data name="Jobs.State.Failed" xml:space="preserve"><value>failed</value></data>
+  <data name="Jobs.State.Cancelled" xml:space="preserve"><value>cancelled</value></data>
+  <data name="Jobs.Pause.UserRequest" xml:space="preserve"><value>Paused</value></data>
+  <data name="Jobs.Pause.DestinationUnavailable" xml:space="preserve"><value>Paused: a destination was disconnected during the copy. The files copied so far are verified; the others wait.</value></data>
+  <data name="Jobs.Pause.SourceUnavailable" xml:space="preserve"><value>Paused: the card or source folder is not reachable. Insert it and resume.</value></data>
+  <data name="Jobs.Pause.Interrupted" xml:space="preserve"><value>Interrupted by an unexpected close</value></data>
+  <data name="Stage.Copy" xml:space="preserve"><value>Copy</value></data>
+  <data name="Stage.Preview" xml:space="preserve"><value>Preview</value></data>
+  <data name="Stage.Analysis" xml:space="preserve"><value>Analysis</value></data>
+  <data name="Stage.Grouping" xml:space="preserve"><value>Grouping</value></data>
+  <data name="Stage.Decision" xml:space="preserve"><value>Decision</value></data>
+  <data name="Stage.Tags" xml:space="preserve"><value>Tags and OCR</value></data>
+  <data name="Stage.Faces" xml:space="preserve"><value>Faces</value></data>
+  <data name="Stage.Review" xml:space="preserve"><value>Review</value></data>
+  <data name="Stage.Xmp" xml:space="preserve"><value>XMP</value></data>
+  <data name="Profile.events" xml:space="preserve"><value>Events</value></data>
+  <data name="Profile.portrait" xml:space="preserve"><value>Portrait</value></data>
+  <data name="Profile.motorsport" xml:space="preserve"><value>Motorsport</value></data>
+  <data name="Profile.animals" xml:space="preserve"><value>Animals</value></data>
+  <data name="Profile.landscape" xml:space="preserve"><value>Landscape</value></data>
+  <data name="Profile.night" xml:space="preserve"><value>Night/Aurora</value></data>
+  <data name="Profile.archive" xml:space="preserve"><value>Archive</value></data>
+  <data name="Profile.events.Zone" xml:space="preserve"><value>AF → faces</value></data>
+  <data name="Profile.portrait.Zone" xml:space="preserve"><value>Eyes, face</value></data>
+  <data name="Profile.motorsport.Zone" xml:space="preserve"><value>Vehicle</value></data>
+  <data name="Profile.animals.Zone" xml:space="preserve"><value>Animal</value></data>
+  <data name="Profile.landscape.Zone" xml:space="preserve"><value>Tiles</value></data>
+  <data name="Profile.night.Zone" xml:space="preserve"><value>Relative only</value></data>
+  <data name="Profile.archive.Zone" xml:space="preserve"><value>Culling off</value></data>
+  <data name="Outcome.Discard" xml:space="preserve"><value>Discard</value></data>
+  <data name="Outcome.ToReview" xml:space="preserve"><value>To review</value></data>
+  <data name="Outcome.Best" xml:space="preserve"><value>Best</value></data>
+  <data name="Outcome.Similar" xml:space="preserve"><value>Similar</value></data>
+  <data name="Outcome.Kept" xml:space="preserve"><value>Kept</value></data>
+  <data name="Outcome.None" xml:space="preserve"><value>Not analyzed</value></data>
+  <data name="Reason.blur.severe" xml:space="preserve"><value>blurred over the whole image</value></data>
+  <data name="Reason.blur.soft" xml:space="preserve"><value>not very sharp</value></data>
+  <data name="Reason.blur.zone" xml:space="preserve"><value>subject not sharp</value></data>
+  <data name="Reason.eyes.closed" xml:space="preserve"><value>eyes closed</value></data>
+  <data name="Reason.eyes.closed.one" xml:space="preserve"><value>one eye closed?</value></data>
+  <data name="Reason.eyes.closed.others" xml:space="preserve"><value>closed eyes in other faces</value></data>
+  <data name="Reason.exposure.highlights" xml:space="preserve"><value>clipped highlights on the subject</value></data>
+  <data name="Reason.exposure.shadows" xml:space="preserve"><value>crushed shadows on the subject</value></data>
+  <data name="Reason.exposure.blank.white" xml:space="preserve"><value>blank frame (white)</value></data>
+  <data name="Reason.exposure.blank.black" xml:space="preserve"><value>blank frame (black)</value></data>
+  <data name="Review.YourDecisions" xml:space="preserve"><value>Your decisions</value></data>
+  <data name="Review.Confirm" xml:space="preserve"><value>Confirm and write XMP</value></data>
+  <data name="Review.Keep" xml:space="preserve"><value>✓ Keep</value></data>
+  <data name="Review.Discard" xml:space="preserve"><value>✕ Discard</value></data>
+  <data name="Review.Signals" xml:space="preserve"><value>SIGNALS</value></data>
+  <data name="Review.ThresholdNote" xml:space="preserve"><value>Tick = profile threshold.</value></data>
+  <data name="Review.Filter.All" xml:space="preserve"><value>All</value></data>
+  <data name="Review.Origin.Manual" xml:space="preserve"><value>yours</value></data>
+  <data name="Review.Origin.Automatic" xml:space="preserve"><value>automatic</value></data>
+  <data name="Review.Empty.NoJob" xml:space="preserve"><value>No import to review yet</value></data>
+  <data name="Review.Empty.Filter" xml:space="preserve"><value>No photo with this outcome</value></data>
+  <data name="Review.Meta" xml:space="preserve"><value>{0} · {1} photos · profile {2} · {3}</value></data>
+  <data name="Review.Mode.Prudent" xml:space="preserve"><value>prudent mode</value></data>
+  <data name="Review.Mode.Normal" xml:space="preserve"><value>normal mode</value></data>
+  <data name="Review.Command.Navigate" xml:space="preserve"><value>Move</value></data>
+  <data name="Review.Command.Stars" xml:space="preserve"><value>Stars</value></data>
+  <data name="Review.Command.Undo" xml:space="preserve"><value>Undo</value></data>
+  <data name="Review.Confirm.Question" xml:space="preserve"><value>Write the XMP metadata for {0} photos?</value></data>
+  <data name="Review.Confirm.Policy" xml:space="preserve"><value>With the library policy. RAW files are not modified and no file is moved.</value></data>
+  <data name="Review.Confirm.ToReview" xml:space="preserve"><value>{0} still to review: they will be written with a red label.</value></data>
+  <data name="Review.Confirm.Prudent" xml:space="preserve"><value>Prudent mode: discards as red label, not rating −1</value></data>
+  <data name="Review.Confirm.GoToReview" xml:space="preserve"><value>Go to the photos to review</value></data>
+  <data name="Review.Confirm.Write" xml:space="preserve"><value>Write XMP</value></data>
+  <data name="Review.Result.Written" xml:space="preserve"><value>Confirmed {0} · {1} XMP written</value></data>
+  <data name="Review.Result.Failed" xml:space="preserve"><value>{0} XMP not written: {1} — {2}. The decisions are saved in the catalog; the writing stays pending.</value></data>
+  <data name="Signal.Sharpness.AfArea" xml:space="preserve"><value>Sharpness (AF)</value></data>
+  <data name="Signal.Sharpness.Eyes" xml:space="preserve"><value>Sharpness (eyes)</value></data>
+  <data name="Signal.Sharpness.Faces" xml:space="preserve"><value>Sharpness (faces)</value></data>
+  <data name="Signal.Sharpness.Subject" xml:space="preserve"><value>Sharpness (subject)</value></data>
+  <data name="Signal.Sharpness.Tiles" xml:space="preserve"><value>Sharpness</value></data>
+  <data name="Signal.SharpnessFrame" xml:space="preserve"><value>Whole frame</value></data>
+  <data name="Signal.Highlights" xml:space="preserve"><value>Highlights</value></data>
+  <data name="Signal.Shadows" xml:space="preserve"><value>Shadows</value></data>
+  <data name="Signal.Eyes" xml:space="preserve"><value>Eyes</value></data>
+  <data name="Eye.Open" xml:space="preserve"><value>open</value></data>
+  <data name="Eye.Closed" xml:space="preserve"><value>closed</value></data>
+  <data name="Eye.Unknown" xml:space="preserve"><value>?</value></data>
+  <data name="Key.Space" xml:space="preserve"><value>Space</value></data>
+  <data name="Review.Command.Keep" xml:space="preserve"><value>Keep</value></data>
+  <data name="Review.Command.Discard" xml:space="preserve"><value>Discard</value></data>
+  <data name="Models.License.NonCommercialOnly" xml:space="preserve"><value>non-commercial use only</value></data>
 </root>

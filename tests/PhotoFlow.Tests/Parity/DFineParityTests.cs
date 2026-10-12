@@ -23,13 +23,15 @@ public sealed class DFineParityTests
     private static readonly JsonSerializerOptions ReportJson = new() { WriteIndented = true };
 
     [Theory]
-    [InlineData("s", "export")]
-    [InlineData("s", "onnx-community")]
-    [InlineData("m", "export")]
-    [InlineData("m", "onnx-community")]
-    public async Task Tensor_level_matches_pytorch(string variant, string source)
+    [InlineData("s", "export", ExecutionTarget.Cpu)]
+    [InlineData("s", "onnx-community", ExecutionTarget.Cpu)]
+    [InlineData("m", "export", ExecutionTarget.Cpu)]
+    [InlineData("m", "onnx-community", ExecutionTarget.Cpu)]
+    [InlineData("s", "onnx-community", ExecutionTarget.Gpu)]
+    [InlineData("m", "onnx-community", ExecutionTarget.Gpu)]
+    public async Task Tensor_level_matches_pytorch(string variant, string source, ExecutionTarget target)
     {
-        var (references, index, detector, session) = await PrepareAsync(variant, source);
+        var (references, index, detector, session) = await PrepareAsync(variant, source, target);
         using var _ = session;
         var rows = new JsonArray();
         double worstScores = 0, worstBoxes = 0;
@@ -56,7 +58,7 @@ public sealed class DFineParityTests
             });
         }
 
-        WriteReport(variant, source, "tensors", new JsonObject
+        WriteReport(variant, source + Suffix(target), "tensors", new JsonObject
         {
             ["criteria"] = "queries matched by optimal assignment (boxes + scores), then |Δ score (sigmoid)| and |Δ box|",
             ["tolerance_scores"] = ParityTolerances.Scores,
@@ -83,13 +85,15 @@ public sealed class DFineParityTests
     }
 
     [Theory]
-    [InlineData("s", "export")]
-    [InlineData("s", "onnx-community")]
-    [InlineData("m", "export")]
-    [InlineData("m", "onnx-community")]
-    public async Task Detection_level_matches_pytorch(string variant, string source)
+    [InlineData("s", "export", ExecutionTarget.Cpu)]
+    [InlineData("s", "onnx-community", ExecutionTarget.Cpu)]
+    [InlineData("m", "export", ExecutionTarget.Cpu)]
+    [InlineData("m", "onnx-community", ExecutionTarget.Cpu)]
+    [InlineData("s", "onnx-community", ExecutionTarget.Gpu)]
+    [InlineData("m", "onnx-community", ExecutionTarget.Gpu)]
+    public async Task Detection_level_matches_pytorch(string variant, string source, ExecutionTarget target)
     {
-        var (references, index, detector, session) = await PrepareAsync(variant, source);
+        var (references, index, detector, session) = await PrepareAsync(variant, source, target);
         using var _ = session;
         var root = TestData.Root!;
         var imageOperations = new SkiaImageOperations();
@@ -135,7 +139,7 @@ public sealed class DFineParityTests
             });
         }
 
-        WriteReport(variant, source, "detections", new JsonObject
+        WriteReport(variant, source + Suffix(target), "detections", new JsonObject
         {
             ["criteria"] = $"per class, IoU >= {ParityTolerances.MinIou}, |Δscore| <= {ParityTolerances.MaxScoreDiff}, unmatched only within ±{ParityTolerances.ThresholdBand} of the threshold",
             ["matched"] = matched,
@@ -147,7 +151,9 @@ public sealed class DFineParityTests
         Assert.True(failures.Count == 0, string.Join('\n', failures));
     }
 
-    private static async Task<(string References, JsonNode Index, DFineDetector Detector, IInferenceSession Session)> PrepareAsync(string variant, string source)
+    private static string Suffix(ExecutionTarget target) => target == ExecutionTarget.Gpu ? "-cuda" : string.Empty;
+
+    private static async Task<(string References, JsonNode Index, DFineDetector Detector, IInferenceSession Session)> PrepareAsync(string variant, string source, ExecutionTarget target)
     {
         var references = TestData.RequireDirectory("parity", $"dfine-{variant}");
         var indexPath = Path.Combine(references, "index.json");
@@ -172,8 +178,14 @@ public sealed class DFineParityTests
             model["sha256"]!.GetValue<string>(),
             DFineDetector.AdapterId);
 
-        IInferenceProvider provider = new OnnxRuntimeInferenceProvider();
-        var session = await provider.CreateSessionAsync(descriptor, ExecutionTarget.Cpu, TestContext.Current.CancellationToken);
+        var provider = new OnnxRuntimeInferenceProvider(new InferenceOptions(GpuRuntime.Directory));
+        if (target == ExecutionTarget.Gpu && !provider.Detected.AvailableBackends.Contains(ExecutionBackend.Cuda))
+        {
+            Assert.Skip($"CUDA not available: {provider.GpuError}");
+        }
+
+        var session = await provider.CreateSessionAsync(descriptor, target, TestContext.Current.CancellationToken);
+        Assert.Equal(target == ExecutionTarget.Gpu ? ExecutionBackend.Cuda : ExecutionBackend.Cpu, session.Backend);
         return (references, index, new DFineDetector(session, new SkiaImageOperations(), index["threshold"]!.GetValue<float>()), session);
     }
 
@@ -211,6 +223,15 @@ public sealed class DFineParityTests
         File.WriteAllText(Path.Combine(folder, $"dfine-{variant}-{source}-{level}.json"), report.ToJsonString(ReportJson));
         TestContext.Current.TestOutputHelper?.WriteLine(report.ToJsonString(ReportJson));
     }
+}
+
+/// <summary>The GPU runtime installed for the current user (PHOTOFLOW_GPU_RUNTIME overrides it).</summary>
+public static class GpuRuntime
+{
+    public static string Directory =>
+        Environment.GetEnvironmentVariable("PHOTOFLOW_GPU_RUNTIME") is { Length: > 0 } configured
+            ? configured
+            : Path.Combine(new PhotoFlow.Core.Paths.DefaultAppPaths().GpuRuntimeDirectory, "cuda13-cudnn9");
 }
 
 /// <summary>Parity criteria of spec §14 (decisions A8 and T1 of 2026-10-12).</summary>
