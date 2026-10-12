@@ -156,3 +156,21 @@ public sealed class ImageHandlerRegistry(IEnumerable<IImageHandler> handlers)
 
     public IImageHandler? Find(FileSignature signature) => _handlers.FirstOrDefault(h => h.CanHandle(signature));
 }
+
+/// <summary>Reads the first bytes of the file, picks the handler and returns the upright preview.</summary>
+public sealed class PreviewProvider(IFileSystem fileSystem, ImageHandlerRegistry handlers) : IPreviewProvider
+{
+    public async Task<PreviewImage> GetPreviewAsync(string path, int maxSize, CancellationToken ct)
+    {
+        var header = new byte[MediaClassifier.HeaderLength];
+        int read;
+        await using (var stream = fileSystem.OpenRead(path))
+        {
+            read = await stream.ReadAtLeastAsync(header, header.Length, throwOnEndOfStream: false, ct).ConfigureAwait(false);
+        }
+
+        var handler = handlers.Find(new FileSignature(header.AsMemory(0, read), Path.GetExtension(path)))
+            ?? throw new ImageDecodeException($"No image handler for '{Path.GetFileName(path)}'.");
+        return await handler.GetPreviewAsync(path, maxSize, ct).ConfigureAwait(false);
+    }
+}

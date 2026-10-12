@@ -109,7 +109,7 @@ public sealed class ImportJobRunner : IJobRunner
 
         public List<JobItem> Items { get; } = items;
 
-        public Dictionary<long, (long AssetId, MediaKind Kind, string PrimaryPath, ExifInfo? Exif)> Verified { get; } = [];
+        public Dictionary<long, (long AssetId, MediaKind Kind, string PrimaryPath, ExifInfo? Exif, string? Hash)> Verified { get; } = [];
 
         public int Resolved { get; set; }
 
@@ -157,7 +157,7 @@ public sealed class ImportJobRunner : IJobRunner
                         if (item.AssetId is { } assetId)
                         {
                             var path = Path.Combine(primary.RootPath, item.TargetRelativePath!);
-                            group.Verified[item.Id] = (assetId, KindOf(path), path, null);
+                            group.Verified[item.Id] = (assetId, KindOf(path), path, null, item.ContentHash);
                             group.Resolved++;
                         }
                         else
@@ -308,7 +308,7 @@ public sealed class ImportJobRunner : IJobRunner
                     Completed++;
                 }
 
-                group.Verified[item.Id] = (assetId, kind, verified.PrimaryPath, exif);
+                group.Verified[item.Id] = (assetId, kind, verified.PrimaryPath, exif, QuickHash.Format(verified.Hash));
                 group.Resolved++;
                 complete = group.Resolved == group.Items.Count;
             }
@@ -375,12 +375,12 @@ public sealed class ImportJobRunner : IJobRunner
             }
 
             var source = analyzable.FirstOrDefault(i => group.Verified[i.Id].Kind == MediaKind.Jpeg) ?? analyzable[0];
-            var (assetId, _, path, exif) = group.Verified[source.Id];
+            var (assetId, _, path, exif, hash) = group.Verified[source.Id];
             var exifSummary = exif?.ToSummary() ?? (await catalog.Assets.GetAsync(assetId, ct).ConfigureAwait(false))?.Exif;
             PhotoProcessingResult result;
             try
             {
-                result = await owner._processor.ProcessAsync(path, exifSummary, settings.ProfileId, ct).ConfigureAwait(false);
+                result = await owner._processor.ProcessAsync(new PhotoInput(path, hash, exifSummary), settings.ProfileId, ct).ConfigureAwait(false);
             }
             catch (Exception e) when (e is not OperationCanceledException)
             {

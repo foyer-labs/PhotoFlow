@@ -10,7 +10,7 @@ namespace PhotoFlow.Imaging;
 /// Thumbnails for the grid (cells up to 240 px, 2× for high-DPI screens): JPEG, long side 512, keyed by the content hash
 /// so they follow the photo when it moves. Always local and rebuildable (spec §9). Written atomically (temp + rename).
 /// </summary>
-public sealed class ThumbnailCache
+public sealed class ThumbnailCache : IThumbnailStore
 {
     public const int Size = 512;
     private const int Quality = 85;

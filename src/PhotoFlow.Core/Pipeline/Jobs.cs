@@ -51,8 +51,12 @@ public enum JobPauseReason
 /// <summary>Preview, analysis and proposed decision of one verified photo (stages Preview → Analyzers → Decision).</summary>
 public interface IPhotoProcessor
 {
-    Task<PhotoProcessingResult> ProcessAsync(string path, ExifSummary? exif, string profileId, CancellationToken ct);
+    Task<PhotoProcessingResult> ProcessAsync(PhotoInput photo, string profileId, CancellationToken ct);
 }
+
+/// <param name="Path">Verified copy in the library (never the source).</param>
+/// <param name="ContentHash">xxHash3 of the file (thumbnail key).</param>
+public sealed record PhotoInput(string Path, string? ContentHash, ExifSummary? Exif);
 
 /// <param name="Faces">Detected faces, ids and asset not yet assigned.</param>
 /// <param name="DecisionVersion">Version of the decision engine and of the models behind the signals.</param>

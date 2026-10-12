@@ -5,6 +5,8 @@ using PhotoFlow.Analysis.Profiles;
 using PhotoFlow.Core.Analysis;
 using PhotoFlow.Core.Catalog;
 using PhotoFlow.Core.Imaging;
+using PhotoFlow.Core.IO;
+using PhotoFlow.Core.Pipeline;
 using PhotoFlow.Imaging;
 using PhotoFlow.Tests.Support;
 
@@ -74,4 +76,44 @@ public sealed class CullingAnalyzerTests
 
         return new RgbImage(width, height, pixels);
     }
+}
+
+[Trait(TestCategory.Name, TestCategory.Integration)]
+public sealed class CullingPhotoProcessorTests : IDisposable
+{
+    private readonly TempFolder _temp = new("pf-processor");
+
+    [Fact]
+    public async Task A_jpeg_is_previewed_thumbnailed_analyzed_and_decided()
+    {
+        var fs = new PhysicalFileSystem();
+        var path = SyntheticImages.WriteJpeg(Path.Combine(_temp.Path, "photo.jpg"), 640, 480);
+        var thumbnails = new ThumbnailCache(fs, _temp.Sub("thumbs"));
+        var processor = new CullingPhotoProcessor(
+            new PreviewProvider(fs, new ImageHandlerRegistry([new JpegImageHandler(fs)])),
+            new CullingAnalyzer(new SkiaImageOperations(), objects: null, faces: null),
+            new DecisionEngine(),
+            BuiltInProfiles.Get,
+            thumbnails);
+
+        var result = await processor.ProcessAsync(new PhotoInput(path, "0123456789abcdef", null), "events", TestContext.Current.CancellationToken);
+
+        Assert.True(thumbnails.Exists("0123456789abcdef"));
+        Assert.Equal(CullingAnalyzer.AnalyzerId, result.Analysis.AnalyzerId);
+        Assert.Equal(SharpnessZoneKind.Tiles, CullingScores.FromScores(result.Analysis.Scores).Zone);
+        Assert.Empty(result.Faces);
+        Assert.StartsWith("decision-v1+culling-v1+events@1", result.DecisionVersion, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_file_without_a_handler_is_reported_as_undecodable()
+    {
+        var fs = new PhysicalFileSystem();
+        var path = Path.Combine(_temp.Path, "notes.txt");
+        await File.WriteAllTextAsync(path, "not an image", TestContext.Current.CancellationToken);
+        var previews = new PreviewProvider(fs, new ImageHandlerRegistry([new JpegImageHandler(fs)]));
+        await Assert.ThrowsAsync<ImageDecodeException>(() => previews.GetPreviewAsync(path, 2048, TestContext.Current.CancellationToken));
+    }
+
+    public void Dispose() => _temp.Dispose();
 }

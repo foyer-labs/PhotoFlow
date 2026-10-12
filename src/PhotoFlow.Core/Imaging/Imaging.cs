@@ -10,6 +10,21 @@ public interface IImageHandler
     Task<PreviewImage> GetPreviewAsync(string path, int maxSize, CancellationToken ct);
 }
 
+/// <summary>Upright preview of a file, whatever its format: the handler is chosen from the content (spec §3).</summary>
+public interface IPreviewProvider
+{
+    /// <exception cref="ImageDecodeException">No handler for the content, or the file cannot be decoded.</exception>
+    Task<PreviewImage> GetPreviewAsync(string path, int maxSize, CancellationToken ct);
+}
+
+/// <summary>Grid thumbnails keyed by the content hash (local, rebuildable cache, spec §9).</summary>
+public interface IThumbnailStore
+{
+    bool Exists(string contentHash);
+
+    Task<string> StoreAsync(string contentHash, RgbImage preview, CancellationToken ct);
+}
+
 /// <summary>Image decoding and resampling; isolates the imaging library.</summary>
 public interface IImageOperations
 {

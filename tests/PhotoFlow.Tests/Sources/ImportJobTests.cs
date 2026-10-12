@@ -24,8 +24,9 @@ internal sealed class RecordingProcessor : IPhotoProcessor
 
     public Action<int>? AfterProcessed { get; set; }
 
-    public Task<PhotoProcessingResult> ProcessAsync(string path, ExifSummary? exif, string profileId, CancellationToken ct)
+    public Task<PhotoProcessingResult> ProcessAsync(PhotoInput photo, string profileId, CancellationToken ct)
     {
+        var path = photo.Path;
         ct.ThrowIfCancellationRequested();
         if (!File.Exists(path))
         {
