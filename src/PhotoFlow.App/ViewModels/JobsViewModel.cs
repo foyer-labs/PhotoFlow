@@ -161,7 +161,7 @@ public sealed partial class JobsViewModel : PageViewModel, IDisposable
         if (Selected is { } job)
         {
             PauseMessage = null;
-            _ = _host.Jobs.StartAsync(job.Job.Id);
+            _ = _host.Jobs.StartAsync(job.Job.Id, job.Job.Priority);
             Log.Add(Line(Strings.Get("Jobs.Log.Resumed")));
             OnPropertyChanged(nameof(CanPause));
             OnPropertyChanged(nameof(CanResume));

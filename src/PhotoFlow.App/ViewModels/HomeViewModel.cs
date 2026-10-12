@@ -284,7 +284,7 @@ public sealed partial class HomeViewModel : PageViewModel, IDisposable
     {
         foreach (var row in Interrupted.ToList())
         {
-            _ = _host.Jobs.StartAsync(row.Job.Id);
+            _ = _host.Jobs.StartAsync(row.Job.Id, row.Job.Priority);
         }
 
         _recoveryDismissed = true;

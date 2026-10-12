@@ -59,7 +59,10 @@ public sealed class PhotoFlowHost : IAsyncDisposable
         GpuRuntime = new GpuRuntimeInstaller(Http, GpuRuntimeManifest.Embedded(), Path.Combine(paths.GpuRuntimeDirectory, GpuPackFolder), Path.Combine(paths.GpuRuntimeDirectory, "downloads"));
         Deferred = new DeferredCopyService(new CopyEngine(fileSystem), catalog.DeferredCopies);
         Planner = new ImportPlanner(fileSystem, ExifReader, catalog.Assets);
-        Jobs = new JobManager(() => new ImportJobRunner(Catalog, new IngestService(new CopyEngine(FileSystem)), ExifReader, FileSystem, new LazyProcessor(this), Deferred));
+        Jobs = new JobManager(() => new JobRunnerRouter(
+            Catalog,
+            new ImportJobRunner(Catalog, new IngestService(new CopyEngine(FileSystem)), ExifReader, FileSystem, new LazyProcessor(this), Deferred),
+            new ArchiveJobRunner(Catalog, ExifReader, FileSystem, new LowPriorityProcessor(this))));
         Cards = new PollingCardDetector();
     }
 
@@ -193,6 +196,29 @@ public sealed class PhotoFlowHost : IAsyncDisposable
             var session = await Inference.CreateSessionAsync(Models.Resolve(id, file), ExecutionTarget.Auto, ct).ConfigureAwait(false);
             _sessions.Add(session);
             return session;
+        }
+    }
+
+    /// <summary>
+    /// Creates and starts the in-place analysis of a library at low priority: half the parallel analysis of an
+    /// import, and it waits while an import runs (spec §10, archives).
+    /// </summary>
+    public async Task<long> StartArchiveAnalysisAsync(long libraryId, ArchiveOrder order, CancellationToken ct)
+    {
+        var settings = new ArchiveJobSettings(libraryId, Settings.Import.ProfileId, order, FaceMode.DetectOnly,
+            Math.Max(1, PipelineDefaults.DefaultAnalysisWorkers / 2));
+        var jobId = await ArchiveJobRunner.CreateAsync(Catalog, FileSystem, settings, ct).ConfigureAwait(false);
+        _ = Jobs.StartAsync(jobId, JobPriority.Low);
+        return jobId;
+    }
+
+    /// <summary>Low-priority analysis: each photo first yields to a running import.</summary>
+    private sealed class LowPriorityProcessor(PhotoFlowHost host) : IPhotoProcessor
+    {
+        public async Task<PhotoProcessingResult> ProcessAsync(PhotoInput photo, ProcessingOptions options, CancellationToken ct)
+        {
+            await host.Jobs.YieldToNormalAsync(ct).ConfigureAwait(false);
+            return await (await host.GetProcessorAsync(ct).ConfigureAwait(false)).ProcessAsync(photo, options, ct).ConfigureAwait(false);
         }
     }
 
