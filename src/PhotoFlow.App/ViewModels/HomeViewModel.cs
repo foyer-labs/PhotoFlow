@@ -368,7 +368,7 @@ public sealed partial class HomeViewModel : PageViewModel, IDisposable
                 scanned.Add(file);
             }
 
-            var plan = await _host.Planner.PlanAsync(scanned, string.Empty, null, new PathTemplate(PathTemplate.Default), CancellationToken.None);
+            var plan = await _host.Planner.PlanAsync(scanned, string.Empty, null, _host.PathTemplate, CancellationToken.None);
             Ui.Post(() => Card = new CardBannerViewModel(volume, plan));
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)

@@ -51,7 +51,6 @@ public sealed class PlaceholderPageViewModel(Section section, string phase) : Pa
         [SectionCatalog.Duplicates] = "3",
         [SectionCatalog.Vocabulary] = "3",
         [SectionCatalog.Profiles] = "2",
-        [SectionCatalog.Settings] = "1b",
     };
 
     public Section Section { get; } = section;

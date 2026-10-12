@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Globalization;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
@@ -31,6 +32,22 @@ public sealed class App : Application
 
     public override void Initialize() => AvaloniaXamlLoader.Load(this);
 
+    /// <summary>Applies a theme preference to the running application (board 5i: immediate, unlike the language).</summary>
+    public static void ApplyTheme(ThemePreference theme)
+    {
+        if (Current is { } app)
+        {
+            app.RequestedThemeVariant = ToVariant(theme);
+        }
+    }
+
+    private static ThemeVariant ToVariant(ThemePreference theme) => theme switch
+    {
+        ThemePreference.Light => ThemeVariant.Light,
+        ThemePreference.System => ThemeVariant.Default,
+        _ => ThemeVariant.Dark,
+    };
+
     public override void OnFrameworkInitializationCompleted()
     {
         if (_startupTheme is not null)
@@ -41,6 +58,7 @@ public sealed class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             _services = ConfigureServices();
+            ApplyStartupPreferences(_services.GetRequiredService<IAppPaths>());
             var logger = _services.GetRequiredService<ILogger<App>>();
             logger.LogInformation("PhotoFlow starting, version {Version}", typeof(App).Assembly.GetName().Version);
 
@@ -56,6 +74,25 @@ public sealed class App : Application
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    /// <summary>Language (P18: read once, before the first window) and theme from the settings; <c>--theme</c> wins.</summary>
+    private void ApplyStartupPreferences(IAppPaths paths)
+    {
+        var preferences = SettingsStore.LoadStartupPreferences(paths);
+        if (preferences.Language is { } language)
+        {
+            var culture = CultureInfo.GetCultureInfo(language);
+            CultureInfo.DefaultThreadCurrentCulture = culture;
+            CultureInfo.DefaultThreadCurrentUICulture = culture;
+            CultureInfo.CurrentCulture = culture;
+            CultureInfo.CurrentUICulture = culture;
+        }
+
+        if (_startupTheme is null)
+        {
+            RequestedThemeVariant = ToVariant(preferences.Theme);
+        }
     }
 
     /// <summary>Opens catalog, exiftool and the other services off the UI thread, then shows the real pages.</summary>
@@ -74,7 +111,14 @@ public sealed class App : Application
             logger.LogWarning(e, "Catalog in use by another window");
             ((MainWindowViewModel)window.DataContext!).StatusText = Strings.Get("Status.CatalogLocked");
         }
-        catch (Exception e) when (e is IOException or InvalidOperationException or CatalogCorruptException)
+        catch (CatalogCorruptException e)
+        {
+            logger.LogError(e, "Catalog damaged");
+            var shell = (MainWindowViewModel)window.DataContext!;
+            shell.StatusText = Strings.Format("Status.StartupFailed", e.Message);
+            shell.ShowPage(new CatalogProblemViewModel(e.Message, new CatalogRestoreService(paths), () => StartHostAsync(window, paths, logger)));
+        }
+        catch (Exception e) when (e is IOException or InvalidOperationException)
         {
             logger.LogError(e, "Startup failed");
             ((MainWindowViewModel)window.DataContext!).StatusText = Strings.Format("Status.StartupFailed", e.Message);

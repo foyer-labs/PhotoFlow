@@ -266,6 +266,29 @@
     <Setter Property="Background" Value="{DynamicResource PF.Brush.Control}" />
   </Style>
 
+  <!-- Tabs of a page (settings): the selected one is underlined with the accent -->
+  <Style Selector="ListBox.tabs">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Padding" Value="0" />
+  </Style>
+  <Style Selector="ListBox.tabs ListBoxItem">
+    <Setter Property="Padding" Value="12,10" />
+    <Setter Property="BorderThickness" Value="0,0,0,2" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="ListBox.tabs ListBoxItem TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource PF.Brush.TextSecondary}" />
+  </Style>
+  <Style Selector="ListBox.tabs ListBoxItem:selected TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource PF.Brush.TextPrimary}" />
+  </Style>
+  <Style Selector="ListBox.tabs ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter, ListBox.tabs ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="ListBox.tabs ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="BorderBrush" Value="{DynamicResource PF.Brush.Accent}" />
+  </Style>
+
   <!-- Steps of a procedure: the current one is underlined with the accent -->
   <Style Selector="Border.inactive">
     <Setter Property="BorderBrush" Value="Transparent" />

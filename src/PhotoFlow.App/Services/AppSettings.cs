@@ -26,6 +26,21 @@ public sealed record AppSettings
 
     /// <summary>True once the first-run setup (board 3b) is done or skipped.</summary>
     public bool SetupCompleted { get; init; }
+
+    /// <summary>Interface language ("it", "en"), or null to follow the system; applied when the window restarts (P18).</summary>
+    public string? Language { get; init; }
+
+    public ThemePreference Theme { get; init; } = ThemePreference.Dark;
+
+    /// <summary>exiftool chosen by the user instead of the bundled one (board 5i); applied at the next start.</summary>
+    public string? ExifToolPath { get; init; }
+}
+
+public enum ThemePreference
+{
+    Dark,
+    Light,
+    System,
 }
 
 /// <summary>Remembered import choices ("Impostazioni ricordate dall'ultimo import").</summary>
@@ -42,6 +57,9 @@ public sealed record ImportDefaults
     public FaceMode Faces { get; init; } = FaceMode.Recognize;
 
     public WritePolicy XmpPolicy { get; init; } = WritePolicy.EmbeddedForNonRaw;
+
+    /// <summary>Destination path template (spec §4, board 5i).</summary>
+    public string PathTemplate { get; init; } = Sources.Ingest.PathTemplate.Default;
 
     public IReadOnlyList<string> RecentEvents { get; init; } = [];
 
@@ -82,6 +100,25 @@ public sealed class SettingsStore(IFileSystem fileSystem, IAppPaths paths)
         catch (JsonException)
         {
             return new AppSettings();
+        }
+    }
+
+    /// <summary>
+    /// Language and theme read before the first window opens (P18), from a tiny local file: the rest of the settings
+    /// loads with the services, off the UI thread.
+    /// </summary>
+    public static (string? Language, ThemePreference Theme) LoadStartupPreferences(IAppPaths paths)
+    {
+        ArgumentNullException.ThrowIfNull(paths);
+        try
+        {
+            var settings = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(Path.Combine(paths.ConfigDirectory, FileName)), Json) ?? new AppSettings();
+            var language = settings.Language is "it" or "en" ? settings.Language : null;
+            return (language, settings.Theme);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or JsonException)
+        {
+            return (null, ThemePreference.Dark);
         }
     }
 

@@ -63,6 +63,47 @@ public sealed class ModelRegistry(HttpClient http, IReadOnlyList<ModelInfo> mode
         await File.WriteAllTextAsync(MarkerPath(model), model.Version, ct).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Installs the models found in a folder copied by the user (offline package, spec §11): each file is looked up as
+    /// <c>folder/&lt;model id&gt;/&lt;file&gt;</c> or <c>folder/&lt;file&gt;</c>, and copied with the same SHA-256 check as a download.
+    /// A model whose license needs acceptance is skipped unless <paramref name="licenseAccepted"/> says so; a model with
+    /// missing files is skipped. Returns the ids installed. The folder is only read.
+    /// </summary>
+    public async Task<IReadOnlyList<string>> ImportOfflineAsync(string folder, Func<ModelInfo, bool> licenseAccepted, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(licenseAccepted);
+        var installed = new List<string>();
+        foreach (var model in models.Where(m => !IsInstalled(m.Id)))
+        {
+            if (model.License.RequiresAcceptance && !licenseAccepted(model))
+            {
+                continue;
+            }
+
+            var sources = model.Files.Select(f => new[] { Path.Combine(folder, model.Id, f.Path), Path.Combine(folder, f.Path) }.FirstOrDefault(File.Exists)).ToList();
+            if (sources.Any(s => s is null))
+            {
+                continue;
+            }
+
+            var target = ModelDirectory(model);
+            foreach (var (file, source) in model.Files.Zip(sources))
+            {
+                var local = Path.Combine(target, file.Path);
+                await VerifiedDownload.CopyAsync(source!, local, file.Sha256, file.Size, $"{model.Id}/{file.Path}", ct).ConfigureAwait(false);
+                if (file.Archive == "zip")
+                {
+                    Extract(local, target, file.Use);
+                }
+            }
+
+            await File.WriteAllTextAsync(MarkerPath(model), model.Version, ct).ConfigureAwait(false);
+            installed.Add(model.Id);
+        }
+
+        return installed;
+    }
+
     /// <summary>Re-hashes the downloaded files (e.g. after copying a model package from another PC).</summary>
     public async Task<bool> VerifyAsync(string id, CancellationToken ct)
     {

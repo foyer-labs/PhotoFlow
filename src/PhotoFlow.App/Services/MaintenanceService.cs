@@ -12,9 +12,10 @@ public sealed record MaintenanceReport(string? Backup, int BackupsRemoved, int T
 /// Rules for PhotoFlow's internal files (spec §10, decision B1), all deletions through <see cref="InternalFileCleaner"/>:
 /// catalog backup at close and at least daily, the last <see cref="KeepBackups"/> kept; thumbnail cache within
 /// <see cref="ThumbnailCacheLimit"/> (oldest first, rebuilt on demand); temporary files older than a day; GPU pack
-/// archives once the pack is installed and verified. User files are never touched.
+/// archives once the pack is installed and verified. User files are never touched. The backup chosen for a pending
+/// restore (<paramref name="protectedBackup"/>) is never rotated away.
 /// </summary>
-public sealed class MaintenanceService(IAppPaths paths, InternalFileCleaner cleaner, TimeProvider? time = null)
+public sealed class MaintenanceService(IAppPaths paths, InternalFileCleaner cleaner, TimeProvider? time = null, Func<string?>? protectedBackup = null)
 {
     public const int KeepBackups = 10;
     public const long ThumbnailCacheLimit = 4L * 1024 * 1024 * 1024;
@@ -47,10 +48,21 @@ public sealed class MaintenanceService(IAppPaths paths, InternalFileCleaner clea
         return backup;
     }
 
+    /// <summary>Backup requested by the user (board 5h), then rotation.</summary>
+    public async Task<string> BackupNowAsync(ICatalog catalog, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(catalog);
+        var backup = await catalog.BackupAsync(paths.BackupsDirectory, "manual", ct).ConfigureAwait(false);
+        RotateBackups();
+        return backup;
+    }
+
     public int RotateBackups(int keep = KeepBackups)
     {
         var removed = 0;
-        foreach (var old in Files(paths.BackupsDirectory).OrderByDescending(f => f.LastWriteTimeUtc).ThenByDescending(f => f.Name, StringComparer.Ordinal).Skip(keep))
+        var kept = protectedBackup?.Invoke() is { } path ? Path.GetFullPath(path) : null;
+        foreach (var old in Files(paths.BackupsDirectory).OrderByDescending(f => f.LastWriteTimeUtc).ThenByDescending(f => f.Name, StringComparer.Ordinal).Skip(keep)
+                     .Where(f => !string.Equals(f.FullName, kept, StringComparison.OrdinalIgnoreCase)))
         {
             removed += TryDelete(old.FullName);
         }

@@ -170,6 +170,18 @@ public sealed partial class FirstRunViewModel : ObservableObject
         await RefreshAsync();
     }
 
+    /// <summary>Offline package copied from another PC: only the licenses ticked here count as accepted.</summary>
+    public async Task ImportOfflinePackageAsync(string folder)
+    {
+        var accepted = new[] { Buffalo, YuNet, Detector }.Where(m => !m.RequiresAcceptance || m.LicenseAccepted).Select(m => m.Model.Id).ToHashSet(StringComparer.Ordinal);
+        await RunAsync(async _ =>
+        {
+            var (models, gpu) = await _host.ImportOfflinePackageAsync(folder, accepted, NvidiaLicensesAccepted, CancellationToken.None);
+            Status = SettingsViewModel.OfflineMessage(models.Count, gpu);
+        });
+        await RefreshAsync();
+    }
+
     [RelayCommand]
     private async Task FinishAsync()
     {

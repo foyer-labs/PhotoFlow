@@ -23,6 +23,13 @@ public sealed partial class HomeView : UserControl
                 _viewModel.FirstRun.LibraryRoot = folder;
             }
         };
+        ImportOffline.Click += async (_, _) =>
+        {
+            if (await PickFolderAsync(Strings.Get("FirstRun.ImportOffline")) is { } folder && _viewModel is not null)
+            {
+                await _viewModel.FirstRun.ImportOfflinePackageAsync(folder);
+            }
+        };
         OpenLog.Click += (_, _) =>
         {
             if (_viewModel is not null)

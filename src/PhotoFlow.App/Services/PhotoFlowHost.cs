@@ -37,6 +37,12 @@ public sealed class PhotoFlowHost : IAsyncDisposable
 {
     public const string GpuPackFolder = "cuda13-cudnn9";
 
+    /// <summary>Model adapters this version can run: only these models can be downloaded or chosen (board 5g).</summary>
+    public static readonly IReadOnlySet<string> ImplementedAdapters = new HashSet<string>(StringComparer.Ordinal)
+    {
+        "dfine-hf-v1", "insightface-buffalo-v1", "yunet-v1",
+    };
+
     private readonly SemaphoreSlim _sessionsGate = new(1, 1);
     private readonly List<IInferenceSession> _sessions = [];
     private CullingPhotoProcessor? _processor;
@@ -65,7 +71,8 @@ public sealed class PhotoFlowHost : IAsyncDisposable
             new ImportJobRunner(Catalog, new IngestService(new CopyEngine(FileSystem)), ExifReader, FileSystem, new LazyProcessor(this), Deferred),
             new ArchiveJobRunner(Catalog, ExifReader, FileSystem, new LowPriorityProcessor(this))));
         Cards = new PollingCardDetector();
-        Maintenance = new MaintenanceService(paths, new InternalFileCleaner(paths));
+        Maintenance = new MaintenanceService(paths, new InternalFileCleaner(paths), protectedBackup: () => Restore?.Pending);
+        Restore = new CatalogRestoreService(paths);
     }
 
     public IAppPaths Paths { get; }
@@ -107,6 +114,27 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     /// <summary>Backups and cleanup of PhotoFlow's internal files (B1).</summary>
     public MaintenanceService Maintenance { get; }
 
+    public CatalogRestoreService Restore { get; }
+
+    /// <summary>Outcome of a restore requested in the settings and applied at this start (null when none was pending).</summary>
+    public CatalogRestoreOutcome? RestoreOutcome { get; private set; }
+
+    /// <summary>The import path template from the settings; the default when the stored one is not valid.</summary>
+    public PathTemplate PathTemplate
+    {
+        get
+        {
+            try
+            {
+                return new PathTemplate(Settings.Import.PathTemplate);
+            }
+            catch (ArgumentException)
+            {
+                return new PathTemplate(PathTemplate.Default);
+            }
+        }
+    }
+
     /// <summary>Jobs found running at startup: the previous session ended unexpectedly (board 3c).</summary>
     public IReadOnlyList<Job> InterruptedJobs { get; private set; } = [];
 
@@ -117,9 +145,27 @@ public sealed class PhotoFlowHost : IAsyncDisposable
         var fileSystem = new PhysicalFileSystem();
         var settingsStore = new SettingsStore(fileSystem, paths);
         var settings = await settingsStore.LoadAsync(ct).ConfigureAwait(false);
+        var restore = new CatalogRestoreService(paths);
+        CatalogRestoreOutcome? restoreOutcome = null;
+        if (restore.Pending is { } pending)
+        {
+            try
+            {
+                restoreOutcome = new CatalogRestoreOutcome(pending, await restore.ApplyPendingAsync(ct).ConfigureAwait(false), null);
+            }
+            catch (CatalogCorruptException e)
+            {
+                // The backup is damaged: nothing was replaced, the current catalog opens as before.
+                restore.Cancel();
+                restoreOutcome = new CatalogRestoreOutcome(pending, null, e.Message);
+            }
+        }
+
         var catalog = await SqliteCatalog.OpenAsync(new CatalogOpenOptions(paths.CatalogPath, paths.BackupsDirectory), ct).ConfigureAwait(false);
-        var exifTool = new ExifToolSession(ExifToolOptions.Bundled(AppContext.BaseDirectory));
-        var host = new PhotoFlowHost(paths, fileSystem, settingsStore, settings, catalog, exifTool);
+        var exifTool = new ExifToolSession(settings.ExifToolPath is { } custom && File.Exists(custom)
+            ? new ExifToolOptions(custom)
+            : ExifToolOptions.Bundled(AppContext.BaseDirectory));
+        var host = new PhotoFlowHost(paths, fileSystem, settingsStore, settings, catalog, exifTool) { RestoreOutcome = restoreOutcome };
         host.InterruptedJobs = await ImportJobRunner.RecoverInterruptedAsync(catalog, ct).ConfigureAwait(false);
         host.Cards.Start();
         host._maintenance = Task.Run(() => host.Maintenance.RunAtStartupAsync(
@@ -132,6 +178,33 @@ public sealed class PhotoFlowHost : IAsyncDisposable
         ArgumentNullException.ThrowIfNull(change);
         Settings = change(Settings);
         await SettingsStore.SaveAsync(Settings, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Offline package (spec §11) from a folder copied from another PC: the models whose license is accepted (or needs
+    /// no acceptance) and, with the NVIDIA licenses accepted, the GPU pack when all its archives are there. Every file
+    /// is verified with SHA-256; the folder is only read. Acceptances are recorded only for what was installed.
+    /// </summary>
+    public async Task<(IReadOnlyList<string> Models, bool GpuPack)> ImportOfflinePackageAsync(
+        string folder, IReadOnlySet<string> acceptedModelLicenses, bool nvidiaLicensesAccepted, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(acceptedModelLicenses);
+        var models = await Task.Run(() => Models.ImportOfflineAsync(folder, m => acceptedModelLicenses.Contains(m.Id), ct), ct).ConfigureAwait(false);
+        var accepted = models.Where(id => Models.Get(id).License.RequiresAcceptance).ToList();
+        if (accepted.Count > 0)
+        {
+            await UpdateSettingsAsync(s => s with { AcceptedModelLicenses = s.AcceptedModelLicenses.Concat(accepted).Distinct().ToList() }, ct).ConfigureAwait(false);
+        }
+
+        var gpu = false;
+        if (nvidiaLicensesAccepted && GpuRuntime.HasOfflinePackage(folder))
+        {
+            await UpdateSettingsAsync(s => s with { NvidiaLicensesAccepted = true }, ct).ConfigureAwait(false);
+            await Task.Run(() => GpuRuntime.ImportOfflineAsync(folder, true, ct), ct).ConfigureAwait(false);
+            gpu = true;
+        }
+
+        return (models, gpu);
     }
 
     /// <summary>Models the analysis would use now (installed and, where needed, accepted).</summary>

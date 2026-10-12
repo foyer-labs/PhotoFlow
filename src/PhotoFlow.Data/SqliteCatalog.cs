@@ -69,6 +69,44 @@ public sealed class SqliteCatalog : ICatalog
         }
     }
 
+    /// <summary>
+    /// Replaces the catalog with a backup (spec §9: restore proposed from the last backup). Runs with the catalog lock
+    /// held and closed: the backup is checked first, the current catalog with its journal files is moved (never deleted)
+    /// into a <c>replaced-*</c> folder next to the backups, then the backup is copied in its place. Returns that folder.
+    /// </summary>
+    /// <exception cref="CatalogLockedException">Another window uses the catalog.</exception>
+    /// <exception cref="CatalogCorruptException">The backup itself is damaged; nothing was changed.</exception>
+    public static async Task<string> RestoreAsync(CatalogOpenOptions options, string backupPath, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        if (!File.Exists(backupPath) || new FileInfo(backupPath).Length == 0)
+        {
+            throw new CatalogCorruptException($"The backup {backupPath} is missing or empty.");
+        }
+
+        var catalogPath = Path.GetFullPath(options.CatalogPath);
+        Directory.CreateDirectory(Path.GetDirectoryName(catalogPath)!);
+        await using var lockStream = await AcquireLockAsync(catalogPath, ct).ConfigureAwait(false);
+        await CheckIntegrityAsync(backupPath, ct).ConfigureAwait(false);
+        SqliteConnection.ClearAllPools();
+
+        var stamp = DateTimeOffset.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
+        var replaced = Path.Combine(options.BackupsDirectory, $"replaced-{stamp}");
+        for (var n = 2; Directory.Exists(replaced); n++)
+        {
+            replaced = Path.Combine(options.BackupsDirectory, $"replaced-{stamp}-{n}");
+        }
+
+        Directory.CreateDirectory(replaced);
+        foreach (var file in new[] { catalogPath, catalogPath + "-wal", catalogPath + "-shm", catalogPath + "-journal" }.Where(File.Exists))
+        {
+            File.Move(file, Path.Combine(replaced, Path.GetFileName(file)));
+        }
+
+        File.Copy(backupPath, catalogPath);
+        return replaced;
+    }
+
     public async Task<int> GetSchemaVersionAsync(CancellationToken ct) =>
         await RunAsync(c => c.ExecuteScalarAsync<int>(new CommandDefinition("SELECT COALESCE(MAX(Version), 0) FROM SchemaVersion;", cancellationToken: ct)), ct).ConfigureAwait(false);
 

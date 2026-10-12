@@ -25,5 +25,8 @@ public static class Converters
     public static readonly IValueConverter ThresholdOffset = new FuncValueConverter<double?, double>(t => Math.Clamp(t ?? -1, -1, 1) * SignalBarWidth);
 
     /// <summary>Label of an archive analysis order.</summary>
+    /// <summary>A resource key shown as its localized text (tab names).</summary>
+    public static readonly IValueConverter Localize = new FuncValueConverter<string, string>(key => key is null ? string.Empty : Strings.Get(key));
+
     public static readonly IValueConverter OrderLabel = new FuncValueConverter<ArchiveOrder, string>(order => Strings.Get("Libraries.Order." + order));
 }
