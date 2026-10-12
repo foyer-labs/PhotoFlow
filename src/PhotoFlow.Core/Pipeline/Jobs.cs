@@ -22,6 +22,29 @@ public sealed record ImportJobSettings(
     int AnalysisWorkers = 0,
     FaceMode? Faces = null);
 
+/// <summary>Order of an archive analysis (spec §10, archives).</summary>
+public enum ArchiveOrder
+{
+    /// <summary>Folder by folder, in path order.</summary>
+    ByFolder,
+
+    /// <summary>Most recent files first (file date: no EXIF read needed to plan).</summary>
+    NewestFirst,
+}
+
+/// <summary>
+/// Settings of an in-place analysis of an existing library (<c>AnalyzeInPlace</c>): its files are only read, nothing is
+/// copied; XMP follow the library policy (SidecarOnly by default, D21) and are written only after a confirmation.
+/// </summary>
+/// <param name="FullHash">Second pass at the end: full xxHash3 of every photo still without it (resumable).</param>
+public sealed record ArchiveJobSettings(
+    long LibraryId,
+    string ProfileId,
+    ArchiveOrder Order = ArchiveOrder.NewestFirst,
+    FaceMode? Faces = null,
+    int AnalysisWorkers = 0,
+    bool FullHash = true);
+
 public static class PipelineDefaults
 {
     /// <summary>

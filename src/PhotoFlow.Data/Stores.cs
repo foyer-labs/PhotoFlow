@@ -105,6 +105,19 @@ internal sealed class AssetStore(SqliteCatalog catalog) : IAssetStore
 
     public Task<Asset?> FindByFullHashAsync(string fullHash, CancellationToken ct) => QuerySingleAsync("FullHash = @fullHash", new { fullHash }, ct);
 
+    public async Task<IReadOnlyList<(long AssetId, string RelativePath)>> ListWithoutFullHashAsync(long libraryId, int limit, CancellationToken ct) =>
+        (await catalog.RunAsync(c => c.QueryAsync<(long, string)>(new CommandDefinition(
+            """
+            SELECT a.Id, MIN(l.RelativePath) FROM Assets a JOIN AssetLocations l ON l.AssetId = a.Id
+            WHERE l.LibraryId = @libraryId AND a.FullHash IS NULL
+            GROUP BY a.Id ORDER BY a.Id LIMIT @limit;
+            """,
+            new { libraryId, limit }, cancellationToken: ct)), ct).ConfigureAwait(false)).ToList();
+
+    public Task SetFullHashAsync(long assetId, string fullHash, CancellationToken ct) =>
+        catalog.RunAsync(c => c.ExecuteAsync(new CommandDefinition(
+            "UPDATE Assets SET FullHash = @fullHash WHERE Id = @assetId AND FullHash IS NULL;", new { assetId, fullHash }, cancellationToken: ct)), ct);
+
     public Task AddLocationAsync(AssetLocation location, CancellationToken ct) =>
         catalog.RunAsync(c => c.ExecuteAsync(new CommandDefinition(
             """

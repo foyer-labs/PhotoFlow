@@ -51,6 +51,11 @@ public interface IAssetStore
     Task<IReadOnlyList<AssetLocation>> GetLocationsAsync(long assetId, CancellationToken ct);
 
     Task AddPairAsync(long rawAssetId, long jpegAssetId, CancellationToken ct);
+
+    /// <summary>Assets of a library still without the full hash (computed in background, spec §10).</summary>
+    Task<IReadOnlyList<(long AssetId, string RelativePath)>> ListWithoutFullHashAsync(long libraryId, int limit, CancellationToken ct);
+
+    Task SetFullHashAsync(long assetId, string fullHash, CancellationToken ct);
 }
 
 public interface IJobStore
