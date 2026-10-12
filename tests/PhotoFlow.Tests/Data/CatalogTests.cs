@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+using PhotoFlow.Core.Analysis;
 using PhotoFlow.Core.Catalog;
 using PhotoFlow.Core.Metadata;
 using PhotoFlow.Core.Pipeline;
@@ -74,7 +75,7 @@ public sealed class CatalogTests : IDisposable
         await using var catalog = await SqliteCatalog.OpenAsync(Options, Ct);
         var libraryId = await catalog.Libraries.AddAsync(new Library(0, "Principale", @"D:\Foto", WritePolicy.EmbeddedForNonRaw, false, LibraryOrigin.Import, null), Ct);
         var captured = new DateTimeOffset(2026, 10, 12, 10, 2, 3, 450, TimeSpan.FromHours(2));
-        var exif = new ExifSummary("NIKON Z5_2", "Z 85mm f/1.8 S", 1600, 1.0 / 1000, 2.8, 85, -0.3, "Center");
+        var exif = new ExifSummary("NIKON Z5_2", "Z 85mm f/1.8 S", 1600, 1.0 / 1000, 2.8, 85, -0.3, "Center", new BoundingBox(0.1f, 0.2f, 0.3f, 1f / 3));
         var assetId = await catalog.Assets.AddAsync(new Asset(0, "q1", "f1", "NEF", "raw-preview", 6048, 4032, captured, DateSource.Exif, exif, AssetState.Active), Ct);
         await catalog.Assets.AddLocationAsync(new AssetLocation(0, assetId, libraryId, "2026/a.NEF", captured), Ct);
 

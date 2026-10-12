@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Text;
 using Dapper;
 using Microsoft.Data.Sqlite;
+using PhotoFlow.Core.Analysis;
 using PhotoFlow.Core.Catalog;
 
 namespace PhotoFlow.Data;
@@ -181,4 +182,18 @@ internal static class Db
 
     public static DateOnly? Date(string? value) =>
         value is null ? null : DateOnly.ParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+    public static string? Box(BoundingBox? box) =>
+        box is { } b ? string.Join(' ', new[] { b.X1, b.Y1, b.X2, b.Y2 }.Select(v => v.ToString("R", CultureInfo.InvariantCulture))) : null;
+
+    public static BoundingBox? Box(string? value)
+    {
+        if (value is null)
+        {
+            return null;
+        }
+
+        var v = value.Split(' ').Select(t => float.Parse(t, CultureInfo.InvariantCulture)).ToArray();
+        return new BoundingBox(v[0], v[1], v[2], v[3]);
+    }
 }

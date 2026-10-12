@@ -51,15 +51,15 @@ internal sealed class AssetStore(SqliteCatalog catalog) : IAssetStore
 {
     private const string Columns =
         "Id, QuickHash, FullHash, Format, Handler, Width, Height, CapturedAtMs, CapturedOffsetMin, CaptureDateSource, CameraModel, Lens, Iso, " +
-        "ExposureTimeSeconds, Aperture, FocalLengthMm, ExposureCompensation, AfPoint, State";
+        "ExposureTimeSeconds, Aperture, FocalLengthMm, ExposureCompensation, AfPoint, AfArea, State";
 
     public Task<long> AddAsync(Asset asset, CancellationToken ct) =>
         catalog.RunAsync(c => c.ExecuteScalarAsync<long>(new CommandDefinition(
             """
             INSERT INTO Assets (QuickHash, FullHash, Format, Handler, Width, Height, CapturedAtMs, CapturedOffsetMin, CaptureDateSource, CameraModel, Lens, Iso,
-                                ExposureTimeSeconds, Aperture, FocalLengthMm, ExposureCompensation, AfPoint, State, CreatedAtMs)
+                                ExposureTimeSeconds, Aperture, FocalLengthMm, ExposureCompensation, AfPoint, AfArea, State, CreatedAtMs)
             VALUES (@QuickHash, @FullHash, @Format, @Handler, @Width, @Height, @CapturedAtMs, @CapturedOffsetMin, @CaptureDateSource, @CameraModel, @Lens, @Iso,
-                    @ExposureTimeSeconds, @Aperture, @FocalLengthMm, @ExposureCompensation, @AfPoint, @State, @CreatedAtMs)
+                    @ExposureTimeSeconds, @Aperture, @FocalLengthMm, @ExposureCompensation, @AfPoint, @AfArea, @State, @CreatedAtMs)
             RETURNING Id;
             """,
             new
@@ -81,6 +81,7 @@ internal sealed class AssetStore(SqliteCatalog catalog) : IAssetStore
                 asset.Exif?.FocalLengthMm,
                 ExposureCompensation = asset.Exif?.ExposureCompensationEv,
                 asset.Exif?.AfPoint,
+                AfArea = Db.Box(asset.Exif?.AfArea),
                 State = asset.State.ToString(),
                 CreatedAtMs = Db.Now(),
             },
@@ -121,9 +122,9 @@ internal sealed class AssetStore(SqliteCatalog catalog) : IAssetStore
     private static Asset Map(Row r)
     {
         var hasExif = r.CameraModel is not null || r.Lens is not null || r.Iso is not null || r.ExposureTimeSeconds is not null || r.Aperture is not null
-                      || r.FocalLengthMm is not null || r.ExposureCompensation is not null || r.AfPoint is not null;
+                      || r.FocalLengthMm is not null || r.ExposureCompensation is not null || r.AfPoint is not null || r.AfArea is not null;
         var exif = hasExif
-            ? new ExifSummary(r.CameraModel, r.Lens, r.Iso, r.ExposureTimeSeconds, r.Aperture, r.FocalLengthMm, r.ExposureCompensation, r.AfPoint)
+            ? new ExifSummary(r.CameraModel, r.Lens, r.Iso, r.ExposureTimeSeconds, r.Aperture, r.FocalLengthMm, r.ExposureCompensation, r.AfPoint, Db.Box(r.AfArea))
             : null;
         return new Asset(r.Id, r.QuickHash, r.FullHash, r.Format, r.Handler, r.Width, r.Height, Db.Instant(r.CapturedAtMs, r.CapturedOffsetMin),
             Db.Parse<DateSource>(r.CaptureDateSource), exif, Db.Parse<AssetState>(r.State));
@@ -166,6 +167,8 @@ internal sealed class AssetStore(SqliteCatalog catalog) : IAssetStore
         public double? ExposureCompensation { get; set; }
 
         public string? AfPoint { get; set; }
+
+        public string? AfArea { get; set; }
 
         public string State { get; set; } = "";
     }

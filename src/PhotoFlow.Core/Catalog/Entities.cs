@@ -64,7 +64,8 @@ public sealed record ExifSummary(
     double? Aperture,
     double? FocalLengthMm,
     double? ExposureCompensationEv,
-    string? AfPoint);
+    string? AfPoint,
+    BoundingBox? AfArea = null);
 
 public sealed record AssetLocation(long Id, long AssetId, long LibraryId, string RelativePath, DateTimeOffset LastSeenAt);
 

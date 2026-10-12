@@ -2,6 +2,7 @@
 
 using System.Globalization;
 using System.Text.Json;
+using PhotoFlow.Core.Analysis;
 using PhotoFlow.Core.Catalog;
 using PhotoFlow.Core.Metadata;
 
@@ -17,6 +18,7 @@ public sealed class ExifToolExifReader : IExifReader
         "-FileType", "-Make", "-Model", "-LensModel", "-Lens", "-LensID", "-ISO#", "-ExposureTime#", "-FNumber#", "-FocalLength#",
         "-ExposureCompensation#", "-SubSecDateTimeOriginal", "-DateTimeOriginal", "-OffsetTimeOriginal", "-FileModifyDate", "-Orientation#",
         "-AFPoint", "-PrimaryAFPoint", "-AFPointsUsed", "-ImageWidth#", "-ImageHeight#", "-NEFCompression", "-JpgFromRawLength#", "-PreviewImageLength#",
+        "-AFAreaXPosition#", "-AFAreaYPosition#", "-AFAreaWidth#", "-AFAreaHeight#", "-AFImageWidth#", "-AFImageHeight#",
     ];
 
     private readonly ExifToolSession _exifTool;
@@ -79,9 +81,15 @@ public sealed class ExifToolExifReader : IExifReader
                 (int?)Num(e, "ImageHeight"),
                 Str(e, "NEFCompression"),
                 (long?)Num(e, "JpgFromRawLength"),
-                (long?)Num(e, "PreviewImageLength"));
+                (long?)Num(e, "PreviewImageLength"),
+                AfArea(e));
         }
     }
+
+    /// <summary>Nikon mirrorless and live view write the AF area in pixels; named viewfinder points (DSLR) carry no position.</summary>
+    private static BoundingBox? AfArea(JsonElement e) =>
+        AfAreas.FromCenter(Num(e, "AFAreaXPosition"), Num(e, "AFAreaYPosition"), Num(e, "AFAreaWidth"), Num(e, "AFAreaHeight"),
+            Num(e, "AFImageWidth"), Num(e, "AFImageHeight"), (int?)Num(e, "Orientation"));
 
     /// <summary>SubSecDateTimeOriginal → DateTimeOriginal (+ OffsetTimeOriginal or local zone) → file date.</summary>
     private (DateTimeOffset? Value, DateSource Source) CaptureTime(JsonElement e)
