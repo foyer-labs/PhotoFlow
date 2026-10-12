@@ -1,0 +1,4 @@
+# Exact repository paths of image files allowed outside tests/data/public/.
+# One path per line. Every addition must be visible in review.
+# Only artwork produced for this project belongs here (no photos).
+src/PhotoFlow.App/Assets/photoflow.ico
