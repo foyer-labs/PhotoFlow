@@ -215,7 +215,13 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     private IReadOnlyList<IBatchStage> BatchStages()
     {
         var embedder = DescribeAnalysis().Embedder is { } clip ? $"{clip}@{Models.Get(clip).Version}" : null;
-        return [new GroupingStage(Catalog, BuiltInProfiles.Get, embedder), new GroupDecisionStage(Catalog, BuiltInProfiles.Get, new DecisionEngine())];
+        return
+        [
+            new GroupingStage(Catalog, BuiltInProfiles.Get, embedder),
+            new ProfileStage(Catalog, embedder is null ? null : new LazySceneClassifier(this), embedder),
+            new ReanalysisStage(Catalog, FileSystem, new LazyProcessor(this), null),
+            new GroupDecisionStage(Catalog, BuiltInProfiles.Get, new DecisionEngine()),
+        ];
     }
 
     /// <summary>Models the analysis would use now (installed and, where needed, accepted).</summary>
@@ -324,6 +330,37 @@ public sealed class PhotoFlowHost : IAsyncDisposable
         {
             await host.Jobs.YieldToNormalAsync(ct).ConfigureAwait(false);
             return await (await host.GetProcessorAsync(ct).ConfigureAwait(false)).ProcessAsync(photo, options, ct).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>CLIP text model loaded on the first classification (the prompts are embedded once).</summary>
+    private sealed class LazySceneClassifier(PhotoFlowHost host) : ISceneClassifier
+    {
+        public string ModelVersion => $"{ClipModelId}+scenes-v1";
+
+        public async Task<IReadOnlyList<(string ProfileId, double Probability)>> ClassifyAsync(ReadOnlyMemory<float> imageEmbedding, CancellationToken ct) =>
+            await (await host.GetSceneClassifierAsync(ct).ConfigureAwait(false)).ClassifyAsync(imageEmbedding, ct).ConfigureAwait(false);
+    }
+
+    private ClipSceneClassifier? _sceneClassifier;
+
+    private async Task<ClipSceneClassifier> GetSceneClassifierAsync(CancellationToken ct)
+    {
+        await _sessionsGate.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            if (_sceneClassifier is null)
+            {
+                var session = await Inference.CreateSessionAsync(Models.Resolve(ClipModelId, "text_model.onnx"), ExecutionTarget.Auto, ct).ConfigureAwait(false);
+                _sessions.Add(session);
+                _sceneClassifier = new ClipSceneClassifier(new ClipTextEmbedder(session, ClipTokenizer.Load(Models.Resolve(ClipModelId, "tokenizer.json").FilePath)));
+            }
+
+            return _sceneClassifier;
+        }
+        finally
+        {
+            _sessionsGate.Release();
         }
     }
 

@@ -102,6 +102,57 @@ internal sealed class GroupStore(SqliteCatalog catalog) : IGroupStore
             "UPDATE Groups SET ProfileId = @profileId, ProfileConfidence = @confidence WHERE Id = @groupId;",
             new { groupId, profileId, confidence }, cancellationToken: ct)), ct);
 
+    public async Task<IReadOnlyDictionary<long, PhotoProfile>> GetPhotoProfilesAsync(long jobId, CancellationToken ct) =>
+        (await catalog.RunAsync(c => c.QueryAsync<ProfileRow>(new CommandDefinition(
+            "SELECT JobId, AssetId, ProfileId, Confidence, ByUser, SuggestedProfileId, SuggestedConfidence FROM PhotoProfiles WHERE JobId = @jobId;",
+            new { jobId }, cancellationToken: ct)), ct).ConfigureAwait(false))
+        .ToDictionary(r => r.AssetId, r => new PhotoProfile(r.JobId, r.AssetId, r.ProfileId, r.Confidence, r.ByUser != 0, r.SuggestedProfileId, r.SuggestedConfidence));
+
+    public Task SetAutomaticProfilesAsync(long jobId, IReadOnlyList<PhotoProfile> profiles, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(profiles);
+        return catalog.RunAsync(async c =>
+        {
+            using var transaction = c.BeginTransaction();
+            foreach (var p in profiles)
+            {
+                await c.ExecuteAsync(new CommandDefinition(
+                    """
+                    INSERT INTO PhotoProfiles (JobId, AssetId, ProfileId, Confidence, ByUser, SuggestedProfileId, SuggestedConfidence)
+                    VALUES (@jobId, @AssetId, @ProfileId, @Confidence, 0, @SuggestedProfileId, @SuggestedConfidence)
+                    ON CONFLICT (JobId, AssetId) DO UPDATE SET
+                        ProfileId = CASE WHEN ByUser = 1 THEN ProfileId ELSE excluded.ProfileId END,
+                        Confidence = CASE WHEN ByUser = 1 THEN Confidence ELSE excluded.Confidence END,
+                        SuggestedProfileId = excluded.SuggestedProfileId,
+                        SuggestedConfidence = excluded.SuggestedConfidence;
+                    """,
+                    new { jobId, p.AssetId, p.ProfileId, p.Confidence, p.SuggestedProfileId, p.SuggestedConfidence }, transaction, cancellationToken: ct)).ConfigureAwait(false);
+            }
+
+            transaction.Commit();
+        }, ct);
+    }
+
+    public Task SetUserProfileAsync(long jobId, IReadOnlyList<long> assetIds, string? profileId, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(assetIds);
+        return catalog.RunAsync(async c =>
+        {
+            using var transaction = c.BeginTransaction();
+            foreach (var assetId in assetIds)
+            {
+                await c.ExecuteAsync(new CommandDefinition(
+                    """
+                    INSERT INTO PhotoProfiles (JobId, AssetId, ProfileId, ByUser) VALUES (@jobId, @assetId, @profileId, @byUser)
+                    ON CONFLICT (JobId, AssetId) DO UPDATE SET ProfileId = excluded.ProfileId, Confidence = NULL, ByUser = excluded.ByUser;
+                    """,
+                    new { jobId, assetId, profileId, byUser = profileId is null ? 0 : 1 }, transaction, cancellationToken: ct)).ConfigureAwait(false);
+            }
+
+            transaction.Commit();
+        }, ct);
+    }
+
     private static async Task<long> InsertAsync(SqliteConnection c, SqliteTransaction transaction, long jobId, GroupType type, GroupOrigin origin, IReadOnlyList<long> members, CancellationToken ct)
     {
         var id = await c.ExecuteScalarAsync<long>(new CommandDefinition(
@@ -120,4 +171,6 @@ internal sealed class GroupStore(SqliteCatalog catalog) : IGroupStore
     private sealed record GroupRow(long Id, long JobId, string Type, string? ProfileId, double? ProfileConfidence, string Origin);
 
     private sealed record MemberRow(long GroupId, long AssetId, long Position, double? Score);
+
+    private sealed record ProfileRow(long JobId, long AssetId, string? ProfileId, double? Confidence, long ByUser, string? SuggestedProfileId, double? SuggestedConfidence);
 }

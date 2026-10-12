@@ -259,6 +259,11 @@ internal sealed class JobStore(SqliteCatalog catalog) : IJobStore
         catalog.RunAsync(c => c.ExecuteAsync(new CommandDefinition(
             "UPDATE Jobs SET State = @state, UpdatedAtMs = @now WHERE Id = @jobId;", new { jobId, state = state.ToString(), now = Db.Now() }, cancellationToken: ct)), ct);
 
+    public Task SetAutomaticProfileAsync(long jobId, bool automatic, string? fallbackProfileId, CancellationToken ct) =>
+        catalog.RunAsync(c => c.ExecuteAsync(new CommandDefinition(
+            "UPDATE Jobs SET AutomaticProfile = @automatic, FallbackProfileId = @fallbackProfileId, UpdatedAtMs = @now WHERE Id = @jobId;",
+            new { jobId, automatic, fallbackProfileId, now = Db.Now() }, cancellationToken: ct)), ct);
+
     public async Task<IReadOnlyList<Job>> ListUnfinishedAsync(CancellationToken ct) =>
         (await catalog.RunAsync(c => c.QueryAsync<JobRow>(new CommandDefinition(
             $"SELECT {JobColumns} FROM Jobs WHERE State IN ('Pending', 'Running', 'Paused') ORDER BY Id;", cancellationToken: ct)), ct).ConfigureAwait(false))

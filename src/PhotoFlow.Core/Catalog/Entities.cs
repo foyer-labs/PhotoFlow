@@ -209,6 +209,13 @@ public enum GroupOrigin
 
 public sealed record GroupMember(long GroupId, long AssetId, int Position, double? Score);
 
+/// <summary>
+/// Profile of an analyzed photo in a job (D8): <paramref name="ProfileId"/> null means the job profile; set by CLIP in
+/// automatic mode or by the user for its group (<paramref name="ByUser"/>, never overwritten). The suggestion is shown in
+/// manual mode when the photo looks like another profile.
+/// </summary>
+public sealed record PhotoProfile(long JobId, long AssetId, string? ProfileId, double? Confidence, bool ByUser, string? SuggestedProfileId, double? SuggestedConfidence);
+
 /// <summary>Automatic proposal and user decision; the user decision always wins (invariant I5).</summary>
 public sealed record Decision(
     long Id,

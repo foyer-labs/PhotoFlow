@@ -77,6 +77,9 @@ public interface IJobStore
 
     Task SetStateAsync(long jobId, JobState state, CancellationToken ct);
 
+    /// <summary>Automatic profile per group (D8) with its mandatory fallback.</summary>
+    Task SetAutomaticProfileAsync(long jobId, bool automatic, string? fallbackProfileId, CancellationToken ct);
+
     /// <summary>Jobs left running or paused, e.g. after an unexpected shutdown (board 3c).</summary>
     Task<IReadOnlyList<Job>> ListUnfinishedAsync(CancellationToken ct);
 
@@ -169,6 +172,14 @@ public interface IGroupStore
     Task SetScoresAsync(long groupId, IReadOnlyDictionary<long, double> scores, CancellationToken ct);
 
     Task SetProfileAsync(long groupId, string? profileId, double? confidence, CancellationToken ct);
+
+    Task<IReadOnlyDictionary<long, PhotoProfile>> GetPhotoProfilesAsync(long jobId, CancellationToken ct);
+
+    /// <summary>Automatic profiles and suggestions; a profile chosen by the user is kept (only its suggestion changes).</summary>
+    Task SetAutomaticProfilesAsync(long jobId, IReadOnlyList<PhotoProfile> profiles, CancellationToken ct);
+
+    /// <summary>The user's profile for photos of the job ("re-analyze as…"); null gives them back to the automatic choice.</summary>
+    Task SetUserProfileAsync(long jobId, IReadOnlyList<long> assetIds, string? profileId, CancellationToken ct);
 }
 
 public sealed class CatalogLockedException(string message) : IOException(message);

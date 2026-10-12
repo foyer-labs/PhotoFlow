@@ -21,3 +21,17 @@ CREATE TABLE GroupMembers (
     PRIMARY KEY (GroupId, AssetId)
 );
 CREATE INDEX IX_GroupMembers_Asset ON GroupMembers (AssetId);
+
+-- Profile of each analyzed photo of a job (D8): the job profile unless CLIP assigned another one (automatic mode,
+-- fallback under the confidence threshold) or the user chose one for its group ("re-analyze as…", never overwritten
+-- by the automatic assignment). In manual mode only the suggestion is stored.
+CREATE TABLE PhotoProfiles (
+    JobId               INTEGER NOT NULL REFERENCES Jobs (Id),
+    AssetId             INTEGER NOT NULL REFERENCES Assets (Id),
+    ProfileId           TEXT,
+    Confidence          REAL,
+    ByUser              INTEGER NOT NULL DEFAULT 0,
+    SuggestedProfileId  TEXT,
+    SuggestedConfidence REAL,
+    PRIMARY KEY (JobId, AssetId)
+);

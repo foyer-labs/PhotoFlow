@@ -22,6 +22,15 @@ public interface ITextEmbedder
     Task<float[]> EmbedAsync(string text, CancellationToken ct);
 }
 
+/// <summary>Zero-shot scene classification of an image embedding over the scene profiles (D8).</summary>
+public interface ISceneClassifier
+{
+    string ModelVersion { get; }
+
+    /// <summary>Probability of each profile id, highest first.</summary>
+    Task<IReadOnlyList<(string ProfileId, double Probability)>> ClassifyAsync(ReadOnlyMemory<float> imageEmbedding, CancellationToken ct);
+}
+
 public static class Vectors
 {
     /// <summary>Cosine similarity of two L2-normalized vectors (their dot product).</summary>
@@ -39,6 +48,22 @@ public static class Vectors
         }
 
         return (float)sum;
+    }
+
+    /// <summary>Normalized mean of normalized vectors (the embedding of a group).</summary>
+    public static float[] Mean(IReadOnlyList<float[]> vectors)
+    {
+        ArgumentNullException.ThrowIfNull(vectors);
+        var sum = new float[vectors[0].Length];
+        foreach (var vector in vectors)
+        {
+            for (var i = 0; i < sum.Length; i++)
+            {
+                sum[i] += vector[i];
+            }
+        }
+
+        return Normalize(sum);
     }
 
     public static float[] Normalize(ReadOnlySpan<float> vector)

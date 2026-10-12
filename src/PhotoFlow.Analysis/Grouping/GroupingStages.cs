@@ -83,8 +83,8 @@ public sealed class GroupingStage(ICatalog catalog, Func<string, SceneProfile> p
 
 /// <summary>
 /// Pipeline stage 5 (per group): every photo is decided again as a single shot from its stored signals, then the bursts
-/// are ranked (<see cref="BurstRanker"/>) with the profile of the group (the job profile unless the group has its own,
-/// D8). Bracketing, timelapse and panorama keep the single-shot decisions. The user's decisions are never touched (I5):
+/// are ranked (<see cref="BurstRanker"/>) with the profile of their photos (the job profile unless CLIP or the user
+/// assigned another one, D8). Bracketing, timelapse and panorama keep the single-shot decisions. The user's decisions are never touched (I5):
 /// only the automatic proposal is written. Twins get the decision of their analyzed photo.
 /// </summary>
 public sealed class GroupDecisionStage(ICatalog catalog, Func<string, SceneProfile> profiles, IDecisionEngine engine) : IBatchStage
@@ -96,19 +96,19 @@ public sealed class GroupDecisionStage(ICatalog catalog, Func<string, SceneProfi
         ArgumentNullException.ThrowIfNull(job);
         var photos = (await JobPhotos.LoadAsync(catalog, job.JobId, ct).ConfigureAwait(false)).ToDictionary(p => p.AnalyzedAssetId);
         var groups = await catalog.Groups.ListAsync(job.JobId, ct).ConfigureAwait(false);
-        var jobProfile = profiles(job.ProfileId);
-        var groupOf = groups.SelectMany(g => g.Members.Select(m => (m.AssetId, g))).GroupBy(x => x.AssetId).ToDictionary(x => x.Key, x => x.First().g);
+        var assigned = await catalog.Groups.GetPhotoProfilesAsync(job.JobId, ct).ConfigureAwait(false);
+        SceneProfile ProfileOf(long assetId) => profiles(assigned.GetValueOrDefault(assetId)?.ProfileId ?? job.ProfileId);
         var decided = new Dictionary<long, (DecisionProposal Proposal, string Version)>();
 
         foreach (var photo in photos.Values)
         {
-            var profile = groupOf.TryGetValue(photo.AnalyzedAssetId, out var group) && group.Group.ProfileId is { } own ? profiles(own) : jobProfile;
+            var profile = ProfileOf(photo.AnalyzedAssetId);
             decided[photo.AnalyzedAssetId] = (engine.Decide(CullingScores.FromScores(photo.Analysis.Scores), profile), $"{engine.Version}+{profile.Id}@{profile.Version}");
         }
 
         foreach (var (group, members) in groups.Where(g => g.Group.IsRanked))
         {
-            var profile = group.ProfileId is { } own ? profiles(own) : jobProfile;
+            var profile = ProfileOf(members[0].AssetId);
             var burst = members.Where(m => photos.ContainsKey(m.AssetId))
                 .Select(m => new BurstMember(m.AssetId, CullingScores.FromScores(photos[m.AssetId].Analysis.Scores), decided[m.AssetId].Proposal))
                 .ToList();
