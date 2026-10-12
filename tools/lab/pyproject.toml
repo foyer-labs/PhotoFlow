@@ -22,6 +22,9 @@ dependencies = [
     "pillow>=11",
     "huggingface_hub>=0.34",
     "safetensors>=0.5",
+    # Reference values for the C# image analysis (decision F1-4: C# verified against OpenCV).
+    "opencv-python-headless==5.0.0.93",
+    "scipy>=1.14",
 ]
 
 [project.optional-dependencies]
