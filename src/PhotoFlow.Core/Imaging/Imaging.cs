@@ -16,7 +16,13 @@ public interface IImageOperations
     Task<RgbImage> DecodeAsync(Stream stream, CancellationToken ct);
 
     RgbImage Resize(RgbImage image, int width, int height, ResampleMode mode);
+
+    /// <summary>Resamples the fractional source <paramref name="box"/> (Pillow <c>box</c> semantics) to the given size.</summary>
+    RgbImage Resize(RgbImage image, SourceBox box, int width, int height, ResampleMode mode);
 }
+
+/// <summary>Fractional source rectangle in pixels (single precision, as Pillow's <c>box</c>).</summary>
+public readonly record struct SourceBox(float X0, float Y0, float X1, float Y1);
 
 public enum ResampleMode
 {

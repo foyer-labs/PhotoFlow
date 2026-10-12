@@ -23,6 +23,9 @@ public sealed class SkiaImageOperations : IImageOperations
     public RgbImage Resize(RgbImage image, int width, int height, ResampleMode mode) =>
         PillowResampler.Resize(image, width, height, mode);
 
+    public RgbImage Resize(RgbImage image, SourceBox box, int width, int height, ResampleMode mode) =>
+        PillowResampler.Resize(image, width, height, mode, box);
+
     private static RgbImage Decode(ReadOnlySpan<byte> encoded)
     {
         using var data = SKData.CreateCopy(encoded);
