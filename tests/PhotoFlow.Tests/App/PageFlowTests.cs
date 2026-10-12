@@ -6,6 +6,7 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
+using PhotoFlow.App.Localization;
 using PhotoFlow.App.Services;
 using PhotoFlow.App.ViewModels;
 using PhotoFlow.App.Views;
@@ -183,6 +184,51 @@ public sealed class PageFlowTests : IDisposable
         window.Close();
     }
 
+    [AvaloniaFact]
+    public async Task Two_background_analyses_run_side_by_side_in_the_jobs_view_and_can_be_paused()
+    {
+        var paths = new DefaultAppPaths(_temp.Sub("profile-par"));
+        await using var host = await PhotoFlowHost.StartAsync(paths, CancellationToken.None);
+        using var shell = new MainWindowViewModel(host);
+        var window = new MainWindow { DataContext = shell, Width = 1440, Height = 900 };
+        window.Show();
+        var ids = new List<long>();
+        foreach (var name in new[] { "uno", "due" })
+        {
+            var root = _temp.Sub("par-" + name);
+            for (var i = 0; i < 60; i++)
+            {
+                SyntheticImages.WriteJpeg(Path.Combine(root, $"IMG_{i:0000}.JPG"), 640, 480, i);
+            }
+
+            var library = await host.Catalog.Libraries.AddAsync(new Library(0, name, root, WritePolicy.SidecarOnly, false, LibraryOrigin.ExistingArchive, null), CancellationToken.None);
+            ids.Add(await host.StartArchiveAnalysisAsync(library, "archive", ArchiveOrder.ByFolder, CancellationToken.None));
+        }
+
+        // Both run at once (snapshot right after the start), each marked as background work.
+        shell.ShowSection(SectionCatalog.Jobs);
+        var jobs = Assert.IsType<JobsViewModel>(shell.CurrentPage);
+        await Settle(jobs.ActivateAsync());
+        Assert.Equal(2, jobs.Running.Count);
+        Assert.All(jobs.Running, j => Assert.Equal(Strings.Get("Jobs.Background.Running"), j.Detail));
+        Save(window, "3g-jobs-parallel");
+        foreach (var id in ids)
+        {
+            host.Jobs.Pause(id);
+        }
+
+        await WaitAsync(() => ids.All(id => !host.Jobs.IsRunning(id)));
+        await Settle(jobs.ActivateAsync());
+        Assert.Empty(jobs.Running);
+        var all = jobs.Queued.Concat(jobs.Completed).ToList();
+        Assert.All(ids, id => Assert.Contains(all, j => j.Job.Id == id));
+
+        // An archive job reads in place: its first stage is "Read", not "Copy".
+        jobs.Selected = all.Single(j => j.Job.Id == ids[0]);
+        await WaitAsync(() => jobs.Stages[0].Label == Strings.Get("Stage.Read"), () => $"label {jobs.Stages[0].Label}");
+        window.Close();
+    }
+
     public void Dispose() => _temp.Dispose();
 
     /// <summary>Two photos as RAW+JPEG twins would be too heavy here: one JPEG pair member is simulated by a copy.</summary>
@@ -217,12 +263,12 @@ public sealed class PageFlowTests : IDisposable
         Dispatcher.UIThread.RunJobs();
     }
 
-    private static async Task WaitAsync(Func<bool> condition)
+    private static async Task WaitAsync(Func<bool> condition, Func<string>? state = null)
     {
         var deadline = DateTime.UtcNow.AddSeconds(60);
         while (!condition())
         {
-            Assert.True(DateTime.UtcNow < deadline, "Timed out waiting for the condition.");
+            Assert.True(DateTime.UtcNow < deadline, "Timed out waiting for the condition. " + state?.Invoke());
             Dispatcher.UIThread.RunJobs();
             await Task.Delay(20);
         }

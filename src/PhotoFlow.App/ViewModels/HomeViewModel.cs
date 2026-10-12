@@ -223,20 +223,22 @@ public sealed partial class HomeViewModel : PageViewModel, IDisposable
         var unfinished = await catalog.Jobs.ListUnfinishedAsync(CancellationToken.None);
         var interrupted = _host.InterruptedJobs.Select(j => j.Id).ToHashSet();
 
-        Interrupted.Clear();
-        ActiveJobs.Clear();
+        // Everything is read first and the lists are replaced without awaiting in between: refreshes raised by job
+        // events may overlap, and interleaved Clear/Add would duplicate rows.
+        var active = new List<JobRowViewModel>();
+        var stopped = new List<JobRowViewModel>();
         foreach (var job in unfinished)
         {
             var row = new JobRowViewModel(job) { Detail = await DescribeAsync(job) };
             if (interrupted.Contains(job.Id) && !_host.Jobs.IsRunning(job.Id) && !_recoveryDismissed)
             {
-                Interrupted.Add(row);
+                stopped.Add(row);
             }
 
-            ActiveJobs.Add(row);
+            active.Add(row);
         }
 
-        ToReview.Clear();
+        var toReviewRows = new List<JobRowViewModel>();
         foreach (var job in (await catalog.Jobs.ListRecentAsync(20, CancellationToken.None)).Where(j => j.State == JobState.Completed))
         {
             var counts = await catalog.Decisions.CountOutcomesForJobAsync(job.Id, CancellationToken.None);
@@ -244,21 +246,35 @@ public sealed partial class HomeViewModel : PageViewModel, IDisposable
             if (toReview > 0)
             {
                 var photos = counts.Values.Sum();
-                ToReview.Add(new JobRowViewModel(job) { ToReview = toReview, Detail = Strings.Format("Home.Photos", photos.ToString("N0", CultureInfo.CurrentCulture)) });
+                toReviewRows.Add(new JobRowViewModel(job) { ToReview = toReview, Detail = Strings.Format("Home.Photos", photos.ToString("N0", CultureInfo.CurrentCulture)) });
             }
         }
 
-        Libraries.Clear();
+        var libraries = new List<LibraryRowViewModel>();
         foreach (var library in await catalog.Libraries.ListAsync(CancellationToken.None))
         {
-            Libraries.Add(new LibraryRowViewModel(library, await catalog.Libraries.CountAssetsAsync(library.Id, CancellationToken.None)));
+            libraries.Add(new LibraryRowViewModel(library, await catalog.Libraries.CountAssetsAsync(library.Id, CancellationToken.None)));
         }
+
+        Replace(Interrupted, stopped);
+        Replace(ActiveJobs, active);
+        Replace(ToReview, toReviewRows);
+        Replace(Libraries, libraries);
 
         State = Interrupted.Count > 0 ? HomeState.Recovery : HomeState.Normal;
         OnPropertyChanged(nameof(ActiveJobsHeader));
         OnPropertyChanged(nameof(NoActiveJobs));
         OnPropertyChanged(nameof(HasToReview));
         OnPropertyChanged(nameof(ResumeLabel));
+    }
+
+    private static void Replace<T>(ObservableCollection<T> target, IEnumerable<T> items)
+    {
+        target.Clear();
+        foreach (var item in items)
+        {
+            target.Add(item);
+        }
     }
 
     [RelayCommand]

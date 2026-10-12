@@ -36,13 +36,20 @@ public static class SyntheticImages
     {
         using var bitmap = new SKBitmap(width, height, SKColorType.Rgba8888, SKAlphaType.Opaque);
         var random = new Random(seed);
+        var pixels = new byte[width * height * 4];
         for (var y = 0; y < height; y++)
         {
             for (var x = 0; x < width; x++)
             {
-                bitmap.SetPixel(x, y, new SKColor((byte)(x * 255 / width), (byte)(y * 255 / height), (byte)random.Next(256)));
+                var i = ((y * width) + x) * 4;
+                pixels[i] = (byte)(x * 255 / width);
+                pixels[i + 1] = (byte)(y * 255 / height);
+                pixels[i + 2] = (byte)random.Next(256);
+                pixels[i + 3] = 255;
             }
         }
+
+        System.Runtime.InteropServices.Marshal.Copy(pixels, 0, bitmap.GetPixels(), pixels.Length);
 
         using var data = bitmap.Encode(SKEncodedImageFormat.Jpeg, 90);
         File.WriteAllBytes(path, data.ToArray());

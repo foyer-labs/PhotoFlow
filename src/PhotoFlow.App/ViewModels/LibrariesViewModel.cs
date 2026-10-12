@@ -150,15 +150,21 @@ public sealed partial class LibrariesViewModel : PageViewModel
 
     public override async Task ActivateAsync()
     {
-        var selectedId = Selected?.Library.Id;
-        Libraries.Clear();
+        // Read first, then replace the list without awaiting in between (overlapping refreshes stay consistent).
+        var items = new List<LibraryItemViewModel>();
         foreach (var library in await _host.Catalog.Libraries.ListAsync(CancellationToken.None))
         {
-            var item = new LibraryItemViewModel(library)
+            items.Add(new LibraryItemViewModel(library)
             {
                 Count = (await _host.Catalog.Libraries.CountAssetsAsync(library.Id, CancellationToken.None)).ToString("N0", CultureInfo.CurrentCulture),
                 Detail = $"{library.RootPath} · {Strings.Get(library.IsReadOnly ? "Library.Policy.CatalogOnly" : "Library.Policy." + library.XmpPolicy)}",
-            };
+            });
+        }
+
+        var selectedId = Selected?.Library.Id;
+        Libraries.Clear();
+        foreach (var item in items)
+        {
             Libraries.Add(item);
         }
 

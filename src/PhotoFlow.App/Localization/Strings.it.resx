@@ -403,4 +403,7 @@
   <data name="CatalogProblem.Restored" xml:space="preserve"><value>Ripristinato. Il catalogo danneggiato è in {0}.</value></data>
   <data name="CatalogProblem.Failed" xml:space="preserve"><value>Ripristino non riuscito: {0}</value></data>
   <data name="Settings.ComesWithPhase" xml:space="preserve"><value>arriva con la fase {0}</value></data>
+  <data name="Stage.Read" xml:space="preserve"><value>Lettura</value></data>
+  <data name="Jobs.Background.Running" xml:space="preserve"><value>In background · bassa priorità</value></data>
+  <data name="Jobs.Background.Waiting" xml:space="preserve"><value>In background · attende l'import</value></data>
 </root>
