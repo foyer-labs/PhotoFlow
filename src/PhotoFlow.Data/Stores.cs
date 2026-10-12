@@ -26,6 +26,11 @@ internal sealed class LibraryStore(SqliteCatalog catalog) : ILibraryStore
         (await catalog.RunAsync(c => c.QueryAsync<Row>(new CommandDefinition($"SELECT {Columns} FROM Libraries ORDER BY Name;", cancellationToken: ct)), ct).ConfigureAwait(false))
             .Select(Map).ToList();
 
+    public async Task<Library?> FindByRootAsync(string rootPath, CancellationToken ct) =>
+        (await catalog.RunAsync(c => c.QueryAsync<Row>(new CommandDefinition(
+            $"SELECT {Columns} FROM Libraries WHERE RootPath = @rootPath COLLATE NOCASE ORDER BY Id LIMIT 1;", new { rootPath }, cancellationToken: ct)), ct).ConfigureAwait(false))
+            .Select(Map).FirstOrDefault();
+
     private static Library Map(Row r) =>
         new(r.Id, r.Name, r.RootPath, Db.Parse<WritePolicy>(r.XmpPolicy), r.IsReadOnly, Db.Parse<LibraryOrigin>(r.Origin), Db.Instant(r.LastScanMs));
 

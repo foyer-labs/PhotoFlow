@@ -1,0 +1,142 @@
+// SPDX-License-Identifier: Apache-2.0
+
+using System.Runtime.InteropServices;
+using System.Text.Json;
+using Dapper;
+using PhotoFlow.Core.Analysis;
+using PhotoFlow.Core.Catalog;
+
+namespace PhotoFlow.Data;
+
+internal sealed class AnalysisStore(SqliteCatalog catalog) : IAnalysisStore
+{
+    public Task SaveResultAsync(AnalyzerResultRecord result, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        return catalog.RunAsync(async c =>
+        {
+            using var transaction = c.BeginTransaction();
+            await c.ExecuteAsync(new CommandDefinition(
+                "DELETE FROM AnalyzerResults WHERE AssetId = @AssetId AND AnalyzerId = @AnalyzerId;",
+                new { result.AssetId, result.AnalyzerId }, transaction, cancellationToken: ct)).ConfigureAwait(false);
+            await c.ExecuteAsync(new CommandDefinition(
+                """
+                INSERT INTO AnalyzerResults (AssetId, AnalyzerId, ModelVersion, ProfileId, ScoresJson, CreatedAtMs)
+                VALUES (@AssetId, @AnalyzerId, @ModelVersion, @ProfileId, @ScoresJson, @CreatedAtMs);
+                """,
+                new { result.AssetId, result.AnalyzerId, result.ModelVersion, result.ProfileId, ScoresJson = JsonSerializer.Serialize(result.Scores), CreatedAtMs = Db.Now() },
+                transaction, cancellationToken: ct)).ConfigureAwait(false);
+            transaction.Commit();
+        }, ct);
+    }
+
+    public async Task<AnalyzerResultRecord?> GetResultAsync(long assetId, string analyzerId, CancellationToken ct) =>
+        (await catalog.RunAsync(c => c.QueryAsync<ResultRow>(new CommandDefinition(
+            "SELECT Id, AssetId, AnalyzerId, ModelVersion, ProfileId, ScoresJson FROM AnalyzerResults WHERE AssetId = @assetId AND AnalyzerId = @analyzerId ORDER BY Id DESC LIMIT 1;",
+            new { assetId, analyzerId }, cancellationToken: ct)), ct).ConfigureAwait(false))
+        .Select(r => new AnalyzerResultRecord(r.Id, r.AssetId, r.AnalyzerId, r.ModelVersion, r.ProfileId,
+            JsonSerializer.Deserialize<Dictionary<string, double>>(r.ScoresJson) ?? []))
+        .FirstOrDefault();
+
+    public Task ReplaceAutomaticFacesAsync(long assetId, IReadOnlyList<Face> faces, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(faces);
+        return catalog.RunAsync(async c =>
+        {
+            using var transaction = c.BeginTransaction();
+            await c.ExecuteAsync(new CommandDefinition(
+                "DELETE FROM Faces WHERE AssetId = @assetId AND (AssignmentOrigin IS NULL OR AssignmentOrigin <> @manual);",
+                new { assetId, manual = nameof(AssignmentOrigin.Manual) }, transaction, cancellationToken: ct)).ConfigureAwait(false);
+            foreach (var face in faces)
+            {
+                await c.ExecuteAsync(new CommandDefinition(
+                    """
+                    INSERT INTO Faces (AssetId, X1, Y1, X2, Y2, Landmarks, Confidence, LeftEye, RightEye, EncryptedEmbedding, PersonId, AssignmentOrigin, Similarity, ModelVersion)
+                    VALUES (@AssetId, @X1, @Y1, @X2, @Y2, @Landmarks, @Confidence, @LeftEye, @RightEye, @EncryptedEmbedding, @PersonId, @AssignmentOrigin, @Similarity, @ModelVersion);
+                    """,
+                    new
+                    {
+                        AssetId = assetId,
+                        face.Box.X1,
+                        face.Box.Y1,
+                        face.Box.X2,
+                        face.Box.Y2,
+                        Landmarks = face.Landmarks is null ? null : MemoryMarshal.AsBytes(face.Landmarks.ToArray().AsSpan()).ToArray(),
+                        face.Confidence,
+                        LeftEye = face.LeftEye.ToString(),
+                        RightEye = face.RightEye.ToString(),
+                        face.EncryptedEmbedding,
+                        face.PersonId,
+                        AssignmentOrigin = Db.Name(face.AssignmentOrigin),
+                        face.Similarity,
+                        face.ModelVersion,
+                    },
+                    transaction, cancellationToken: ct)).ConfigureAwait(false);
+            }
+
+            transaction.Commit();
+        }, ct);
+    }
+
+    public async Task<IReadOnlyList<Face>> GetFacesAsync(long assetId, CancellationToken ct) =>
+        (await catalog.RunAsync(c => c.QueryAsync<FaceRow>(new CommandDefinition(
+            """
+            SELECT Id, AssetId, X1, Y1, X2, Y2, Landmarks, Confidence, LeftEye, RightEye, EncryptedEmbedding, PersonId, AssignmentOrigin, Similarity, ModelVersion
+            FROM Faces WHERE AssetId = @assetId ORDER BY Id;
+            """,
+            new { assetId }, cancellationToken: ct)), ct).ConfigureAwait(false))
+        .Select(r => new Face(
+            r.Id, r.AssetId, new BoundingBox((float)r.X1, (float)r.Y1, (float)r.X2, (float)r.Y2),
+            r.Landmarks is null ? null : MemoryMarshal.Cast<byte, Point2>(r.Landmarks).ToArray(),
+            r.Confidence, Db.Parse<EyeState>(r.LeftEye), Db.Parse<EyeState>(r.RightEye), r.EncryptedEmbedding, r.PersonId,
+            Db.ParseOrNull<AssignmentOrigin>(r.AssignmentOrigin), r.Similarity, r.ModelVersion))
+        .ToList();
+
+    private sealed class ResultRow
+    {
+        public long Id { get; set; }
+
+        public long AssetId { get; set; }
+
+        public string AnalyzerId { get; set; } = "";
+
+        public string ModelVersion { get; set; } = "";
+
+        public string ProfileId { get; set; } = "";
+
+        public string ScoresJson { get; set; } = "";
+    }
+
+    private sealed class FaceRow
+    {
+        public long Id { get; set; }
+
+        public long AssetId { get; set; }
+
+        public double X1 { get; set; }
+
+        public double Y1 { get; set; }
+
+        public double X2 { get; set; }
+
+        public double Y2 { get; set; }
+
+        public byte[]? Landmarks { get; set; }
+
+        public double Confidence { get; set; }
+
+        public string LeftEye { get; set; } = "";
+
+        public string RightEye { get; set; } = "";
+
+        public byte[]? EncryptedEmbedding { get; set; }
+
+        public long? PersonId { get; set; }
+
+        public string? AssignmentOrigin { get; set; }
+
+        public double? Similarity { get; set; }
+
+        public string ModelVersion { get; set; } = "";
+    }
+}

@@ -16,6 +16,8 @@ public interface ICatalog : IAsyncDisposable
     IXmpSyncStore XmpSync { get; }
 
     IDeferredCopyStore DeferredCopies { get; }
+
+    IAnalysisStore Analysis { get; }
 }
 
 public interface ILibraryStore
@@ -25,6 +27,9 @@ public interface ILibraryStore
     Task<Library?> GetAsync(long id, CancellationToken ct);
 
     Task<IReadOnlyList<Library>> ListAsync(CancellationToken ct);
+
+    /// <summary>The library with this root (compared case-insensitively, as on Windows), if any.</summary>
+    Task<Library?> FindByRootAsync(string rootPath, CancellationToken ct);
 }
 
 public interface IAssetStore
@@ -96,6 +101,20 @@ public interface IDeferredCopyStore
     Task UpdateAsync(DeferredCopy copy, CancellationToken ct);
 
     Task<int> CountPendingAsync(CancellationToken ct);
+}
+
+/// <summary>Automatic analysis results and detected faces. Manual face assignments are never removed (invariant I5).</summary>
+public interface IAnalysisStore
+{
+    /// <summary>Stores the result, replacing the previous result of the same analyzer for the asset.</summary>
+    Task SaveResultAsync(AnalyzerResultRecord result, CancellationToken ct);
+
+    Task<AnalyzerResultRecord?> GetResultAsync(long assetId, string analyzerId, CancellationToken ct);
+
+    /// <summary>Replaces the automatically detected faces of the asset; faces with a manual assignment are kept.</summary>
+    Task ReplaceAutomaticFacesAsync(long assetId, IReadOnlyList<Face> faces, CancellationToken ct);
+
+    Task<IReadOnlyList<Face>> GetFacesAsync(long assetId, CancellationToken ct);
 }
 
 public sealed class CatalogLockedException(string message) : IOException(message);
