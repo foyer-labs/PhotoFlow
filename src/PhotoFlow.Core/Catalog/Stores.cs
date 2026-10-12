@@ -30,6 +30,9 @@ public interface ILibraryStore
 
     /// <summary>The library with this root (compared case-insensitively, as on Windows), if any.</summary>
     Task<Library?> FindByRootAsync(string rootPath, CancellationToken ct);
+
+    /// <summary>Photos (assets) with a location in the library.</summary>
+    Task<int> CountAssetsAsync(long libraryId, CancellationToken ct);
 }
 
 public interface IAssetStore
@@ -61,6 +64,9 @@ public interface IJobStore
     /// <summary>Jobs left running or paused, e.g. after an unexpected shutdown (board 3c).</summary>
     Task<IReadOnlyList<Job>> ListUnfinishedAsync(CancellationToken ct);
 
+    /// <summary>The most recent jobs, newest first.</summary>
+    Task<IReadOnlyList<Job>> ListRecentAsync(int limit, CancellationToken ct);
+
     Task AddItemsAsync(long jobId, IReadOnlyList<JobItem> items, CancellationToken ct);
 
     Task UpdateItemAsync(JobItem item, CancellationToken ct);
@@ -78,6 +84,9 @@ public interface IDecisionStore
 
     /// <summary>Stores the user's decision; it wins over any present or future automatic proposal.</summary>
     Task SetUserAsync(long assetId, CullingOutcome? outcome, int? rating, string? label, CancellationToken ct);
+
+    /// <summary>Effective outcomes (the user's, else the automatic one) of the assets of a job, by outcome.</summary>
+    Task<IReadOnlyDictionary<CullingOutcome, int>> CountOutcomesForJobAsync(long jobId, CancellationToken ct);
 }
 
 public interface IXmpSyncStore

@@ -31,6 +31,10 @@ internal sealed class LibraryStore(SqliteCatalog catalog) : ILibraryStore
             $"SELECT {Columns} FROM Libraries WHERE RootPath = @rootPath COLLATE NOCASE ORDER BY Id LIMIT 1;", new { rootPath }, cancellationToken: ct)), ct).ConfigureAwait(false))
             .Select(Map).FirstOrDefault();
 
+    public Task<int> CountAssetsAsync(long libraryId, CancellationToken ct) =>
+        catalog.RunAsync(c => c.ExecuteScalarAsync<int>(new CommandDefinition(
+            "SELECT COUNT(DISTINCT AssetId) FROM AssetLocations WHERE LibraryId = @libraryId;", new { libraryId }, cancellationToken: ct)), ct);
+
     private static Library Map(Row r) =>
         new(r.Id, r.Name, r.RootPath, Db.Parse<WritePolicy>(r.XmpPolicy), r.IsReadOnly, Db.Parse<LibraryOrigin>(r.Origin), Db.Instant(r.LastScanMs));
 
@@ -236,6 +240,11 @@ internal sealed class JobStore(SqliteCatalog catalog) : IJobStore
             $"SELECT {JobColumns} FROM Jobs WHERE State IN ('Pending', 'Running', 'Paused') ORDER BY Id;", cancellationToken: ct)), ct).ConfigureAwait(false))
         .Select(Map).ToList();
 
+    public async Task<IReadOnlyList<Job>> ListRecentAsync(int limit, CancellationToken ct) =>
+        (await catalog.RunAsync(c => c.QueryAsync<JobRow>(new CommandDefinition(
+            $"SELECT {JobColumns} FROM Jobs ORDER BY CreatedAtMs DESC, Id DESC LIMIT @limit;", new { limit }, cancellationToken: ct)), ct).ConfigureAwait(false))
+        .Select(Map).ToList();
+
     public Task AddItemsAsync(long jobId, IReadOnlyList<JobItem> items, CancellationToken ct) =>
         catalog.RunAsync(async c =>
         {
@@ -372,6 +381,18 @@ internal sealed class DecisionStore(SqliteCatalog catalog) : IDecisionStore
             """,
             new { assetId, outcome = Db.Name(outcome), rating, label, now = Db.Now() },
             cancellationToken: ct)), ct);
+
+    public async Task<IReadOnlyDictionary<CullingOutcome, int>> CountOutcomesForJobAsync(long jobId, CancellationToken ct) =>
+        (await catalog.RunAsync(c => c.QueryAsync<(string Outcome, int Count)>(new CommandDefinition(
+            """
+            SELECT COALESCE(d.UserOutcome, d.AutomaticOutcome) AS Outcome, COUNT(*) AS Count
+            FROM Decisions d
+            WHERE d.AssetId IN (SELECT DISTINCT AssetId FROM JobItems WHERE JobId = @jobId AND AssetId IS NOT NULL)
+              AND COALESCE(d.UserOutcome, d.AutomaticOutcome) IS NOT NULL
+            GROUP BY Outcome;
+            """,
+            new { jobId }, cancellationToken: ct)), ct).ConfigureAwait(false))
+        .ToDictionary(r => Db.Parse<CullingOutcome>(r.Outcome), r => r.Count);
 
     private sealed class Row
     {

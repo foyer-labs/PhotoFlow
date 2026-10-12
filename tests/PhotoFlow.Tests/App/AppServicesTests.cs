@@ -97,3 +97,29 @@ public sealed class AppServicesTests : IDisposable
         }
     }
 }
+
+[Trait(TestCategory.Name, TestCategory.Integration)]
+public sealed class PhotoFlowHostTests : IDisposable
+{
+    private readonly TempFolder _temp = new("pf-host");
+
+    [Fact]
+    public async Task The_host_starts_on_an_empty_profile_and_detects_no_models()
+    {
+        var paths = new DefaultAppPaths(_temp.Path);
+        await using var host = await PhotoFlowHost.StartAsync(paths, TestContext.Current.CancellationToken);
+
+        Assert.True(File.Exists(paths.CatalogPath));
+        Assert.Empty(host.InterruptedJobs);
+        Assert.False(host.Settings.SetupCompleted);
+        var setup = host.DescribeAnalysis();
+        Assert.Null(setup.ObjectDetector);
+        Assert.Null(setup.FaceDetector);
+        Assert.False(setup.EyesAvailable);
+
+        // A second window cannot open the same catalog.
+        await Assert.ThrowsAsync<CatalogLockedException>(() => PhotoFlowHost.StartAsync(paths, TestContext.Current.CancellationToken));
+    }
+
+    public void Dispose() => _temp.Dispose();
+}

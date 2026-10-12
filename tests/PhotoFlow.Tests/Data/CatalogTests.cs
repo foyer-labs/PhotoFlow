@@ -70,6 +70,33 @@ public sealed class CatalogTests : IDisposable
         Assert.Equal(expected, CatalogJournal.ModeFor(path));
 
     [Fact]
+    public async Task Home_queries_count_outcomes_photos_and_recent_jobs()
+    {
+        await using var catalog = await SqliteCatalog.OpenAsync(Options, Ct);
+        var libraryId = await catalog.Libraries.AddAsync(new Library(0, "Foto", @"D:\Foto", WritePolicy.EmbeddedForNonRaw, false, LibraryOrigin.Import, null), Ct);
+        Assert.Equal(libraryId, (await catalog.Libraries.FindByRootAsync(@"d:\foto", Ct))?.Id);
+        var jobId = await catalog.Jobs.CreateAsync(new Job(0, JobType.Import, "E:", "A", null, "events", false, null, JobState.Completed, JobPriority.Normal, "{}", DateTimeOffset.UtcNow), Ct);
+        var later = await catalog.Jobs.CreateAsync(new Job(0, JobType.Import, "E:", "B", null, "events", false, null, JobState.Pending, JobPriority.Normal, "{}", DateTimeOffset.UtcNow.AddMinutes(1)), Ct);
+        var items = new List<JobItem>();
+        foreach (var (name, outcome) in new[] { ("a", CullingOutcome.Kept), ("b", CullingOutcome.ToReview), ("c", CullingOutcome.ToReview) })
+        {
+            var assetId = await catalog.Assets.AddAsync(new Asset(0, name, null, "NEF", "raw", null, null, null, DateSource.Unknown, null, AssetState.Active), Ct);
+            await catalog.Assets.AddLocationAsync(new AssetLocation(0, assetId, libraryId, name + ".NEF", DateTimeOffset.UtcNow), Ct);
+            await catalog.Decisions.SetAutomaticAsync(assetId, outcome, [], "v", Ct);
+            items.Add(new JobItem(0, jobId, assetId, name, name, null, PipelineStage.Decision, JobItemState.Done, null));
+        }
+
+        await catalog.Jobs.AddItemsAsync(jobId, items, Ct);
+        await catalog.Decisions.SetUserAsync(items[2].AssetId!.Value, CullingOutcome.Kept, null, null, Ct); // the user's decision counts
+
+        var counts = await catalog.Decisions.CountOutcomesForJobAsync(jobId, Ct);
+        Assert.Equal(2, counts[CullingOutcome.Kept]);
+        Assert.Equal(1, counts[CullingOutcome.ToReview]);
+        Assert.Equal(3, await catalog.Libraries.CountAssetsAsync(libraryId, Ct));
+        Assert.Equal([later, jobId], (await catalog.Jobs.ListRecentAsync(5, Ct)).Select(j => j.Id));
+    }
+
+    [Fact]
     public async Task Stores_round_trip_the_phase_1_entities()
     {
         await using var catalog = await SqliteCatalog.OpenAsync(Options, Ct);
