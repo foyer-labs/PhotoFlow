@@ -90,4 +90,4 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 
 ## Prossimo passo
 
-Fase 1b in corso su `phase/1b-archive` (piano approvato): tappa 1b.7 (misure, scenario 10.000 file, report).
+Fase 1b completata (report in `docs/reports/fase-1b.md`): PR da unire dopo la CI verde, poi piano della fase 2 (in autonomia, come concordato).
