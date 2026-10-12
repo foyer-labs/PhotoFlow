@@ -86,4 +86,4 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 
 ## Prossimo passo
 
-Fase 1 su `phase/1-import`: tappe 1.0-1.8 completate (invarianti, catalogo, exiftool, sorgenti, ingest, gestori, inferenza CUDA/CPU, analisi e decisione, volti buffalo\_l/YuNet, job di import con ripresa e scenari). Prossima: tappa 1.9 (interfaccia), poi 1.10 (misure: set etichettato, prestazioni, checklist XMP).
+Fase 1 completata su `phase/1-import` (tappe 1.0-1.10): report in [docs/reports/fase-1.md](reports/fase-1.md). In attesa: approvazione del report, decisione B1, verifiche manuali e set etichettato (per il criterio 7). Poi merge della PR e piano della fase 1b.
