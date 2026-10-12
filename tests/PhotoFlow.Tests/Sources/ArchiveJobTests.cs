@@ -113,12 +113,68 @@ public sealed class ArchiveJobTests : IDisposable
         Assert.Equal(files.AsEnumerable().Reverse(), planned);
     }
 
+    [Fact]
+    public async Task A_library_that_disappears_midway_pauses_the_job_instead_of_failing_its_photos()
+    {
+        var (root, _) = Archive(photos: 10, corrupt: false, wrongExtension: false);
+        await using var catalog = await OpenAsync();
+        var libraryId = await AddLibraryAsync(catalog, root);
+        var nas = new SwitchableFileSystem(new PhysicalFileSystem(), root);
+        var jobId = await ArchiveJobRunner.CreateAsync(catalog, nas, new ArchiveJobSettings(libraryId, "events", AnalysisWorkers: 1), Ct);
+
+        // The NAS goes away after three photos.
+        var first = new RecordingProcessor { AfterProcessed = n => { if (n == 3) { nas.Gone = true; } } };
+        var summary = await new ArchiveJobRunner(catalog, new FakeExifReader(_ => null), nas, first).RunAsync(jobId, null, Ct);
+
+        Assert.Equal(JobState.Paused, summary.State);
+        Assert.Equal(JobPauseReason.SourceUnavailable, summary.PauseReason);
+        var items = await catalog.Jobs.GetItemsAsync(jobId, Ct);
+        Assert.DoesNotContain(items, i => i.State == JobItemState.Failed);
+        Assert.InRange(items.Count(i => i.State == JobItemState.Done), 3, 9);
+
+        // Back online: the job resumes and finishes.
+        nas.Gone = false;
+        var second = new RecordingProcessor();
+        Assert.Equal(JobState.Completed, (await new ArchiveJobRunner(catalog, new FakeExifReader(_ => null), nas, second).RunAsync(jobId, null, Ct)).State);
+        Assert.All(await catalog.Jobs.GetItemsAsync(jobId, Ct), i => Assert.Equal(JobItemState.Done, i.State));
+        Assert.Equal(10, first.Processed.Concat(second.Processed).Distinct(StringComparer.OrdinalIgnoreCase).Count());
+    }
+
     public void Dispose() => _temp.Dispose();
 
     private static ArchiveJobRunner Runner(ICatalog catalog, RecordingProcessor processor)
     {
         var fs = new PhysicalFileSystem();
         return new ArchiveJobRunner(catalog, new FakeExifReader(_ => null), fs, processor);
+    }
+
+    /// <summary>A file system where a folder (a NAS share) can disappear and come back.</summary>
+    private sealed class SwitchableFileSystem(IFileSystem inner, string folder) : IFileSystem
+    {
+        public volatile bool Gone;
+
+        private bool Hidden(string path) => Gone && path.StartsWith(folder, StringComparison.OrdinalIgnoreCase);
+
+        public bool FileExists(string path) => !Hidden(path) && inner.FileExists(path);
+
+        public bool DirectoryExists(string path) => !Hidden(path) && inner.DirectoryExists(path);
+
+        public IEnumerable<string> EnumerateFiles(string directory, string searchPattern, SearchOption option) =>
+            Hidden(directory) ? throw new DirectoryNotFoundException(directory) : inner.EnumerateFiles(directory, searchPattern, option);
+
+        public FileMetadata GetFileMetadata(string path) => Hidden(path) ? throw new FileNotFoundException(path) : inner.GetFileMetadata(path);
+
+        public Stream OpenRead(string path) => Hidden(path) ? throw new FileNotFoundException(path) : inner.OpenRead(path);
+
+        public Stream OpenWrite(string path) => inner.OpenWrite(path);
+
+        public void CreateDirectory(string path) => inner.CreateDirectory(path);
+
+        public void Move(string sourcePath, string destinationPath) => inner.Move(sourcePath, destinationPath);
+
+        public void Replace(string replacementPath, string destinationPath, string? backupPath) => inner.Replace(replacementPath, destinationPath, backupPath);
+
+        public long GetAvailableFreeSpace(string path) => inner.GetAvailableFreeSpace(path);
     }
 
     private async Task<SqliteCatalog> OpenAsync() =>

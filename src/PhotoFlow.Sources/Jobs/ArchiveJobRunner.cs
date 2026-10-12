@@ -16,8 +16,9 @@ namespace PhotoFlow.Sources.Jobs;
 /// In-place analysis of an existing library (job <c>AnalyzeInPlace</c>, spec §3, §10): the files are only read — no copy,
 /// no write — and analyzed photo by photo (RAW+JPEG twins together) on bounded channels, with the progress of every
 /// file in <c>JobItems</c> so that the job resumes where it stopped. Photos already analyzed (for example imported
-/// before) are not analyzed again; damaged files go to the report and the job goes on. A final, resumable pass computes
-/// the full hash of the photos that only have the quick one.
+/// before) are not analyzed again; damaged files go to the report and the job goes on. When the library itself becomes
+/// unreachable (disk or NAS disconnected) the job pauses instead, and the photos wait for it. A final, resumable pass
+/// computes the full hash of the photos that only have the quick one.
 /// </summary>
 public sealed class ArchiveJobRunner : IJobRunner
 {
@@ -130,6 +131,7 @@ public sealed class ArchiveJobRunner : IJobRunner
         private readonly Channel<Photo> _channel = Channel.CreateBounded<Photo>(ChannelCapacity);
         private int _total;
         private int _identified;
+        private volatile bool _sourceLost;
 
         public int Completed { get; private set; }
 
@@ -190,6 +192,11 @@ public sealed class ArchiveJobRunner : IJobRunner
                 workerError = e;
             }
 
+            if (_sourceLost && !ct.IsCancellationRequested)
+            {
+                return JobPauseReason.SourceUnavailable; // the photos not finished wait for the library to come back
+            }
+
             var error = workerError is not null and not OperationCanceledException ? workerError : producerError ?? workerError;
             if (error is not null)
             {
@@ -212,6 +219,11 @@ public sealed class ArchiveJobRunner : IJobRunner
                 {
                     await ProcessAsync(photo, run.Token).ConfigureAwait(false);
                 }
+            }
+            catch (SourceLostException)
+            {
+                _sourceLost = true;
+                await run.CancelAsync().ConfigureAwait(false);
             }
             catch (Exception e) when (e is not OperationCanceledException)
             {
@@ -240,6 +252,7 @@ public sealed class ArchiveJobRunner : IJobRunner
                 }
                 catch (IOException e)
                 {
+                    ThrowIfSourceLost();
                     await FailAsync([item], $"Read: {e.Message}").ConfigureAwait(false);
                 }
             }
@@ -268,6 +281,7 @@ public sealed class ArchiveJobRunner : IJobRunner
                 }
                 catch (Exception e) when (e is not OperationCanceledException)
                 {
+                    ThrowIfSourceLost();
                     await FailAsync(members.Select(m => m.Item).ToList(), $"Analysis: {e.Message}").ConfigureAwait(false);
                     return;
                 }
@@ -355,6 +369,15 @@ public sealed class ArchiveJobRunner : IJobRunner
             }
         }
 
+        /// <summary>A read error with the library root gone is not a damaged file: the whole job waits.</summary>
+        private void ThrowIfSourceLost()
+        {
+            if (!owner._fileSystem.DirectoryExists(library.RootPath))
+            {
+                throw new SourceLostException();
+            }
+        }
+
         private async Task FailAsync(IReadOnlyList<JobItem> items, string error)
         {
             foreach (var item in items)
@@ -389,6 +412,11 @@ public sealed class ArchiveJobRunner : IJobRunner
             progress?.Report(new JobProgress(_total, identified, completed, failed, current));
         }
     }
+}
+
+/// <summary>The library root disappeared while the job ran.</summary>
+internal sealed class SourceLostException : Exception
+{
 }
 
 /// <summary>Runs every job type with its runner (the job manager starts any job by id).</summary>
