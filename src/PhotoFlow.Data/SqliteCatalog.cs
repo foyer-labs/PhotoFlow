@@ -51,7 +51,7 @@ public sealed class SqliteCatalog : ICatalog
     {
         ArgumentNullException.ThrowIfNull(options);
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(options.CatalogPath))!);
-        var lockStream = AcquireLock(options.CatalogPath);
+        var lockStream = await AcquireLockAsync(options.CatalogPath, ct).ConfigureAwait(false);
         try
         {
             await CheckIntegrityAsync(options.CatalogPath, ct).ConfigureAwait(false);
@@ -105,23 +105,34 @@ public sealed class SqliteCatalog : ICatalog
             return true;
         }, ct);
 
-    private static FileStream AcquireLock(string catalogPath)
+    /// <summary>Attempts to take the lock: a process that just ended (crash, forced close) may release it a moment late.</summary>
+    public static readonly TimeSpan LockRetryWindow = TimeSpan.FromSeconds(2);
+
+    private static async Task<FileStream> AcquireLockAsync(string catalogPath, CancellationToken ct)
     {
         var lockPath = catalogPath + ".lock";
-        try
+        var deadline = DateTime.UtcNow + LockRetryWindow;
+        while (true)
         {
-            // Held open without sharing for the whole session: released by the OS even after a crash, never deleted.
-            var stream = new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
-            stream.SetLength(0);
-            var owner = Encoding.UTF8.GetBytes($"{Environment.MachineName} pid {Environment.ProcessId} {DateTimeOffset.Now:O}");
-            stream.Write(owner);
-            stream.Flush(flushToDisk: true);
-            return stream;
-        }
-        catch (IOException e)
-        {
-            var holder = TryReadOwner(lockPath);
-            throw new CatalogLockedException($"The catalog is open on another PC or process{(holder is null ? "" : $" ({holder})")}: {e.Message}");
+            try
+            {
+                // Held open without sharing for the whole session: released by the OS even after a crash, never deleted.
+                var stream = new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+                stream.SetLength(0);
+                var owner = Encoding.UTF8.GetBytes($"{Environment.MachineName} pid {Environment.ProcessId} {DateTimeOffset.Now:O}");
+                stream.Write(owner);
+                stream.Flush(flushToDisk: true);
+                return stream;
+            }
+            catch (IOException e) when (DateTime.UtcNow >= deadline)
+            {
+                var holder = TryReadOwner(lockPath);
+                throw new CatalogLockedException($"The catalog is open on another PC or process{(holder is null ? "" : $" ({holder})")}: {e.Message}");
+            }
+            catch (IOException)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(200), ct).ConfigureAwait(false);
+            }
         }
     }
 

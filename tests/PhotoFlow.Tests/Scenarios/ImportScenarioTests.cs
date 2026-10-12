@@ -183,7 +183,22 @@ public sealed class ImportScenarioTests : IDisposable
     private ImportJobRunner Runner(ICatalog catalog, IFileSystem fs) =>
         new(catalog, new IngestService(new CopyEngine(fs)), new FakeExifReader(Captured), fs, new RecordingProcessor());
 
-    private async Task<SqliteCatalog> OpenAsync() => await SqliteCatalog.OpenAsync(new CatalogOpenOptions(CatalogPath, Backups), Ct);
+    /// <summary>After a killed process the OS can release the catalog lock with some delay (seen on CI runners).</summary>
+    private async Task<SqliteCatalog> OpenAsync()
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(15);
+        while (true)
+        {
+            try
+            {
+                return await SqliteCatalog.OpenAsync(new CatalogOpenOptions(CatalogPath, Backups), Ct);
+            }
+            catch (CatalogLockedException) when (DateTime.UtcNow < deadline)
+            {
+                await Task.Delay(250, Ct);
+            }
+        }
+    }
 
     private async Task<long> CreateJobAsync(ICatalog catalog, string card, string library, ImportSelection selection)
     {
