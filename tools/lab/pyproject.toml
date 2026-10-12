@@ -25,6 +25,8 @@ dependencies = [
     # Reference values for the C# image analysis (decision F1-4: C# verified against OpenCV).
     "opencv-python-headless==5.0.0.93",
     "scipy>=1.14",
+    # Blur effect reference (Crete-Roffet et al. 2007) for the sharpness measure (spec §6).
+    "scikit-image==0.25.2",
 ]
 
 [project.optional-dependencies]

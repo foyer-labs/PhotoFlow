@@ -35,10 +35,8 @@ Output: PHOTOFLOW_TESTDATA/parity/faces/
 from __future__ import annotations
 
 import argparse
-import io
 import json
 import math
-import subprocess
 from pathlib import Path
 
 import cv2
@@ -46,7 +44,7 @@ import insightface
 import numpy as np
 import onnxruntime as ort
 from insightface.model_zoo import model_zoo
-from PIL import Image, ImageOps
+from PIL import Image
 
 import labcommon as lc
 
@@ -58,24 +56,6 @@ NMS_THRESHOLD = 0.4
 # 2d106det eye contours (corner, lower lid x3, corner, upper lid x3), determined on the lab photos.
 LEFT_EYE = [35, 36, 33, 37, 39, 42, 40, 41]
 RIGHT_EYE = [89, 90, 87, 91, 93, 96, 94, 95]
-
-
-def load_photo(path: Path) -> Image.Image:
-    if path.suffix.lower() in lc.RAW_EXTENSIONS:
-        exe = str(lc.ensure_exiftool())
-        data = b""
-        for tag in ("JpgFromRaw", "PreviewImage"):
-            data = subprocess.run([exe, "-b", f"-{tag}", str(path)], capture_output=True, check=True).stdout
-            if len(data) > 1000:
-                break
-        image = Image.open(io.BytesIO(data))
-        orientation = subprocess.run([exe, "-n", "-s3", "-Orientation", str(path)], capture_output=True, text=True).stdout.strip()
-        image = image.convert("RGB")
-        transpose = {"2": Image.Transpose.FLIP_LEFT_RIGHT, "3": Image.Transpose.ROTATE_180, "4": Image.Transpose.FLIP_TOP_BOTTOM,
-                     "5": Image.Transpose.TRANSPOSE, "6": Image.Transpose.ROTATE_270, "7": Image.Transpose.TRANSVERSE,
-                     "8": Image.Transpose.ROTATE_90}.get(orientation)
-        return image.transpose(transpose) if transpose else image
-    return ImageOps.exif_transpose(Image.open(path)).convert("RGB")
 
 
 def analysis_image(image: Image.Image) -> Image.Image:
@@ -200,7 +180,7 @@ def main() -> None:
     for path in lc.list_images(photos_dir, include_raw=True):
         if len(rows) >= args.limit:
             break
-        image = analysis_image(load_photo(path))
+        image = analysis_image(lc.load_photo(path))
         rgb = np.ascontiguousarray(np.asarray(image))
         canvas, det_scale = letterbox(image)
         det_outputs: list = []

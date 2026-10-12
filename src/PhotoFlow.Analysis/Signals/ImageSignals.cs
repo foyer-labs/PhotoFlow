@@ -107,6 +107,110 @@ public static class ImageSignals
     /// <summary>Sharpness of a zone: blur (noise suppression) then Laplacian variance.</summary>
     public static double Sharpness(GrayImage gray, PixelRect zone) => LaplacianVariance(GaussianBlur3(gray), zone);
 
+    /// <summary>
+    /// Blur effect of Crété-Roffet et al. (2007), port of <c>skimage.measure.blur_effect(h_size=11)</c> on the
+    /// <paramref name="zone"/> crop: how much edge strength survives an extra blur, per axis, the worse axis counts.
+    /// 0 = sharp, 1 = fully blurred; little dependent on contrast and content (lab blur_metrics.py, 12 Oct 2026).
+    /// </summary>
+    public static double BlurEffect(GrayImage image, PixelRect zone)
+    {
+        ArgumentNullException.ThrowIfNull(image);
+        int w = zone.Width, h = zone.Height;
+        if (w < 5 || h < 5)
+        {
+            return 1;
+        }
+
+        var source = new double[w * h];
+        for (var y = 0; y < h; y++)
+        {
+            for (var x = 0; x < w; x++)
+            {
+                source[(y * w) + x] = image.Pixels[((zone.Y + y) * image.Width) + zone.X + x] / 255.0;
+            }
+        }
+
+        var filtered = new double[w * h];
+        var worst = 0.0;
+        foreach (var vertical in new[] { true, false })
+        {
+            UniformFilter(source, filtered, w, h, BlurEffectWindow, vertical);
+            double sharpSum = 0, keptSum = 0;
+            for (var y = 2; y < h - 1; y++)
+            {
+                for (var x = 2; x < w - 1; x++)
+                {
+                    var sharp = Math.Max(Epsilon, Math.Abs(Sobel(source, w, x, y, vertical)));
+                    var blurred = Math.Max(Epsilon, Math.Abs(Sobel(filtered, w, x, y, vertical)));
+                    sharpSum += sharp;
+                    keptSum += Math.Max(0, sharp - blurred);
+                }
+            }
+
+            worst = Math.Max(worst, Math.Abs(sharpSum - keptSum) / sharpSum);
+        }
+
+        return worst;
+    }
+
+    /// <summary>Copy of a rectangle of the image.</summary>
+    public static GrayImage Crop(GrayImage image, PixelRect zone)
+    {
+        ArgumentNullException.ThrowIfNull(image);
+        var pixels = new byte[zone.Width * zone.Height];
+        for (var y = 0; y < zone.Height; y++)
+        {
+            Array.Copy(image.Pixels, ((zone.Y + y) * image.Width) + zone.X, pixels, y * zone.Width, zone.Width);
+        }
+
+        return new GrayImage(zone.Width, zone.Height, pixels);
+    }
+
+    private const int BlurEffectWindow = 11;
+    private const double Epsilon = 2.220446049250313e-16;
+
+    /// <summary>scipy <c>uniform_filter1d</c> (centered window, mode 'reflect': d c b a | a b c d), running sum.</summary>
+    private static void UniformFilter(double[] source, double[] output, int w, int h, int size, bool vertical)
+    {
+        var half = size / 2;
+        var (length, lines, step) = vertical ? (h, w, w) : (w, h, 1);
+        for (var line = 0; line < lines; line++)
+        {
+            var origin = vertical ? line : line * w;
+            double sum = 0;
+            for (var k = -half; k <= half; k++)
+            {
+                sum += source[origin + (ReflectHalf(k, length) * step)];
+            }
+
+            for (var i = 0; i < length; i++)
+            {
+                output[origin + (i * step)] = sum / size;
+                sum += source[origin + (ReflectHalf(i + half + 1, length) * step)] - source[origin + (ReflectHalf(i - half, length) * step)];
+            }
+        }
+    }
+
+    /// <summary>skimage <c>sobel(axis)</c> at an interior pixel: derivative [1, 0, −1] along the axis, smoothing [¼, ½, ¼] across.</summary>
+    private static double Sobel(double[] p, int w, int x, int y, bool vertical)
+    {
+        var i = (y * w) + x;
+        return vertical
+            ? (0.25 * (p[i + w - 1] - p[i - w - 1])) + (0.5 * (p[i + w] - p[i - w])) + (0.25 * (p[i + w + 1] - p[i - w + 1]))
+            : (0.25 * (p[i - w + 1] - p[i - w - 1])) + (0.5 * (p[i + 1] - p[i - 1])) + (0.25 * (p[i + w + 1] - p[i + w - 1]));
+    }
+
+    /// <summary>Half-sample symmetric reflection (scipy 'reflect').</summary>
+    private static int ReflectHalf(int i, int n)
+    {
+        while (i < 0 || i >= n)
+        {
+            i = i < 0 ? -i - 1 : (2 * n) - i - 1;
+        }
+
+        return i;
+    }
+
     /// <summary>Clipped highlights (any channel ≥ 250), crushed shadows (gray ≤ 5) and mean brightness in a zone.</summary>
     public static ExposureStats Exposure(RgbImage image, GrayImage gray, PixelRect zone)
     {

@@ -277,9 +277,9 @@ Uno scarto avviene solo su un segnale ad alta affidabilità chiaramente oltre so
 
 | Segnale | Misura | Affidabilità |
 | --- | --- | --- |
-| Nitidezza | Varianza del Laplaciano sulla zona del profilo, dopo leggera sfocatura anti-rumore; assoluta + relativa nella raffica | Alta per il mosso grave |
-| Esposizione | % alte luci/ombre perse nella zona del soggetto; soglie tolleranti (l'anteprima JPEG è più severa del RAW) | Media |
-| Occhi | Apertura dagli 106 landmark, per volti rilevanti (≥ 40% del volto più grande); occhiali da sole = sconosciuto. Con YuNet/SFace (solo 5 landmark): sempre sconosciuto | Alta su volti grandi (solo buffalo\_l) |
+| Nitidezza | Assoluta: 1 − *blur effect* (Crété-Roffet 2007) multi-scala (1×, ½, ¼) sulla zona del profilo e sull'intero fotogramma; relativa nella raffica: varianza del Laplaciano sulla zona, dopo leggera sfocatura anti-rumore | Alta per il mosso grave |
+| Esposizione | % alte luci/ombre perse nella zona del soggetto; soglie tolleranti (l'anteprima JPEG è più severa del RAW). Senza soggetto (zona = intero fotogramma) solo il fotogramma vuoto (≥ 95% bruciato o nero) | Media |
+| Occhi | Apertura (rapporto altezza/larghezza dei contorni 33-42 e 87-96) dagli 106 landmark, per volti rilevanti (≥ 40% del volto più grande); sconosciuto con occhiali da sole, volto piccolo, di profilo o rivolto verso il basso (gli occhi aperti sembrano chiusi). Con YuNet/SFace (solo 5 landmark): sempre sconosciuto | Alta su volti grandi (solo buffalo\_l) |
 | Soggetto | Presenza, dimensione, posizione (D-FINE) | Alta per auto e persone |
 | Estetica | Predittore LAION | Bassa: solo spareggi |
 
@@ -296,6 +296,8 @@ Uno scarto avviene solo su un segnale ad alta affidabilità chiaramente oltre so
 | Migliore | Prima della raffica | Nessun rating forzato (opzionale 1 stella) |
 | Simile | Valida ma non prima | Solo catalogo |
 | Tenuta | Scatto singolo senza problemi | Nessuna scrittura |
+
+Fase 1 (scatti singoli, 12 ott 2026). Scarto solo con: fotogramma vuoto; nitidezza sotto la soglia di scarto **sia** nella zona **sia** sull'intero fotogramma (lo sfondo sfocato voluto, bokeh o panning, non basta); entrambi gli occhi chiusi del volto principale con volto ≥ 150 px (scala di riferimento 2048). Da rivedere: nitidezza sotto la soglia di revisione nella zona, un occhio chiuso o occhi chiusi in altri volti rilevanti, alte luci/ombre nella zona del soggetto. Misure sull'anteprima orientata ridotta a 2048 px di lato lungo. Scelta della misura (laboratorio `blur_metrics.py`, 230 foto reali sfocate artificialmente): con la soglia sulla peggiore foto originale la varianza del Laplaciano intercetta il 5-30% del mosso (9-25 px), il *blur effect* il 61-90%; la versione multi-scala evita la saturazione con sfocature molto ampie. Soglie iniziali (da tarare sul set etichettato, §14): scarto sotto 0,35 (nessuna originale; 74% delle sfocature gaussiane σ 2,5, 64-87% del mosso 15-100 px), revisione sotto 0,45 (2% delle originali). Esito sulle 230 foto reali con il profilo Eventi: nessuno scarto, 7,4% da rivedere.
 
 ### Sequenze speciali (mai trattate come raffiche)
 
@@ -318,6 +320,8 @@ Uno scarto avviene solo su un segnale ad alta affidabilità chiaramente oltre so
 Ogni correzione è salvata in `Corrections` con i segnali dell'epoca; dopo un numero sufficiente di correzioni per profilo, l'applicativo suggerisce di spostare le soglie. Non cambia nulla da solo e non addestra modelli.
 
 ### Profili predefiniti
+
+Definiti in `profiles/*.json` (versionati, incorporati nell'applicazione) con zone, soglie e pesi.
 
 | Profilo | Zona nitidezza | Esposizione | Volti | Soggetto | OCR |
 | --- | --- | --- | --- | --- | --- |

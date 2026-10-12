@@ -26,24 +26,6 @@ public sealed record PhotoContext(long? AssetId, string Path, PreviewImage Previ
 /// <summary>Every automatic result records the model version that produced it (CLAUDE.md §4).</summary>
 public sealed record AnalyzerResult(string AnalyzerId, string ModelVersion, IReadOnlyDictionary<string, double> Scores);
 
-public sealed record SceneProfile(
-    string Id,
-    string Name,
-    int Version,
-    bool IsBuiltIn,
-    FaceMode Faces,
-    ProfileWeights Weights);
-
-/// <summary>Composite score weights (spec §6), percentages summing to 100.</summary>
-public sealed record ProfileWeights(int Sharpness, int Eyes, int Exposure, int Subject, int Aesthetic);
-
-public enum FaceMode
-{
-    Off,
-    DetectOnly,
-    Recognize,
-}
-
 /// <summary>Box in normalized coordinates (0..1) relative to the analyzed image.</summary>
 public readonly record struct BoundingBox(float X1, float Y1, float X2, float Y2)
 {
