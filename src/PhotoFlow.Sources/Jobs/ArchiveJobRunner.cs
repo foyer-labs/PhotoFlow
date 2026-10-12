@@ -59,7 +59,8 @@ public sealed class ArchiveJobRunner : IJobRunner
         var files = new List<ScannedFile>();
         await foreach (var file in new SourceScanner(fileSystem, library.RootPath).ScanAsync(ct).ConfigureAwait(false))
         {
-            if (file.IsAnalyzable)
+            // A file named like a photo but unreadable stays in the job: it ends in the report as damaged.
+            if (file.IsAnalyzable || (file.Kind == MediaKind.Other && MediaClassifier.HasPhotoExtension(Path.GetExtension(file.Item.FullPath))))
             {
                 files.Add(file);
             }

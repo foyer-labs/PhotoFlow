@@ -1098,6 +1098,7 @@ Decisioni emerse in Design (confermate), funzioni rinviate a dopo la stabilizzaz
 | Punto AF delle reflex (punti con nome, senza coordinate): mappa delle posizioni per modello | Tappa 1.7 |
 | Annulla globale (Ctrl Z) oltre le decisioni della Revisione | Tappa 1.9 |
 | Benchmark in-app (tavola 5f) con tutte le fasi d'analisi | Fase 2 |
+| Scritture del catalogo per foto in un'unica transazione (oggi ~11 commit per foto: il catalogo regge ~45 foto/s, oltre il bisogno con i modelli) | Tappa 1b.7 |
 | Accelerazione SIMD del ricampionamento e dei segnali (oggi l'analisi è limitata dalla CPU: 8 foto in parallelo su 24 thread) | Tappa 1.10 |
 | Cambio di politica XMP di una libreria: unione dei sidecar esistenti negli incorporati (o viceversa) | D21, fase 5 (sincronizzazione) |
 
