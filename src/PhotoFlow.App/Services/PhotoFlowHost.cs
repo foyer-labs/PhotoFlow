@@ -52,8 +52,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
         ExifReader = new ExifToolExifReader(exifTool);
         MetadataWriter = new ExifToolMetadataWriter(exifTool, fileSystem);
         Thumbnails = new ThumbnailCache(fileSystem, paths.ThumbnailsDirectory);
-        Previews = new PreviewProvider(fileSystem, new ImageHandlerRegistry(
-            [new RawImageHandler(new ExifToolPreviewSource(exifTool), new MagickRawDecoder()), new JpegImageHandler(fileSystem)]));
+        Previews = new PreviewProvider(fileSystem, ImageHandlerRegistry.CreateDefault(fileSystem, new ExifToolPreviewSource(exifTool), new MagickRawDecoder()));
         Inference = new OnnxRuntimeInferenceProvider(new InferenceOptions(Path.Combine(paths.GpuRuntimeDirectory, GpuPackFolder)));
         Http = new HttpClient { Timeout = TimeSpan.FromMinutes(30) };
         Models = new ModelRegistry(Http, ModelRegistry.EmbeddedManifest(), paths.ModelsDirectory);

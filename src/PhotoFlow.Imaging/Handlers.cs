@@ -155,6 +155,10 @@ public sealed class ImageHandlerRegistry(IEnumerable<IImageHandler> handlers)
     private readonly IReadOnlyList<IImageHandler> _handlers = handlers.ToList();
 
     public IImageHandler? Find(FileSignature signature) => _handlers.FirstOrDefault(h => h.CanHandle(signature));
+
+    /// <summary>All the formats of PhotoFlow: RAW, JPEG, PNG/WebP, TIFF/HEIF.</summary>
+    public static ImageHandlerRegistry CreateDefault(IFileSystem fileSystem, IEmbeddedPreviewSource previews, IRawDecoder rawDecoder) =>
+        new([new RawImageHandler(previews, rawDecoder), new JpegImageHandler(fileSystem), new SkiaImageHandler(fileSystem), new MagickImageHandler(fileSystem)]);
 }
 
 /// <summary>Reads the first bytes of the file, picks the handler and returns the upright preview.</summary>
@@ -172,5 +176,106 @@ public sealed class PreviewProvider(IFileSystem fileSystem, ImageHandlerRegistry
         var handler = handlers.Find(new FileSignature(header.AsMemory(0, read), Path.GetExtension(path)))
             ?? throw new ImageDecodeException($"No image handler for '{Path.GetFileName(path)}'.");
         return await handler.GetPreviewAsync(path, maxSize, ct).ConfigureAwait(false);
+    }
+}
+
+/// <summary>PNG and WebP (content-detected), decoded by SkiaSharp with the EXIF orientation when present.</summary>
+public sealed class SkiaImageHandler(IFileSystem fileSystem) : IImageHandler
+{
+    public const string Id = "skia";
+
+    public bool CanHandle(FileSignature sig) =>
+        MediaClassifier.Classify(sig.Header.Span, sig.Extension ?? string.Empty) is MediaKind.Png or MediaKind.WebP;
+
+    public async Task<PreviewImage> GetPreviewAsync(string path, int maxSize, CancellationToken ct)
+    {
+        byte[] bytes;
+        await using (var stream = fileSystem.OpenRead(path))
+        {
+            bytes = new byte[stream.Length];
+            await stream.ReadExactlyAsync(bytes, ct).ConfigureAwait(false);
+        }
+
+        return await Task.Run(() => Decode(bytes, maxSize), ct).ConfigureAwait(false);
+    }
+
+    private static PreviewImage Decode(byte[] encoded, int maxSize)
+    {
+        using var data = SKData.CreateCopy(encoded);
+        using var codec = SKCodec.Create(data) ?? throw new ImageDecodeException("Unsupported or corrupt PNG/WebP data.");
+        var info = new SKImageInfo(codec.Info.Width, codec.Info.Height, SKColorType.Rgba8888, SKAlphaType.Unpremul);
+        using var bitmap = new SKBitmap(info);
+        var result = codec.GetPixels(info, bitmap.GetPixels());
+        if (result != SKCodecResult.Success)
+        {
+            // A truncated file is corrupt: reported, never analyzed as a partial image.
+            throw new ImageDecodeException($"Image decoding failed: {result}.");
+        }
+
+        var rgba = bitmap.GetPixelSpan();
+        var rgb = new byte[info.Width * info.Height * 3];
+        for (int i = 0, j = 0; j < rgb.Length; i += 4, j += 3)
+        {
+            // Transparent areas become white (a photo viewer shows them on a light background).
+            var a = rgba[i + 3];
+            rgb[j] = (byte)(((rgba[i] * a) + (255 * (255 - a))) / 255);
+            rgb[j + 1] = (byte)(((rgba[i + 1] * a) + (255 * (255 - a))) / 255);
+            rgb[j + 2] = (byte)(((rgba[i + 2] * a) + (255 * (255 - a))) / 255);
+        }
+
+        var orientation = (int)codec.EncodedOrigin;
+        var image = ImageTransforms.ApplyOrientation(ImageTransforms.FitWithin(new RgbImage(info.Width, info.Height, rgb), maxSize), orientation);
+        var (width, height) = orientation >= 5 ? (info.Height, info.Width) : (info.Width, info.Height);
+        return new PreviewImage(image, width, height, IsEmbeddedPreview: false);
+    }
+}
+
+/// <summary>
+/// TIFF (8/16 bit, multipage: first page) and HEIF/HEIC/AVIF, decoded by Magick.NET (libtiff, libheif) with the
+/// orientation applied and 8 bits per channel. Damaged files raise <see cref="ImageDecodeException"/>.
+/// </summary>
+public sealed class MagickImageHandler(IFileSystem fileSystem) : IImageHandler
+{
+    public const string Id = "magick";
+
+    public bool CanHandle(FileSignature sig) =>
+        MediaClassifier.Classify(sig.Header.Span, sig.Extension ?? string.Empty) is MediaKind.Tiff or MediaKind.Heif;
+
+    public async Task<PreviewImage> GetPreviewAsync(string path, int maxSize, CancellationToken ct)
+    {
+        byte[] bytes;
+        await using (var stream = fileSystem.OpenRead(path))
+        {
+            bytes = new byte[stream.Length];
+            await stream.ReadExactlyAsync(bytes, ct).ConfigureAwait(false);
+        }
+
+        return await Task.Run(
+            () =>
+            {
+                try
+                {
+                    using var image = new MagickImage(bytes, new MagickReadSettings { FrameIndex = 0, FrameCount = 1 });
+                    ct.ThrowIfCancellationRequested();
+                    image.AutoOrient();
+                    var (width, height) = ((int)image.Width, (int)image.Height);
+                    if (Math.Max(image.Width, image.Height) > maxSize)
+                    {
+                        image.Resize(new MagickGeometry((uint)maxSize, (uint)maxSize));
+                    }
+
+                    image.BackgroundColor = MagickColors.White;
+                    image.Alpha(AlphaAction.Remove);
+                    image.ColorSpace = ColorSpace.sRGB;
+                    image.Depth = 8;
+                    var pixels = image.ToByteArray(MagickFormat.Rgb);
+                    return new PreviewImage(new RgbImage((int)image.Width, (int)image.Height, pixels), width, height, IsEmbeddedPreview: false);
+                }
+                catch (MagickException e)
+                {
+                    throw new ImageDecodeException($"Image decoding failed: {e.Message}", e);
+                }
+            },
+            ct).ConfigureAwait(false);
     }
 }
