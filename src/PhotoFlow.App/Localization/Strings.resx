@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- Neutral resources: English. -->
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="App.Title" xml:space="preserve"><value>PhotoFlow</value></data>
+  <data name="TitleBar.NoLibrary" xml:space="preserve"><value>No library</value></data>
+  <data name="TitleBar.Search" xml:space="preserve"><value>Search everywhere</value></data>
+  <data name="Nav.Home" xml:space="preserve"><value>Home</value></data>
+  <data name="Nav.Jobs" xml:space="preserve"><value>Jobs</value></data>
+  <data name="Nav.Review" xml:space="preserve"><value>Review</value></data>
+  <data name="Nav.People" xml:space="preserve"><value>People</value></data>
+  <data name="Nav.Browse" xml:space="preserve"><value>Browse</value></data>
+  <data name="Nav.Duplicates" xml:space="preserve"><value>Duplicates</value></data>
+  <data name="Nav.Libraries" xml:space="preserve"><value>Libraries</value></data>
+  <data name="Nav.Vocabulary" xml:space="preserve"><value>Vocabulary</value></data>
+  <data name="Nav.Profiles" xml:space="preserve"><value>Profiles</value></data>
+  <data name="Nav.Settings" xml:space="preserve"><value>Settings</value></data>
+  <data name="Nav.Collapse" xml:space="preserve"><value>Collapse navigation</value></data>
+  <data name="Nav.Expand" xml:space="preserve"><value>Expand navigation</value></data>
+  <data name="Command.Search" xml:space="preserve"><value>Search</value></data>
+  <data name="Command.Sections" xml:space="preserve"><value>Sections</value></data>
+  <data name="Command.Settings" xml:space="preserve"><value>Settings</value></data>
+  <data name="Page.Empty" xml:space="preserve"><value>This section will be available in a later phase.</value></data>
+  <data name="Status.Ready" xml:space="preserve"><value>Ready</value></data>
+  <data name="Key.Ctrl" xml:space="preserve"><value>Ctrl</value></data>
+  <data name="Key.Shift" xml:space="preserve"><value>Shift</value></data>
+  <data name="Key.Alt" xml:space="preserve"><value>Alt</value></data>
+</root>

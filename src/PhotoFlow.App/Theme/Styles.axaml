@@ -1,0 +1,129 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- Base styles built only from the tokens in Tokens.axaml. -->
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <Style Selector="Window">
+    <Setter Property="Background" Value="{DynamicResource PF.Brush.Window}" />
+    <Setter Property="Foreground" Value="{DynamicResource PF.Brush.TextPrimary}" />
+    <Setter Property="FontFamily" Value="{StaticResource PF.Font.Sans}" />
+    <Setter Property="FontSize" Value="{StaticResource PF.FontSize.Body}" />
+  </Style>
+
+  <!-- Typography scale (§12bis) -->
+  <Style Selector="TextBlock.pageTitle">
+    <Setter Property="FontSize" Value="{StaticResource PF.FontSize.PageTitle}" />
+    <Setter Property="LineHeight" Value="{StaticResource PF.LineHeight.PageTitle}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="TextBlock.sectionTitle">
+    <Setter Property="FontSize" Value="{StaticResource PF.FontSize.SectionTitle}" />
+    <Setter Property="LineHeight" Value="{StaticResource PF.LineHeight.SectionTitle}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="TextBlock.subtitle">
+    <Setter Property="FontSize" Value="{StaticResource PF.FontSize.Subtitle}" />
+    <Setter Property="LineHeight" Value="{StaticResource PF.LineHeight.Subtitle}" />
+    <Setter Property="FontWeight" Value="Medium" />
+  </Style>
+  <Style Selector="TextBlock.body">
+    <Setter Property="FontSize" Value="{StaticResource PF.FontSize.Body}" />
+    <Setter Property="LineHeight" Value="{StaticResource PF.LineHeight.Body}" />
+  </Style>
+  <Style Selector="TextBlock.label">
+    <Setter Property="FontSize" Value="{StaticResource PF.FontSize.Label}" />
+    <Setter Property="LineHeight" Value="{StaticResource PF.LineHeight.Label}" />
+    <Setter Property="FontWeight" Value="Medium" />
+  </Style>
+  <Style Selector="TextBlock.data">
+    <Setter Property="FontFamily" Value="{StaticResource PF.Font.Mono}" />
+    <Setter Property="FontSize" Value="{StaticResource PF.FontSize.Data}" />
+    <Setter Property="LineHeight" Value="{StaticResource PF.LineHeight.Data}" />
+    <Setter Property="FontFeatures" Value="+tnum" />
+  </Style>
+  <Style Selector="TextBlock.micro">
+    <Setter Property="FontFamily" Value="{StaticResource PF.Font.Mono}" />
+    <Setter Property="FontSize" Value="{StaticResource PF.FontSize.Micro}" />
+    <Setter Property="LineHeight" Value="{StaticResource PF.LineHeight.Micro}" />
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="FontFeatures" Value="+tnum" />
+  </Style>
+  <Style Selector="TextBlock.secondary">
+    <Setter Property="Foreground" Value="{DynamicResource PF.Brush.TextSecondary}" />
+  </Style>
+  <Style Selector="TextBlock.tertiary">
+    <Setter Property="Foreground" Value="{DynamicResource PF.Brush.TextTertiary}" />
+  </Style>
+
+  <!-- Line icons -->
+  <Style Selector="Path.icon">
+    <Setter Property="Width" Value="16" />
+    <Setter Property="Height" Value="16" />
+    <Setter Property="Stretch" Value="None" />
+    <Setter Property="StrokeThickness" Value="1.5" />
+    <Setter Property="StrokeLineCap" Value="Round" />
+    <Setter Property="StrokeJoin" Value="Round" />
+    <!-- Icons take the text color of the control that hosts them (list item, button). -->
+    <Setter Property="Stroke" Value="{Binding $parent[TemplatedControl].Foreground}" />
+  </Style>
+
+  <!-- Navigation list -->
+  <Style Selector="ListBox.navigation">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Padding" Value="0" />
+  </Style>
+  <Style Selector="ListBox.navigation ListBoxItem">
+    <Setter Property="Height" Value="32" />
+    <Setter Property="Padding" Value="12,0" />
+    <Setter Property="Margin" Value="4,1" />
+    <Setter Property="CornerRadius" Value="{StaticResource PF.Radius.Control}" />
+    <Setter Property="Foreground" Value="{DynamicResource PF.Brush.TextSecondary}" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.12" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <!-- Shortcut hints appear on hover only, so labels keep their full width (+30% for translations). -->
+  <Style Selector="ListBox.navigation ListBoxItem TextBlock.navShortcut">
+    <Setter Property="IsVisible" Value="False" />
+  </Style>
+  <Style Selector="ListBox.navigation ListBoxItem:pointerover TextBlock.navShortcut">
+    <Setter Property="IsVisible" Value="True" />
+  </Style>
+  <Style Selector="ListBox.navigation ListBoxItem:pointerover, ListBox.navigation ListBoxItem:selected">
+    <Setter Property="Foreground" Value="{DynamicResource PF.Brush.TextPrimary}" />
+  </Style>
+  <Style Selector="ListBox.navigation ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource PF.Brush.ControlHover}" />
+    <Setter Property="Foreground" Value="{DynamicResource PF.Brush.TextPrimary}" />
+  </Style>
+  <Style Selector="ListBox.navigation ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource PF.Brush.Control}" />
+    <Setter Property="Foreground" Value="{DynamicResource PF.Brush.TextPrimary}" />
+  </Style>
+
+  <!-- Search field in the title bar -->
+  <Style Selector="TextBox.search">
+    <Setter Property="Height" Value="24" />
+    <Setter Property="MinHeight" Value="24" />
+    <Setter Property="Padding" Value="8,2" />
+    <Setter Property="FontSize" Value="{StaticResource PF.FontSize.Label}" />
+    <Setter Property="Background" Value="{DynamicResource PF.Brush.Control}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource PF.Brush.Border}" />
+    <Setter Property="CornerRadius" Value="{StaticResource PF.Radius.Control}" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+
+  <!-- Flat ghost button (navigation toggle) -->
+  <Style Selector="Button.ghost">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="8" />
+    <Setter Property="Foreground" Value="{DynamicResource PF.Brush.TextSecondary}" />
+    <Setter Property="CornerRadius" Value="{StaticResource PF.Radius.Control}" />
+  </Style>
+  <Style Selector="Button.ghost:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource PF.Brush.ControlHover}" />
+  </Style>
+</Styles>
