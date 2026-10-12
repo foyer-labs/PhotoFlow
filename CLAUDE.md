@@ -33,7 +33,7 @@ Il test di un'invariante si scrive **prima** del codice che la riguarda.
 - Ogni libreria esterna (ONNX Runtime, exiftool, OpenCvSharp, SkiaSharp, Magick.NET, HdbscanSharp, RapidOcrNet, Florence2-Sharp, SQLite) sta dietro un'interfaccia di `Core`.
 - Tutti i percorsi passano da `IAppPaths`. Nessun percorso scritto nel codice.
 - Ricerca testuale e vettoriale solo tramite `ISearchIndex` (predisposizione PostgreSQL).
-- Backend di inferenza solo tramite `IInferenceProvider` (CUDA / DirectML / CoreML / CPU).
+- Backend di inferenza solo tramite `IInferenceProvider` (CUDA / CoreML / CPU; nuovi backend solo dopo i test di parità).
 - Pipeline: fasi per foto collegate da `System.Threading.Channels` limitati; barriere di lotto come `IBatchStage`.
 - Dependency injection con `Microsoft.Extensions.DependencyInjection`; log con `ILogger` (Serilog come sink).
 

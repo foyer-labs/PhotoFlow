@@ -81,10 +81,10 @@ Soluzione .NET a progetti separati: `Core` contiene dominio, interfacce e orches
 | --- | --- | --- |
 | `PhotoFlow.Core` | Entità, interfacce, orchestrazione della pipeline | Nessuna |
 | `PhotoFlow.Sources` | Sorgenti (SD, cartella), rilevamento SD, ingest, copia verificata, rinomina | System.IO.Hashing (xxHash3) |
-| `PhotoFlow.Imaging` | Gestori di formato (`IImageHandler`): anteprime, decodifica | exiftool, SkiaSharp, Magick.NET, LibRaw (binding da scegliere) |
+| `PhotoFlow.Imaging` | Gestori di formato (`IImageHandler`): anteprime, decodifica | exiftool, SkiaSharp, Magick.NET (include LibRaw 0.22.x: decodifica RAW di riserva, F1-3) |
 | `PhotoFlow.Metadata` | Lettura EXIF, scrittura/lettura XMP, sincronizzazione | exiftool (`-stay_open`) |
 | `PhotoFlow.Inference` | Selezione hardware, sessioni ONNX, registro modelli | ONNX Runtime, ONNX Runtime GenAI |
-| `PhotoFlow.Analysis` | Analizzatori del culling, raggruppamenti, decisioni | OpenCvSharp |
+| `PhotoFlow.Analysis` | Analizzatori del culling, raggruppamenti, decisioni | Nessuna: elaborazioni in C# verificate contro OpenCV nel laboratorio (F1-4; OpenCvSharp non ha runtime macOS aggiornati) |
 | `PhotoFlow.Faces` | Impronte, confronto, clustering, cifratura impronte | HdbscanSharp |
 | `PhotoFlow.Tagging` | CLIP zero-shot, RAM++, Florence-2, VLM, OCR, vocabolario | Florence2-Sharp, RapidOcrNet |
 | `PhotoFlow.Data` | Catalogo, migrazioni, indice di ricerca (`ISearchIndex`) | Microsoft.Data.Sqlite, Dapper |
@@ -132,7 +132,7 @@ Inferenza senza dipendenze in `Core` (decisione del 12 ott 2026): `NamedTensor` 
 
 | Modulo | Scelta |
 | --- | --- |
-| Hardware | Prova CUDA → DirectML → CoreML → CPU; micro-benchmark al primo avvio |
+| Hardware | Prova CUDA → CoreML → CPU; micro-benchmark al primo avvio |
 | VRAM | Modelli caricati e scaricati fase per fase (funziona con GPU da 4-6 GB) |
 | Registro modelli | Manifest JSON: URL, SHA-256, dimensione, licenza, adattatore; download al primo uso |
 | Profili | File JSON versionati |
@@ -160,7 +160,7 @@ L'import da SD è un caso particolare dell'analisi di una raccolta; i metadati s
 
 | Formato | Anteprima | Libreria | Note |
 | --- | --- | --- | --- |
-| RAW (NEF, CR2/CR3, ARW, RAF, DNG…) | Anteprima incorporata | exiftool | Fallback: decodifica completa se l'anteprima è piccola |
+| RAW (NEF, CR2/CR3, ARW, RAF, DNG…) | Anteprima incorporata | exiftool | Fallback: decodifica completa con Magick.NET (LibRaw) se l'anteprima manca o è piccola; NEF High Efficiency: solo anteprima (R15) |
 | JPG, PNG, WebP | Decodifica diretta | SkiaSharp | Percorso veloce |
 | TIFF | Decodifica con riduzione | Magick.NET | 16 bit, multipagina, file grandi |
 | HEIC | Decodifica | Magick.NET (libheif) | Foto da smartphone |
@@ -236,8 +236,8 @@ Note dal laboratorio (fase 0, 12 ott 2026): RAM++ int8 e CLIP quantizzato non ac
 
 | Aspetto | Comportamento |
 | --- | --- |
-| Ordine di prova | CUDA → DirectML → CoreML → CPU |
-| Varianti di build | Windows: DirectML (default) e CUDA (opzionale); i due pacchetti non convivono |
+| Ordine di prova | CUDA → CoreML → CPU |
+| Varianti di build | Windows: CUDA per GPU NVIDIA + CPU per le altre (decisione F1-2 del 12 ott 2026). Le librerie CUDA/cuDNN sono un "pacchetto GPU" scaricato al primo uso dall'archivio di ridistribuzione NVIDIA con verifica SHA-256 (importabile offline). DirectML escluso: sulla RTX 3090 produce risultati errati con D-FINE e va in crash con CLIP quantizzato (laboratorio, 12 ott 2026). Ogni backend futuro (es. Windows ML) entra solo dopo aver superato i test di parità |
 | Primo avvio | Micro-benchmark su \~50 foto con stima dei tempi; su sola CPU propone un livello di tagging più leggero |
 | Selezione manuale | Per funzione, con licenza, spazio, memoria stimata e ultimo benchmark mostrati; pulsante "benchmark" prima dell'attivazione |
 | Compatibilità | Selezionabili solo modelli con un adattatore di input/output implementato |
@@ -599,9 +599,9 @@ Pacchetto self-contained con Velopack, modelli scaricati al primo uso; durante l
 | --- | --- |
 | Runtime .NET | Incluso (self-contained) |
 | Installer e aggiornamenti | Velopack; feed come file statici su qualsiasi server HTTP |
-| Varianti | Windows: DirectML (default), CUDA (opzionale); Mac: CoreML; Linux: CPU/CUDA |
+| Varianti | Windows: CUDA (NVIDIA) + CPU, pacchetto GPU scaricato al primo uso; Mac: CoreML; Linux: CPU/CUDA |
 | Firma del codice | Nessuna per ora (avviso SmartScreen al primo avvio) |
-| exiftool | Windows: eseguibile incluso; Mac/Linux: script Perl incluso; percorso personalizzabile |
+| exiftool | Windows: eseguibile incluso; Mac/Linux: script Perl incluso; percorso personalizzabile. Scaricato in fase di build con versione fissata e SHA-256 (nessun binario nel repository, F1-5) |
 
 ### Modelli
 
@@ -860,7 +860,11 @@ Le parti senza interfaccia della fase 1 (ingest, metadati, analisi, catalogo) po
 
 ### Primissima attività della fase 1
 
-Verifica sui primi NEF della Z5 II: risoluzione dell'anteprima incorporata, decodificabilità dei NEF High Efficiency, disponibilità del punto AF tramite exiftool.
+Verifica sui primi NEF della Z5 II: risoluzione dell'anteprima incorporata, decodificabilità dei NEF High Efficiency, disponibilità del punto AF tramite exiftool. **Rinviata** (decisione F1-1 del 12 ott 2026): i NEF della Z5 II non sono disponibili prima dell'implementazione; il gestore RAW nasce generico (provato su D40/D5100 e RAW pubblici, NEF HE come solo anteprima) e la verifica diventa una checklist manuale dell'utente; se esistono NEF Z5 II pubblici con licenza chiara, si usano per un controllo anticipato.
+
+### Interfaccia nelle fasi
+
+Ogni fase realizza il layout completo delle tavole che la riguardano; i controlli di funzioni di fasi successive sono presenti ma disattivati, con il suggerimento "Arriva con la fase N" (decisione F1-6 del 12 ott 2026). La logica arriva solo nella fase prevista.
 
 ### Criteri di accettazione
 
@@ -949,7 +953,7 @@ Riferimento: modello originale PyTorch con il preprocessore ufficiale. Immagini 
 | --- | --- | --- |
 | Formati | RAW di varie marche, TIFF 16 bit e multipagina, HEIC, PNG, file corrotti, estensioni sbagliate, foto senza EXIF | Repository pubblico (solo file con licenza libera verificata) |
 | Subset d'archivio | 1.000-2.000 foto varie dell'archivio esistente, non etichettate: benchmark, formati, frequenza tag, comportamento clustering | Solo locale |
-| Qualità | Foto etichettate dall'utente (obiettivo 300-500) | Solo locale |
+| Qualità | Foto etichettate dall'utente (obiettivo 300-500); in fase 1 cartelle `quality/buone`, `quality/mosse`, `quality/occhi_chiusi` in `PHOTOFLOW_TESTDATA` (decisione F1-7) | Solo locale |
 | Riferimenti di parità | Output dei modelli originali | Generati in locale, versionati con il modello |
 
 ### Set di qualità ed etichettatura
@@ -981,7 +985,8 @@ Il progetto è Apache 2.0; l'unico componente non commerciale (buffalo\_l) è op
 | ONNX Runtime, ONNX Runtime GenAI | MIT | Verificato |
 | DirectML (`Microsoft.AI.DirectML`), runtime Windows ML | Licenze proprietarie Microsoft, ridistribuibili a condizioni; i provider di vendor di Windows ML hanno licenze proprie | Verificato 12 ott 2026 |
 | Microsoft.Data.Sqlite / SQLite | MIT / pubblico dominio | Verificato |
-| Dapper, Serilog, xUnit, OpenCvSharp | Apache 2.0 | Da conoscenza |
+| Dapper, Serilog, xUnit | Apache 2.0 | Verificato |
+| OpenCvSharp | Apache 2.0; non adottato (F1-4) | Verificato 12 ott 2026 |
 | Magick.NET (15.0.0) | Apache 2.0; libheif, libde265 (LGPL) e LibRaw **collegate staticamente** in Magick.Native: serve voce NOTICE, offerta dei sorgenti LGPL e revisione di conformità (R19) | Verificato 12 ott 2026 |
 | exiftool | Licenza di Perl (Artistic/GPL), ridistribuibile | Da conoscenza |
 | Velopack / vpk (1.2.161) | MIT; canali per variante, feed statico, ritorno indietro con `AllowVersionDowngrade` | Verificato 12 ott 2026 |
@@ -1020,7 +1025,7 @@ Il rischio principale è l'allargamento continuo dell'ambito; questa specifica e
 | R2 | Culling poco affidabile | Media | Alto | Modalità prudente, metriche misurate, invarianti |
 | R3 | Anteprime Z5 II non a piena risoluzione o NEF High Efficiency non decodificabili | Media | Medio | Verifica come prima attività della fase 1; fallback di decodifica |
 | R4 | Export ONNX non fedele (RAM++, D-FINE) | Bassa | Medio | Test di parità; alternative CLIP zero-shot e RF-DETR |
-| R5 | Futuro di DirectML (spinta verso Windows ML) | Media | Medio | `IInferenceProvider`; build CUDA e CPU |
+| R5 | Futuro di DirectML (spinta verso Windows ML) | Chiuso | — | DirectML escluso (F1-2); Windows ML nel backlog con la parità come condizione |
 | R6 | Librerie piccole abbandonate | Media | Medio-basso | Interfacce; sostituzione o fork |
 | R7 | Corruzione del catalogo | Bassa | Alto | Rollback in rete, lock, backup, integrità |
 | R8 | Prestazioni insufficienti su sola CPU | Media | Basso | Livelli di tagging, esecuzione notturna |
@@ -1031,8 +1036,8 @@ Il rischio principale è l'allargamento continuo dell'ambito; questa specifica e
 | R13 | exiftool bloccato o lento | Bassa | Medio | `-stay_open`, controllo di salute, riavvio automatico |
 | R14 | Durata del progetto con impegno serale | Alta | Medio | Ogni fase produce un applicativo utilizzabile |
 | R15 | NEF High Efficiency (HE/HE*) non decodificabili da LibRaw pubblica (0.22.2); Z5 II non in elenco | Alta | Medio | Anteprima incorporata via exiftool, stato "RAW HE: solo anteprima"; aggiornare allo snapshot LibRaw annunciato per l'autunno 2026 |
-| R16 | Una sola distribuzione di ONNX Runtime per processo: DirectML NuGet 1.24.4, Windows ML 1.27.1, RapidOcrNet ≥ 1.29 | Alta | Medio | Scelta del backend nel piano della fase 1; RapidOcrNet dietro adattatore, eventualmente incorporato (Apache 2.0) |
-| R17 | DirectML in sustained engineering; CUDA in migrazione verso un plugin EP | Media | Medio | `IInferenceProvider`; valutare Windows ML (provider di vendor solo da Windows 11 24H2, DirectML/CPU anche su Windows 10) |
+| R16 | Una sola distribuzione di ONNX Runtime per processo | Bassa | Medio | Scelto ORT 1.31 (CUDA + CPU, F1-2): compatibile con RapidOcrNet (≥ 1.29); ogni nuovo backend o libreria con ORT propria va verificato |
+| R17 | CUDA in migrazione verso un plugin EP di ONNX Runtime; dimensione del pacchetto GPU (CUDA/cuDNN ~1-1,5 GB) | Media | Medio | `IInferenceProvider`; pacchetto GPU separato e facoltativo, con SHA-256; CPU sempre disponibile |
 | R18 | Clustering volti: HdbscanSharp O(n²) non scala a ~100.000 volti | Alta | Medio | HDBSCAN su grafo k-NN dietro interfaccia di Core, validato contro Python in `tools/lab` |
 | R19 | LGPL (libheif, libde265, LibRaw) collegate staticamente in Magick.Native | Media | Medio | NOTICE e offerta dei sorgenti; revisione di conformità prima della prima versione distribuita |
 | R20 | Perl di sistema deprecato su macOS (serve a exiftool) | Media | Basso | Controllo all'avvio con messaggio chiaro; in prospettiva Perl incluso nel pacchetto Mac |
@@ -1076,6 +1081,8 @@ Decisioni emerse in Design (confermate), funzioni rinviate a dopo la stabilizzaz
 | Firma del codice | Sezione 11 |
 | Mappa GPS | Sezione 1 |
 | Catalogo su PostgreSQL (homelab) per uso multi-PC simultaneo | Sezione 9 |
+| Backend GPU per schede non NVIDIA (Windows ML con provider di vendor, o DirectML se corretto): ammesso solo dopo i test di parità | F1-2 |
+| Rivalutare OpenCvSharp se le fasi successive richiedono elaborazioni complesse | F1-4 |
 | Cambio di politica XMP di una libreria: unione dei sidecar esistenti negli incorporati (o viceversa) | D21, fase 5 (sincronizzazione) |
 
 ### Verifiche tecniche

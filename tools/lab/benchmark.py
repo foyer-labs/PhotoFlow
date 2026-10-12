@@ -30,7 +30,10 @@ from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
-import torch  # noqa: F401 - loads the CUDA/cuDNN DLLs used by onnxruntime-gpu
+try:
+    import torch  # noqa: F401 - loads the CUDA/cuDNN DLLs used by onnxruntime-gpu
+except ImportError:  # DirectML-only environment (onnxruntime-directml)
+    pass
 import numpy as np
 import onnxruntime as ort
 from PIL import Image
@@ -41,7 +44,11 @@ ort.set_default_logger_severity(3)  # errors only: CUDA EP warnings about memcpy
 
 PREVIEW_LONG_SIDE = 1280
 WARMUP = 3
-PROVIDERS = {"cuda": ["CUDAExecutionProvider", "CPUExecutionProvider"], "cpu": ["CPUExecutionProvider"]}
+PROVIDERS = {
+    "cuda": ["CUDAExecutionProvider", "CPUExecutionProvider"],
+    "dml": ["DmlExecutionProvider", "CPUExecutionProvider"],  # needs onnxruntime-directml instead of onnxruntime-gpu
+    "cpu": ["CPUExecutionProvider"],
+}
 CLIP_MEAN = np.array([0.48145466, 0.4578275, 0.40821073], dtype=np.float32)
 CLIP_STD = np.array([0.26862954, 0.26130258, 0.27577711], dtype=np.float32)
 IMAGENET_MEAN = np.array([0.485, 0.456, 0.406], dtype=np.float32)
@@ -109,6 +116,10 @@ class Stage:
     def session(self, path: Path) -> ort.InferenceSession:
         options = ort.SessionOptions()
         options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+        if "DmlExecutionProvider" in self.provider:
+            # Required by the DirectML execution provider.
+            options.enable_mem_pattern = False
+            options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
         return ort.InferenceSession(str(path), options, providers=self.provider)
 
     def run(self, image: Image.Image) -> dict:

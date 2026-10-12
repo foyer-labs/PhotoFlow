@@ -6,8 +6,8 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 
 | Voce | Valore |
 |---|---|
-| Fase corrente | 0 — Setup e laboratorio: **criteri superati sulle foto reali, report in attesa di approvazione** ([docs/reports/fase-0.md](reports/fase-0.md)) |
-| Branch | `phase/0-setup` (pushato; pull request verso `main` da approvare) |
+| Fase corrente | 1 — Import, analisi base, XMP, catalogo: **piano approvato, sviluppo in corso** ([docs/plans/fase-1.md](plans/fase-1.md)). Fase 0 approvata e unita in `main` (PR #1) |
+| Branch | `phase/1-import` |
 | Remoto | https://github.com/foyer-labs/PhotoFlow.git (pubblico) |
 | Autore dei commit | Foyer Labs <foyerlabs@gmail.com> (config locale del repository) |
 | Ultimo aggiornamento | 2026-10-12 |
@@ -55,6 +55,8 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 | 2026-10-12 | Verifiche 0.6 applicate a spec.md: §15 licenze (Velopack, PanAndZoom, HdbscanSharp, RapidOcrNet, Magick.NET, DirectML/Windows ML, CLIP, RAM++), §16 rischi R15-R20, note di laboratorio in §5, §17 verifiche tecniche aggiornate. T1 (tolleranza parità tensori) rinviata: si decide dopo la misura sulle foto reali |
 | 2026-10-12 | Nessun NEF della Z5 II disponibile fino a dopo l'implementazione: la "primissima attività della fase 1" (§13, verifica anteprima/HE/punto AF sui NEF Z5 II) va rinviata; proposta da fare nel piano della fase 1. Set di test reale: 240 file in `PHOTOFLOW_TESTDATA/photos` (178 NEF Nikon D40 lossy + D5100 lossless, 52 JPG di cui 49 Samsung SM-A500FU, 11 .xmp preesistenti, mai toccati) |
 | 2026-10-12 | T1 — Parità livello tensori: query abbinate con assegnazione ottima prima del confronto; punteggi (sigmoide) ≤ 5e-3, riquadri ≤ 5e-4 (misurati 2,7e-3 e 1,5e-4 su 40 foto reali). spec.md §14 e `DFineParityTests` aggiornati |
+| 2026-10-12 | Report fase 0 approvato; PR #1 unita in `main` |
+| 2026-10-12 | F1-1..F1-7 — decisioni del piano della fase 1 (vedi `docs/plans/fase-1.md`): rinvio verifica Z5 II; CUDA + CPU (DirectML escluso per risultati errati); Magick.NET per RAW di riserva; analisi in C# con parità OpenCV; exiftool scaricato in build; layout completo con funzioni future disattivate; set qualità a cartelle. spec §3, §4, §5, §11, §13, §14, §15, §16, §17 e CLAUDE.md §3 aggiornati |
 | 2026-10-12 | A1 — Tavole rinominate come in §12bis (`PhotoFlow_*_dc.html`); specifica invariata |
 | 2026-10-12 | A10 — Ricostruite le celle troncate di §8 (Volti: `Persone\|Nome`; OCR: `Motorsport\|Numero N`, `Motorsport\|Pilota\|Nome`, `Motorsport\|Team\|Nome`) e §17 (Album → D6), con pipe protetti |
 
@@ -62,16 +64,17 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 
 | # | Tema | Sintesi |
 |---|---|---|
-| R16-R17 | Backend di inferenza | Una sola ORT per processo; DirectML vs Windows ML: da decidere nel piano della fase 1 |
 | N5-N6 | Modelli quantizzati | RAM++ int8/CLIP quantizzato non accelerano su GPU; RAM++ int8 non supera la parità (52 JPG reali: 12/52 insiemi identici, Jaccard 0,866) — fase 3 |
 | Z5 II | NEF Z5 II non disponibili | Prima attività della fase 1 (§13) da rinviare a dopo l'implementazione: proposta nel piano della fase 1 |
 | N1-N4 | Note per fasi successive | CLIP scheda modello (fase 2), DirectML (0.6→R3), GridSample fp16 CUDA (fase 1), YuNet ingresso fisso (fase 1) |
 
 ## Verifiche manuali in attesa (per l'utente)
 
+0. Preparare entro la tappa 1.10 il set etichettato: `E:\AI\PhotoFlowTestData\quality\buone` (≥ 100), `mosse` (30-50), `occhi_chiusi` (30-50).
+
 1. ~~Avviare l'app~~ — fatto dall'utente il 2026-10-12: si apre e mostra la navigazione (comportamento atteso per la fase 0). Da controllare ancora, se possibile: pulsanti di sistema, trascinamento e doppio clic sulla barra del titolo, `-- --theme light`.
 2. ~~Foto di test~~ — fornite il 2026-10-12 (240 file).
 
 ## Prossimo passo
 
-Approvazione del report di fase 0 (tutti i criteri superati sulle foto reali) → merge della PR #1 in `main` → piano della fase 1 → pull request `phase/0-setup` → `main` → piano della fase 1.
+Tappa 1.0 (test delle invarianti) → 1.1 catalogo → … secondo `docs/plans/fase-1.md` → pull request `phase/0-setup` → `main` → piano della fase 1.
