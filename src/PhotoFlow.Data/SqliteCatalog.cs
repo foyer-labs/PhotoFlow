@@ -34,6 +34,7 @@ public sealed class SqliteCatalog : ICatalog
         DeferredCopies = new DeferredCopyStore(this);
         Analysis = new AnalysisStore(this);
         Groups = new GroupStore(this);
+        People = new PeopleStore(this);
     }
 
     public ILibraryStore Libraries { get; }
@@ -51,6 +52,8 @@ public sealed class SqliteCatalog : ICatalog
     public IAnalysisStore Analysis { get; }
 
     public IGroupStore Groups { get; }
+
+    public IPeopleStore People { get; }
 
     public static async Task<SqliteCatalog> OpenAsync(CatalogOpenOptions options, CancellationToken ct)
     {

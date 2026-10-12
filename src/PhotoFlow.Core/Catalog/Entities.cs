@@ -296,7 +296,8 @@ public sealed record Face(
     double? Similarity,
     string ModelVersion,
     IReadOnlyList<Point2>? Keypoints = null,
-    string? EmbeddingModel = null);
+    string? EmbeddingModel = null,
+    long? SuggestedPersonId = null);
 
 /// <summary>Unknown with sunglasses, small faces, or with YuNet/SFace (spec §6).</summary>
 public enum EyeState
@@ -314,7 +315,14 @@ public enum AssignmentOrigin
 
 public sealed record Person(long Id, string? Name, bool Ignored, long? CoverFaceId);
 
-public sealed record PersonPrototype(long Id, long PersonId, int? Year, byte[] EncryptedEmbedding, string ModelVersion);
+/// <summary>An encrypted fingerprint representing a person in a year (P12: the face changes over time).</summary>
+public sealed record PersonPrototype(long Id, long PersonId, long FaceId, int? Year, byte[] EncryptedEmbedding, string ModelVersion);
+
+/// <summary>A person with the size of its gallery (Persone, 4a): unnamed persons are clusters ("Persona N").</summary>
+public sealed record PersonSummary(Person Person, int FaceCount, int PhotoCount, int? FirstYear, int? LastYear, int ManualFaces);
+
+/// <summary>A face with its encrypted fingerprint, for recognition and clustering.</summary>
+public sealed record FaceFingerprint(long FaceId, long AssetId, int? Year, byte[] EncryptedEmbedding, string EmbeddingModel, long? PersonId, AssignmentOrigin? Origin);
 
 // --- Text ---
 

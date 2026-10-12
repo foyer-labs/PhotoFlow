@@ -21,6 +21,8 @@ public interface ICatalog : IAsyncDisposable
 
     IGroupStore Groups { get; }
 
+    IPeopleStore People { get; }
+
     /// <summary>Consistent copy of the open catalog into <paramref name="backupsDirectory"/> (spec §9); returns its path.</summary>
     Task<string> BackupAsync(string backupsDirectory, string reason, CancellationToken ct);
 }
@@ -180,6 +182,56 @@ public interface IGroupStore
 
     /// <summary>The user's profile for photos of the job ("re-analyze as…"); null gives them back to the automatic choice.</summary>
     Task SetUserProfileAsync(long jobId, IReadOnlyList<long> assetIds, string? profileId, CancellationToken ct);
+}
+
+/// <summary>People and face assignments (spec §7). Automatic assignments never replace manual ones (I5).</summary>
+public interface IPeopleStore
+{
+    Task<IReadOnlyList<FaceFingerprint>> ListFingerprintsForAssetsAsync(IReadOnlyCollection<long> assetIds, CancellationToken ct);
+
+    /// <summary>Faces with a fingerprint, no person and no manual decision, captured in <paramref name="year"/> (null: unknown date).</summary>
+    Task<IReadOnlyList<FaceFingerprint>> ListUnassignedFingerprintsAsync(int? year, CancellationToken ct);
+
+    Task<IReadOnlyList<PersonPrototype>> ListPrototypesAsync(CancellationToken ct);
+
+    Task ReplacePrototypesAsync(long personId, IReadOnlyList<PersonPrototype> prototypes, CancellationToken ct);
+
+    Task<long> CreatePersonAsync(string? name, CancellationToken ct);
+
+    /// <summary>Automatic assignments (recognition, clustering): faces decided by the user are skipped.</summary>
+    Task AssignAutomaticAsync(IReadOnlyList<(long FaceId, long PersonId, double? Similarity)> faces, CancellationToken ct);
+
+    /// <summary>Suggestion below the threshold (amber chip, 4b) or none.</summary>
+    Task SuggestAsync(IReadOnlyList<(long FaceId, long? PersonId, double? Similarity)> faces, CancellationToken ct);
+
+    /// <summary>The user's assignment (or "not this person": null), always kept.</summary>
+    Task AssignManualAsync(IReadOnlyList<long> faceIds, long? personId, CancellationToken ct);
+
+    Task<IReadOnlyList<PersonSummary>> ListPersonsAsync(CancellationToken ct);
+
+    Task<Person?> GetPersonAsync(long personId, CancellationToken ct);
+
+    Task<IReadOnlyList<Face>> ListFacesOfPersonAsync(long personId, CancellationToken ct);
+
+    Task RenameAsync(long personId, string? name, CancellationToken ct);
+
+    Task SetIgnoredAsync(long personId, bool ignored, CancellationToken ct);
+
+    Task SetCoverAsync(long personId, long faceId, CancellationToken ct);
+
+    /// <summary>Moves faces and prototypes of <paramref name="sourceIds"/> into <paramref name="targetId"/> and removes the sources.</summary>
+    Task MergeAsync(long targetId, IReadOnlyList<long> sourceIds, CancellationToken ct);
+
+    /// <summary>Removes the person, its prototypes and every fingerprint of its faces (§7: no residue); the photos stay.</summary>
+    Task DeletePersonAsync(long personId, CancellationToken ct);
+
+    /// <summary>Faces with keypoints, for recomputing the fingerprints with a new key.</summary>
+    Task<IReadOnlyList<Face>> ListFacesWithKeypointsAsync(CancellationToken ct);
+
+    Task SetFingerprintAsync(long faceId, byte[]? encryptedEmbedding, string? embeddingModel, CancellationToken ct);
+
+    /// <summary>Drops every fingerprint and prototype (key reset): assignments and names stay.</summary>
+    Task ClearFingerprintsAsync(CancellationToken ct);
 }
 
 public sealed class CatalogLockedException(string message) : IOException(message);

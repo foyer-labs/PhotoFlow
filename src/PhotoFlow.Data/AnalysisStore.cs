@@ -128,7 +128,7 @@ internal sealed class AnalysisStore(SqliteCatalog catalog) : IAnalysisStore
     public async Task<IReadOnlyList<Face>> GetFacesAsync(long assetId, CancellationToken ct) =>
         (await catalog.RunAsync(c => c.QueryAsync<FaceRow>(new CommandDefinition(
             """
-            SELECT Id, AssetId, X1, Y1, X2, Y2, Landmarks, Confidence, LeftEye, RightEye, EncryptedEmbedding, PersonId, AssignmentOrigin, Similarity, ModelVersion, Keypoints, EmbeddingModel
+            SELECT Id, AssetId, X1, Y1, X2, Y2, Landmarks, Confidence, LeftEye, RightEye, EncryptedEmbedding, PersonId, AssignmentOrigin, Similarity, ModelVersion, Keypoints, EmbeddingModel, SuggestedPersonId
             FROM Faces WHERE AssetId = @assetId ORDER BY Id;
             """,
             new { assetId }, cancellationToken: ct)), ct).ConfigureAwait(false))
@@ -137,7 +137,7 @@ internal sealed class AnalysisStore(SqliteCatalog catalog) : IAnalysisStore
             r.Landmarks is null ? null : MemoryMarshal.Cast<byte, Point2>(r.Landmarks).ToArray(),
             r.Confidence, Db.Parse<EyeState>(r.LeftEye), Db.Parse<EyeState>(r.RightEye), r.EncryptedEmbedding, r.PersonId,
             Db.ParseOrNull<AssignmentOrigin>(r.AssignmentOrigin), r.Similarity, r.ModelVersion,
-            r.Keypoints is null ? null : MemoryMarshal.Cast<byte, Point2>(r.Keypoints).ToArray(), r.EmbeddingModel))
+            r.Keypoints is null ? null : MemoryMarshal.Cast<byte, Point2>(r.Keypoints).ToArray(), r.EmbeddingModel, r.SuggestedPersonId))
         .ToList();
 
     private sealed class ResultRow
@@ -190,5 +190,7 @@ internal sealed class AnalysisStore(SqliteCatalog catalog) : IAnalysisStore
         public byte[]? Keypoints { get; set; }
 
         public string? EmbeddingModel { get; set; }
+
+        public long? SuggestedPersonId { get; set; }
     }
 }
