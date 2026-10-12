@@ -19,6 +19,8 @@ public interface ICatalog : IAsyncDisposable
 
     IAnalysisStore Analysis { get; }
 
+    IGroupStore Groups { get; }
+
     /// <summary>Consistent copy of the open catalog into <paramref name="backupsDirectory"/> (spec §9); returns its path.</summary>
     Task<string> BackupAsync(string backupsDirectory, string reason, CancellationToken ct);
 }
@@ -134,6 +136,9 @@ public interface IAnalysisStore
 
     Task<AnalyzerResultRecord?> GetResultAsync(long assetId, string analyzerId, CancellationToken ct);
 
+    /// <summary>Latest result of the analyzer for each of the assets that have one.</summary>
+    Task<IReadOnlyDictionary<long, AnalyzerResultRecord>> GetResultsAsync(IReadOnlyCollection<long> assetIds, string analyzerId, CancellationToken ct);
+
     /// <summary>Replaces the automatically detected faces of the asset; faces with a manual assignment are kept.</summary>
     Task ReplaceAutomaticFacesAsync(long assetId, IReadOnlyList<Face> faces, CancellationToken ct);
 
@@ -144,6 +149,26 @@ public interface IAnalysisStore
 
     /// <summary>Embeddings of a model version for the given assets (assets without one are absent).</summary>
     Task<IReadOnlyDictionary<long, float[]>> GetEmbeddingsAsync(IReadOnlyCollection<long> assetIds, string modelVersion, CancellationToken ct);
+}
+
+/// <summary>Groups of a job (spec §9 <c>Groups</c>, <c>GroupMembers</c>).</summary>
+public interface IGroupStore
+{
+    /// <summary>
+    /// Replaces the automatic groups of the job; manual groups (and their photos) are kept and the proposed groups
+    /// leave out the photos already in a manual group. Returns the new groups with their members.
+    /// </summary>
+    Task<IReadOnlyList<(AssetGroup Group, IReadOnlyList<GroupMember> Members)>> ReplaceAutomaticAsync(
+        long jobId, IReadOnlyList<(GroupType Type, IReadOnlyList<long> AssetIds)> groups, CancellationToken ct);
+
+    /// <summary>Groups of the job with their members in position order.</summary>
+    Task<IReadOnlyList<(AssetGroup Group, IReadOnlyList<GroupMember> Members)>> ListAsync(long jobId, CancellationToken ct);
+
+    Task<long> AddManualAsync(long jobId, GroupType type, IReadOnlyList<long> assetIds, CancellationToken ct);
+
+    Task SetScoresAsync(long groupId, IReadOnlyDictionary<long, double> scores, CancellationToken ct);
+
+    Task SetProfileAsync(long groupId, string? profileId, double? confidence, CancellationToken ct);
 }
 
 public sealed class CatalogLockedException(string message) : IOException(message);

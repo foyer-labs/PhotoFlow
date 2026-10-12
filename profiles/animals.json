@@ -40,5 +40,10 @@
     "highlightsReview": 0.25,
     "shadowsReview": 0.4,
     "blankFrame": 0.95
+  },
+  "grouping": {
+    "maxBurstGapSeconds": 2.0,
+    "minSimilarity": 0.9,
+    "tieMargin": 0.02
   }
 }

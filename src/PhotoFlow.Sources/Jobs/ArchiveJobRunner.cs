@@ -32,8 +32,9 @@ public sealed class ArchiveJobRunner : IJobRunner
     private readonly IExifReader _exifReader;
     private readonly IFileSystem _fileSystem;
     private readonly IPhotoProcessor _processor;
+    private readonly IReadOnlyList<IBatchStage> _batchStages;
 
-    public ArchiveJobRunner(ICatalog catalog, IExifReader exifReader, IFileSystem fileSystem, IPhotoProcessor processor)
+    public ArchiveJobRunner(ICatalog catalog, IExifReader exifReader, IFileSystem fileSystem, IPhotoProcessor processor, IReadOnlyList<IBatchStage>? batchStages = null)
     {
         ArgumentNullException.ThrowIfNull(catalog);
         ArgumentNullException.ThrowIfNull(exifReader);
@@ -43,6 +44,7 @@ public sealed class ArchiveJobRunner : IJobRunner
         _exifReader = exifReader;
         _fileSystem = fileSystem;
         _processor = processor;
+        _batchStages = batchStages ?? [];
     }
 
     public static string SerializeSettings(ArchiveJobSettings settings) => JsonSerializer.Serialize(settings, SettingsJson);
@@ -107,6 +109,10 @@ public sealed class ArchiveJobRunner : IJobRunner
         try
         {
             pause = await run.ExecuteAsync(jobId, ct).ConfigureAwait(false);
+            if (pause is null && _batchStages.Count > 0)
+            {
+                await BatchStages.RunAsync(_batchStages, job, run.LastProgress, progress, ct).ConfigureAwait(false);
+            }
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -421,6 +427,9 @@ public sealed class ArchiveJobRunner : IJobRunner
             return MediaClassifier.Classify(header.AsSpan(0, read), Path.GetExtension(path));
         }
 
+        /// <summary>The last progress reported (the batch stages report on top of it).</summary>
+        public JobProgress LastProgress { get; private set; } = new(0, 0, 0, 0, null);
+
         private void Report(string? current)
         {
             int identified, completed, failed;
@@ -429,7 +438,8 @@ public sealed class ArchiveJobRunner : IJobRunner
                 (identified, completed, failed) = (_identified, Completed, Failed);
             }
 
-            progress?.Report(new JobProgress(_total, identified, completed, failed, current));
+            LastProgress = new JobProgress(_total, identified, completed, failed, current);
+            progress?.Report(LastProgress);
         }
     }
 }

@@ -185,7 +185,12 @@ public sealed record EmbeddingRecord(long Id, long AssetId, string ModelVersion,
 
 // --- Groups and decisions ---
 
-public sealed record AssetGroup(long Id, GroupType Type, string? ProfileId, double? ProfileConfidence, GroupOrigin Origin);
+/// <summary>A group of photos of a job (spec §9 <c>Groups</c>); the profile is the one assigned to the group (D8).</summary>
+public sealed record AssetGroup(long Id, long JobId, GroupType Type, string? ProfileId, double? ProfileConfidence, GroupOrigin Origin)
+{
+    /// <summary>Bracketing, timelapse and panorama are never ranked (spec §6, special sequences).</summary>
+    public bool IsRanked => Type == GroupType.Burst;
+}
 
 public enum GroupType
 {

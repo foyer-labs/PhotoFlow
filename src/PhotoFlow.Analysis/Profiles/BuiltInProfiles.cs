@@ -45,8 +45,17 @@ public static class BuiltInProfiles
             throw new InvalidDataException($"Profile '{document.Id}': at least one sharpness zone.");
         }
 
+        var grouping = document.Grouping ?? GroupingParameters.Default;
+        if (grouping.MaxBurstGapSeconds <= 0 || grouping.MinSimilarity is <= 0 or > 1 || grouping.TieMargin < 0)
+        {
+            throw new InvalidDataException($"Profile '{document.Id}': grouping parameters out of range.");
+        }
+
         return new SceneProfile(document.Id, document.Name, document.Version, isBuiltIn, document.CullingEnabled, document.SharpnessZones,
-            document.Exposure, document.Faces, document.SubjectClasses, document.Ocr, document.AbsoluteSharpness, w, document.Thresholds);
+            document.Exposure, document.Faces, document.SubjectClasses, document.Ocr, document.AbsoluteSharpness, w, document.Thresholds)
+        {
+            Grouping = grouping,
+        };
     }
 
     private static IReadOnlyList<SceneProfile> Load()
@@ -78,5 +87,6 @@ public static class BuiltInProfiles
         bool Ocr,
         bool AbsoluteSharpness,
         ProfileWeights Weights,
-        CullingThresholds Thresholds);
+        CullingThresholds Thresholds,
+        GroupingParameters? Grouping = null);
 }

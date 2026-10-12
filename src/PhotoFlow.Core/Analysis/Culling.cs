@@ -25,7 +25,20 @@ public sealed record SceneProfile(
     bool Ocr,
     bool AbsoluteSharpness,
     ProfileWeights Weights,
-    CullingThresholds Thresholds);
+    CullingThresholds Thresholds)
+{
+    /// <summary>Burst and ranking parameters (P17); the defaults when the profile file has none.</summary>
+    public GroupingParameters Grouping { get; init; } = GroupingParameters.Default;
+}
+
+/// <summary>
+/// Burst parameters exposed per profile (P17): maximum gap between two shots of a burst, minimum embedding similarity
+/// between consecutive shots, and the score margin within which the first two of a burst are a tie (both to review).
+/// </summary>
+public sealed record GroupingParameters(double MaxBurstGapSeconds, double MinSimilarity, double TieMargin)
+{
+    public static GroupingParameters Default { get; } = new(2.0, 0.90, 0.02);
+}
 
 /// <summary>Composite score weights (spec §6), percentages summing to 100.</summary>
 public sealed record ProfileWeights(int Sharpness, int Eyes, int Exposure, int Subject, int Aesthetic);

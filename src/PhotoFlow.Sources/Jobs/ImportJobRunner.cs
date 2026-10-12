@@ -29,9 +29,10 @@ public sealed class ImportJobRunner : IJobRunner
     private readonly IExifReader _exifReader;
     private readonly IFileSystem _fileSystem;
     private readonly IPhotoProcessor _processor;
+    private readonly IReadOnlyList<IBatchStage> _batchStages;
     private readonly DeferredCopyService? _deferred;
 
-    public ImportJobRunner(ICatalog catalog, IIngestService ingest, IExifReader exifReader, IFileSystem fileSystem, IPhotoProcessor processor, DeferredCopyService? deferred = null)
+    public ImportJobRunner(ICatalog catalog, IIngestService ingest, IExifReader exifReader, IFileSystem fileSystem, IPhotoProcessor processor, DeferredCopyService? deferred = null, IReadOnlyList<IBatchStage>? batchStages = null)
     {
         ArgumentNullException.ThrowIfNull(catalog);
         ArgumentNullException.ThrowIfNull(ingest);
@@ -43,6 +44,7 @@ public sealed class ImportJobRunner : IJobRunner
         _exifReader = exifReader;
         _fileSystem = fileSystem;
         _processor = processor;
+        _batchStages = batchStages ?? [];
         _deferred = deferred;
     }
 
@@ -74,6 +76,10 @@ public sealed class ImportJobRunner : IJobRunner
         try
         {
             pause = await run.ExecuteAsync(ct).ConfigureAwait(false);
+            if (pause is null && _batchStages.Count > 0)
+            {
+                await BatchStages.RunAsync(_batchStages, job, run.LastProgress, progress, ct).ConfigureAwait(false);
+            }
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -451,6 +457,9 @@ public sealed class ImportJobRunner : IJobRunner
             Report(path);
         }
 
+        /// <summary>The last progress reported (the batch stages report on top of it).</summary>
+        public JobProgress LastProgress { get; private set; } = new(0, 0, 0, 0, null);
+
         private void Report(string? current)
         {
             int copied, completed, failed;
@@ -459,7 +468,8 @@ public sealed class ImportJobRunner : IJobRunner
                 (copied, completed, failed) = (_copied, Completed, Failed);
             }
 
-            progress?.Report(new JobProgress(_total, copied, completed, failed, current));
+            LastProgress = new JobProgress(_total, copied, completed, failed, current);
+            progress?.Report(LastProgress);
         }
 
         private static string PairKey(string sourcePath) =>

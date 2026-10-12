@@ -2,6 +2,7 @@
 
 using PhotoFlow.Analysis.Culling;
 using PhotoFlow.Analysis.Detectors;
+using PhotoFlow.Analysis.Grouping;
 using PhotoFlow.Analysis.Profiles;
 using PhotoFlow.Core.Analysis;
 using PhotoFlow.Core.Catalog;
@@ -71,8 +72,8 @@ public sealed class PhotoFlowHost : IAsyncDisposable
         Planner = new ImportPlanner(fileSystem, ExifReader, catalog.Assets);
         Jobs = new JobManager(() => new JobRunnerRouter(
             Catalog,
-            new ImportJobRunner(Catalog, new IngestService(new CopyEngine(FileSystem)), ExifReader, FileSystem, new LazyProcessor(this), Deferred),
-            new ArchiveJobRunner(Catalog, ExifReader, FileSystem, new LowPriorityProcessor(this))));
+            new ImportJobRunner(Catalog, new IngestService(new CopyEngine(FileSystem)), ExifReader, FileSystem, new LazyProcessor(this), Deferred, BatchStages()),
+            new ArchiveJobRunner(Catalog, ExifReader, FileSystem, new LowPriorityProcessor(this), BatchStages())));
         Cards = new PollingCardDetector();
         Maintenance = new MaintenanceService(paths, new InternalFileCleaner(paths), protectedBackup: () => Restore?.Pending);
         Restore = new CatalogRestoreService(paths);
@@ -208,6 +209,13 @@ public sealed class PhotoFlowHost : IAsyncDisposable
         }
 
         return (models, gpu);
+    }
+
+    /// <summary>Stages run once every photo of a job is analyzed: groupings, then decisions per group (spec §3, phases 4-5).</summary>
+    private IReadOnlyList<IBatchStage> BatchStages()
+    {
+        var embedder = DescribeAnalysis().Embedder is { } clip ? $"{clip}@{Models.Get(clip).Version}" : null;
+        return [new GroupingStage(Catalog, BuiltInProfiles.Get, embedder), new GroupDecisionStage(Catalog, BuiltInProfiles.Get, new DecisionEngine())];
     }
 
     /// <summary>Models the analysis would use now (installed and, where needed, accepted).</summary>

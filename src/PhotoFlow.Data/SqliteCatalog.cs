@@ -33,6 +33,7 @@ public sealed class SqliteCatalog : ICatalog
         XmpSync = new XmpSyncStore(this);
         DeferredCopies = new DeferredCopyStore(this);
         Analysis = new AnalysisStore(this);
+        Groups = new GroupStore(this);
     }
 
     public ILibraryStore Libraries { get; }
@@ -48,6 +49,8 @@ public sealed class SqliteCatalog : ICatalog
     public IDeferredCopyStore DeferredCopies { get; }
 
     public IAnalysisStore Analysis { get; }
+
+    public IGroupStore Groups { get; }
 
     public static async Task<SqliteCatalog> OpenAsync(CatalogOpenOptions options, CancellationToken ct)
     {

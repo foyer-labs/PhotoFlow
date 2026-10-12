@@ -38,6 +38,25 @@ internal sealed class AnalysisStore(SqliteCatalog catalog) : IAnalysisStore
             JsonSerializer.Deserialize<Dictionary<string, double>>(r.ScoresJson) ?? []))
         .FirstOrDefault();
 
+    public async Task<IReadOnlyDictionary<long, AnalyzerResultRecord>> GetResultsAsync(IReadOnlyCollection<long> assetIds, string analyzerId, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(assetIds);
+        var result = new Dictionary<long, AnalyzerResultRecord>(assetIds.Count);
+        foreach (var chunk in assetIds.Distinct().Chunk(500))
+        {
+            var rows = await catalog.RunAsync(c => c.QueryAsync<ResultRow>(new CommandDefinition(
+                "SELECT Id, AssetId, AnalyzerId, ModelVersion, ProfileId, ScoresJson FROM AnalyzerResults WHERE AnalyzerId = @analyzerId AND AssetId IN @chunk ORDER BY Id;",
+                new { analyzerId, chunk }, cancellationToken: ct)), ct).ConfigureAwait(false);
+            foreach (var r in rows)
+            {
+                result[r.AssetId] = new AnalyzerResultRecord(r.Id, r.AssetId, r.AnalyzerId, r.ModelVersion, r.ProfileId,
+                    JsonSerializer.Deserialize<Dictionary<string, double>>(r.ScoresJson) ?? []);
+            }
+        }
+
+        return result;
+    }
+
     public Task SaveEmbeddingAsync(long assetId, string modelVersion, ReadOnlyMemory<float> vector, CancellationToken ct) =>
         catalog.RunAsync(c => c.ExecuteAsync(new CommandDefinition(
             """
