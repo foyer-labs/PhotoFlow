@@ -929,7 +929,7 @@ Sei livelli di test; quelli che usano foto personali girano solo in locale, e il
 
 | Livello | Ingresso | Criterio |
 | --- | --- | --- |
-| Tensori | Tensore preparato da Python (float32 + JSON delle forme), identico per C# | Uscite grezze: \|Δ\| ≤ 1e-4 sui riquadri, ≤ 1e-3 sui logit (da confermare sul primo campione) |
+| Tensori | Tensore preparato da Python (float32 + JSON delle forme), identico per C# | Le 300 query vengono prima abbinate (assegnazione ottima su riquadri e punteggi), perché query quasi a pari merito possono scambiarsi di posizione tra runtime diversi; poi \|Δ punteggio (sigmoide)\| ≤ 5e-3 e \|Δ riquadri\| ≤ 5e-4 (decisione del 12 ott 2026; misurati su 40 foto reali: 2,7e-3 e 1,5e-4) |
 | Rilevamenti | Immagine con pre-elaborazione C# | Abbinamento greedy per classe sopra soglia (0,5): ogni coppia IoU ≥ 0,95 e \|Δ punteggio\| ≤ 0,02; rilevamenti senza corrispettivo ammessi solo entro ±0,05 dalla soglia |
 
 Riferimento: modello originale PyTorch con il preprocessore ufficiale. Immagini e riferimenti fuori dal repository (`PHOTOFLOW_TESTDATA`), report per immagine.

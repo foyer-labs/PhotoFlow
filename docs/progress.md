@@ -6,7 +6,7 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 
 | Voce | Valore |
 |---|---|
-| Fase corrente | 0 — Setup e laboratorio: **sviluppo completato, report in attesa di approvazione** ([docs/reports/fase-0.md](reports/fase-0.md)) |
+| Fase corrente | 0 — Setup e laboratorio: **criteri superati sulle foto reali, report in attesa di approvazione** ([docs/reports/fase-0.md](reports/fase-0.md)) |
 | Branch | `phase/0-setup` (pushato; pull request verso `main` da approvare) |
 | Remoto | https://github.com/foyer-labs/PhotoFlow.git (pubblico) |
 | Autore dei commit | Foyer Labs <foyerlabs@gmail.com> (config locale del repository) |
@@ -53,6 +53,8 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 | 2026-10-12 | Piano fase 0 approvato (`docs/plans/fase-0.md`): Avalonia 12.1.4, xUnit v3 3.2.2 fissato, download del laboratorio (~7 GB) e push su GitHub autorizzati. spec §3 (+`IObjectDetector`, `IImageOperations`) e §15 (YuNet MIT) aggiornate |
 | 2026-10-12 | `IInferenceProvider.CreateSessionAsync(model, target, ct)` asincrono (conformità a CLAUDE.md §4). spec §3 aggiornata |
 | 2026-10-12 | Verifiche 0.6 applicate a spec.md: §15 licenze (Velopack, PanAndZoom, HdbscanSharp, RapidOcrNet, Magick.NET, DirectML/Windows ML, CLIP, RAM++), §16 rischi R15-R20, note di laboratorio in §5, §17 verifiche tecniche aggiornate. T1 (tolleranza parità tensori) rinviata: si decide dopo la misura sulle foto reali |
+| 2026-10-12 | Nessun NEF della Z5 II disponibile fino a dopo l'implementazione: la "primissima attività della fase 1" (§13, verifica anteprima/HE/punto AF sui NEF Z5 II) va rinviata; proposta da fare nel piano della fase 1. Set di test reale: 240 file in `PHOTOFLOW_TESTDATA/photos` (178 NEF Nikon D40 lossy + D5100 lossless, 52 JPG di cui 49 Samsung SM-A500FU, 11 .xmp preesistenti, mai toccati) |
+| 2026-10-12 | T1 — Parità livello tensori: query abbinate con assegnazione ottima prima del confronto; punteggi (sigmoide) ≤ 5e-3, riquadri ≤ 5e-4 (misurati 2,7e-3 e 1,5e-4 su 40 foto reali). spec.md §14 e `DFineParityTests` aggiornati |
 | 2026-10-12 | A1 — Tavole rinominate come in §12bis (`PhotoFlow_*_dc.html`); specifica invariata |
 | 2026-10-12 | A10 — Ricostruite le celle troncate di §8 (Volti: `Persone\|Nome`; OCR: `Motorsport\|Numero N`, `Motorsport\|Pilota\|Nome`, `Motorsport\|Team\|Nome`) e §17 (Album → D6), con pipe protetti |
 
@@ -60,16 +62,16 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 
 | # | Tema | Sintesi |
 |---|---|---|
-| T1 | Tolleranza parità tensori (§14) | Logit ORT vs PyTorch fino a 8,5e-3 (> 1e-3 provvisorio); proposta: punteggi ≤ 1e-3, riquadri ≤ 2e-4 |
 | R16-R17 | Backend di inferenza | Una sola ORT per processo; DirectML vs Windows ML: da decidere nel piano della fase 1 |
-| N5-N6 | Modelli quantizzati | RAM++ int8/CLIP quantizzato non accelerano su GPU; RAM++ int8 non supera la parità (Jaccard 0,895) |
+| N5-N6 | Modelli quantizzati | RAM++ int8/CLIP quantizzato non accelerano su GPU; RAM++ int8 non supera la parità (52 JPG reali: 12/52 insiemi identici, Jaccard 0,866) — fase 3 |
+| Z5 II | NEF Z5 II non disponibili | Prima attività della fase 1 (§13) da rinviare a dopo l'implementazione: proposta nel piano della fase 1 |
 | N1-N4 | Note per fasi successive | CLIP scheda modello (fase 2), DirectML (0.6→R3), GridSample fp16 CUDA (fase 1), YuNet ingresso fisso (fase 1) |
 
 ## Verifiche manuali in attesa (per l'utente)
 
-1. Avviare l'app (`dotnet run --project src/PhotoFlow.App`, tema chiaro con `-- --theme light`): barra titolo nativa, trascinamento, navigazione, scorciatoie.
-2. Fornire foto di test in `E:\AI\PhotoFlowTestData\photos\` (30-50 per la parità, ~200 per il benchmark, NEF Z5 II + JPG).
+1. ~~Avviare l'app~~ — fatto dall'utente il 2026-10-12: si apre e mostra la navigazione (comportamento atteso per la fase 0). Da controllare ancora, se possibile: pulsanti di sistema, trascinamento e doppio clic sulla barra del titolo, `-- --theme light`.
+2. ~~Foto di test~~ — fornite il 2026-10-12 (240 file).
 
 ## Prossimo passo
 
-Foto reali dell'utente → rieseguire parità, benchmark e verifica RAM++ → decisione T1 → approvazione del report di fase 0 → pull request `phase/0-setup` → `main` → piano della fase 1.
+Approvazione del report di fase 0 (tutti i criteri superati sulle foto reali) → merge della PR #1 in `main` → piano della fase 1 → pull request `phase/0-setup` → `main` → piano della fase 1.

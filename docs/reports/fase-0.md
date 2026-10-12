@@ -1,14 +1,14 @@
 # Report di fine fase 0 — Setup e laboratorio
 
-Data: 2026-10-12 · Branch: `phase/0-setup` · Piano: [`docs/plans/fase-0.md`](../plans/fase-0.md)
+Data: 2026-10-12 · Branch: `phase/0-setup` · PR: foyer-labs/PhotoFlow#1 · Piano: [`docs/plans/fase-0.md`](../plans/fase-0.md)
 
 ## Checklist dei criteri di accettazione
 
 | # | Criterio | Esito | Evidenza |
 |---|---|---|---|
 | 1 | Soluzione compilabile con tutti i progetti e le interfacce di `Core` | ✅ Superato | `dotnet build` 0 avvisi / 0 errori (avvisi = errori); CI verde su `windows-latest` e `ubuntu-latest`; `ArchitectureTests` (confini dei progetti, Core senza dipendenze) |
-| 2 | Benchmark Python eseguibile su una cartella di foto, con report dei tempi per fase | ✅ Superato (script) · ⏳ misura ufficiale | `tools/lab/benchmark.py` eseguito su 8 immagini COCO: report in `PHOTOFLOW_TESTDATA/lab/benchmark/20261012-181304/`. **Misura sulle foto reali (NEF Z5 II + JPG) da eseguire**: servono le foto dell'utente |
-| 3 | D-FINE esportato in ONNX con test di parità superato | ✅ Export · ✅ livello rilevamenti · ⚠️ livello tensori (tolleranza logit da confermare) | `export_dfine.py` (S e M, opset 17); `DFineParityTests`: rilevamenti 73/73 abbinati per S e M, IoU min 1,000, Δ punteggio < 1e-4; tensori: riquadri ≤ 8,8e-5 (≤ 1e-4 ✅), logit fino a 8,5e-3 (> 1e-3 provvisorio ❌). Vedi proposta T1 |
+| 2 | Benchmark Python eseguibile su una cartella di foto, con report dei tempi per fase | ✅ Superato | `tools/lab/benchmark.py` su 230 foto reali (178 NEF, 52 JPG): report in `PHOTOFLOW_TESTDATA/lab/benchmark/20261012-190042/` (tabella sotto) |
+| 3 | D-FINE esportato in ONNX con test di parità superato | ✅ Superato | `export_dfine.py` (S e M, opset 17). `DFineParityTests` su 40 foto reali, per S e M, nostro export e onnx-community: **rilevamenti** 359/359 (S) e 421/421 (M) abbinati, IoU min 0,9998, Δ punteggio max 1,5e-4; **tensori** (query abbinate, decisione T1) Δ punteggi max 2,7e-3 ≤ 5e-3, Δ riquadri max 1,5e-4 ≤ 5e-4. Pre-elaborazione C# identica bit per bit a quella ufficiale |
 | 4 | Hook pre-commit dimostrato con un tentativo di commit di un'immagine | ✅ Superato | Tentativo reale nel repository: `DSC_0001.jpg` (estensione) e `appunti.txt` (firma JPEG) bloccati, exit code 1. `PreCommitHookTests` (8 casi, CI Windows + Linux); job CI `hygiene` su tutti i file tracciati |
 
 ## Cosa è stato fatto
@@ -21,44 +21,48 @@ Data: 2026-10-12 · Branch: `phase/0-setup` · Piano: [`docs/plans/fase-0.md`](.
 | Inference | ONNX Runtime 1.31 CPU, tensori senza copia, creazione sessione asincrona |
 | Analysis | Adattatore D-FINE (contratto HF) |
 | App | Guscio Avalonia 12.1.4: token §12bis Dark/Light, IBM Plex incorporati, barra titolo estesa, navigazione 184/48 (auto a 1280), barra di stato e `KeyBindings` dalla stessa tabella dei comandi, IT/EN, DI, log Serilog via `IAppPaths` |
-| Test | 119 test (111 in CI + 8 di parità locali, saltati senza `PHOTOFLOW_TESTDATA`) |
+| Test | 127 test: 119 in CI (Unit + Integration) + 8 di parità locali, saltati senza `PHOTOFLOW_TESTDATA` |
 | CI | GitHub Actions: controllo immagini + build/test Windows e Linux, azioni fissate per SHA |
 | Laboratorio | uv, torch 2.14.1 cu130, transformers 4.55.4, onnxruntime-gpu 1.31: `fetch_models`, `export_dfine`, `parity_refs`, `benchmark`, `verify_ramplus` |
 | Manifest | 7 modelli con URL fissati, SHA-256, dimensioni, licenze verificate alla fonte |
 
-## Misure preliminari (8 immagini COCO, non rappresentative)
+## Set di test reale
 
-| Fase | CUDA (RTX 3090) ms/foto | CPU (24 thread) ms/foto |
+240 file in `PHOTOFLOW_TESTDATA/photos`: 178 NEF (Nikon D40 lossy, D5100 lossless), 52 JPG (49 Samsung SM-A500FU), 11 `.xmp` preesistenti (solo letti). **Nessun NEF della Z5 II**: l'utente non potrà fornirli prima dell'implementazione (vedi "Per la fase 1").
+
+## Benchmark (230 foto reali, RTX 3090 / CPU 12 core-24 thread)
+
+| Fase | CUDA ms/foto | CPU ms/foto |
 |---|---|---|
-| D-FINE S / M | 12,7 / 15,7 | 103 / 182 |
-| Volti buffalo_l (1,9 volti/foto) | 33,4 | 134 |
-| CLIP immagine (quantizzato) | 20,7 | 17,4 |
-| RAM++ int8 | 528 | 614 |
-| Stima 1.000 foto (anteprima + rilevamento + volti + CLIP + RAM++) | 10,0 min (spec: 6-11) | 14,5 min (spec: 22-50, 8 core) |
+| Anteprima (NEF: `JpgFromRaw` via exiftool; JPG: decodifica) | — | 70 |
+| D-FINE S / M | 13,3 / 17,0 | 123 / 191 |
+| Volti buffalo_l (1,1 volti/foto) | 22,7 | 117 |
+| CLIP immagine (quantizzato) | 26,4 | 17,4 |
+| RAM++ int8 | 543 | 611 |
+| **Stima 1.000 foto** (anteprima + rilevamento + volti + CLIP + RAM++) | **11,3 min** (spec §5: 6-11) | **15,7 min** (spec: 22-50 su 8 core) |
 
-L'anteprima (3,7 ms) è misurata su JPEG piccoli: sui NEF da 24 MP sarà molto più alta.
+RAM++ int8 occupa ~9 degli 11,3 minuti GPU: la quantizzazione dinamica gira in CPU anche con CUDA (nota in §5). Con varianti fp32/fp16 su GPU la stima scende a pochi minuti (da misurare in fase 3). La CPU di misura ha più core di quella ipotizzata in §5.
 
-## Verifica RAM++ (§13 "verifica RAM++", 8 immagini COCO)
+## Verifica RAM++ (§13 "verifica RAM++", 52 JPG reali)
 
-ONNX int8 della community vs RAM++ originale PyTorch, stesso tensore d'ingresso: insiemi identici 1/8, Jaccard medio 0,895, max |Δ probabilità| 0,078; la int8 **perde** 1-2 tag per immagine, non ne aggiunge. Liste di tag e soglie coerenti con l'originale. **Non soddisfa** il criterio di parità di §14 ("stesso insieme alle soglie ufficiali"): vedi N6.
+ONNX int8 della community vs RAM++ originale PyTorch, stesso tensore d'ingresso: insiemi di tag identici 12/52, Jaccard medio 0,866, max |Δ probabilità| 0,141; la int8 perde tag sistematicamente. Liste di tag e soglie coerenti con l'originale. **Non soddisfa** la parità di §14: in fase 3 si usa fp32 o un export verificato (annotato in §5).
 
-## Proposte di modifica alla specifica (da approvare)
+## Decisioni prese durante la fase
 
-| # | Proposta | Motivo |
-|---|---|---|
-| T1 | §14 parità rilevatori, livello tensori: tolleranza su **punteggi (sigmoide) ≤ 1e-3** al posto dei logit ≤ 1e-3; riquadri ≤ 2e-4 | Lo scarto osservato è tra ONNX Runtime e PyTorch (C# = Python ORT); logit fino a 8,5e-3 solo su query a punteggio ~0; punteggi ≤ 1,7e-4; riquadri ≤ 8,8e-5, margine stretto su 1e-4 |
-| L1 | §15: Velopack **MIT** (1.2.161), PanAndZoom **MIT** con ID pacchetto `PanAndZoom` ≥ 12.1.1, HdbscanSharp **MIT** (inattivo da 05/2025), RapidOcrNet codice **Apache-2.0** (4.2.0), Magick.NET 15.0.0 Apache-2.0 con libheif/libde265 **LGPL collegate staticamente** in Magick.Native, DirectML e Windows ML runtime **proprietari Microsoft ridistribuibili a condizioni** | Verifiche 0.6 |
-| L2 | §15: CLIP — nota sulla scheda del modello (uso "deployed" fuori ambito) | N1 |
-| R1 | §16 nuovo rischio: **NEF High Efficiency non decodificabili** da nessuna LibRaw pubblica (0.22.2); Z5 II non nella lista camere; LibRaw annuncia il decoder HE "nel prossimo snapshot, autunno 2026". Fallback: anteprima incorporata via exiftool, stato "RAW HE: solo anteprima" | Conferma il rischio R3 per la parte di decodifica |
-| R2 | §16: **una sola distribuzione di ONNX Runtime per processo**: DirectML NuGet fermo a 1.24.4, Windows ML con ORT 1.27.1, RapidOcrNet richiede ORT ≥ 1.29 | Conflitto da risolvere prima della fase 1 (selezione hardware) e della fase 4 (OCR) |
-| R3 | §5/§11: valutare **Windows ML** al posto della variante DirectML (DirectML "sustained engineering"); provider di vendor (TensorRT-RTX ecc.) solo da Windows 11 24H2 | N2; decisione per la fase 1 |
-| R4 | §7/§16: HdbscanSharp è O(n²): non adatto a ~100.000 volti; serve HDBSCAN su grafo k-NN dietro interfaccia | Fase 2 |
-| R5 | §3: binding LibRaw: P/Invoke sottile sui binari ufficiali 0.22.x (Sdcb.LibRaw fermo a 0.21.1, senza correzioni di sicurezza 0.22.1) | Fase 1 |
-| N5 | §5: RAM++ int8 e CLIP quantizzato non accelerano su GPU (quantizzazione dinamica eseguita in CPU): su GPU usare fp32/fp16 | Benchmark |
-| N6 | §5/§14: la RAM++ int8 della community non supera la parità: in fase 3 usare fp32 (export `CannotFindObject/RAM_ONNX`) o un export nostro verificato | verify_ramplus |
+| # | Decisione |
+|---|---|
+| — | `IInferenceProvider.CreateSessionAsync(…, ct)` asincrono (CLAUDE.md §4) |
+| T1 | Parità livello tensori: query abbinate (assegnazione ottima) prima del confronto; punteggi ≤ 5e-3, riquadri ≤ 5e-4. Motivo: query quasi a pari merito si scambiano di posizione tra runtime (5-8 foto su 40, 10-22 query) |
+| 0.6 | Licenze, rischi R15-R20 e note di laboratorio applicati a spec §5, §15, §16, §17 |
+
+## Per la fase 1 (da trattare nel piano)
+
+- **NEF Z5 II non disponibili**: la "primissima attività della fase 1" (§13) va rinviata a dopo l'implementazione; in fase 1 si lavora con i NEF D40/D5100 e si rende il gestore robusto ai NEF HE (anteprima incorporata, R15).
+- **Backend di inferenza** (R16, R17): una sola distribuzione di ONNX Runtime per processo; scegliere tra DirectML NuGet (fermo a 1.24.4), Windows ML (ORT 1.27.1) e CUDA.
+- **Binding LibRaw**: P/Invoke sottile sui binari ufficiali 0.22.x.
+- Note N3 (D-FINE solo fp32 su CUDA) e N4 (YuNet a ingresso fisso).
 
 ## Verifiche manuali per l'utente
 
-1. **App**: `dotnet run --project src/PhotoFlow.App` — controllare barra del titolo con pulsanti di sistema nativi, trascinamento e doppio clic per massimizzare, navigazione compressa sotto 1280 px e pulsante di compressione, Ctrl 1-7 / Ctrl K / Ctrl , ; tema chiaro con `-- --theme light`.
-2. **Foto di test** in `E:\AI\PhotoFlowTestData\photos\`: 30-50 varie per la parità, ~200 per il benchmark (NEF Z5 II + JPG). Poi rieseguo `parity_refs.py`, `DFineParityTests`, `benchmark.py`, `verify_ramplus.py` sul set reale.
-3. **Hook su un altro clone**: dopo il clone, `git config core.hooksPath .githooks`.
+1. ✅ App avviata dall'utente il 2026-10-12: si apre e mostra la navigazione (atteso per la fase 0). Facoltativo: pulsanti di sistema, trascinamento e doppio clic sulla barra del titolo, `dotnet run --project src/PhotoFlow.App -- --theme light`.
+2. Hook su un altro clone: dopo il clone, `git config core.hooksPath .githooks`.

@@ -32,29 +32,54 @@ public sealed class DFineParityTests
         var (references, index, detector, session) = await PrepareAsync(variant, source);
         using var _ = session;
         var rows = new JsonArray();
-        double worstLogits = 0, worstBoxes = 0;
+        double worstScores = 0, worstBoxes = 0;
+        int reorderedImages = 0, movedQueries = 0;
 
         foreach (var item in Items(index))
         {
             var input = NamedTensor.Float32(DFineDetector.InputName, ReadFloats(references, item, "input"), 1, 3, 640, 640);
             var (logits, boxes) = await detector.RunRawAsync(input, TestContext.Current.CancellationToken);
-            var dLogits = MaxAbsDiff(logits.AsFloat32().Span, ReadFloats(references, item, "logits"));
-            var dBoxes = MaxAbsDiff(boxes.AsFloat32().Span, ReadFloats(references, item, "boxes"));
-            worstLogits = Math.Max(worstLogits, dLogits);
-            worstBoxes = Math.Max(worstBoxes, dBoxes);
-            rows.Add(new JsonObject { ["image"] = item, ["max_abs_diff_logits"] = dLogits, ["max_abs_diff_boxes"] = dBoxes });
+            var comparison = QueryMatcher.Compare(
+                Sigmoid(logits.AsFloat32().Span), boxes.AsFloat32().ToArray(),
+                Sigmoid(ReadFloats(references, item, "logits")), ReadFloats(references, item, "boxes"),
+                classes: logits.Shape[2]);
+            worstScores = Math.Max(worstScores, comparison.MaxScoreDiff);
+            worstBoxes = Math.Max(worstBoxes, comparison.MaxBoxDiff);
+            movedQueries += comparison.MovedQueries;
+            reorderedImages += comparison.MovedQueries > 0 ? 1 : 0;
+            rows.Add(new JsonObject
+            {
+                ["image"] = item,
+                ["max_abs_diff_scores"] = comparison.MaxScoreDiff,
+                ["max_abs_diff_boxes"] = comparison.MaxBoxDiff,
+                ["moved_queries"] = comparison.MovedQueries,
+            });
         }
 
         WriteReport(variant, source, "tensors", new JsonObject
         {
-            ["tolerance_logits"] = ParityTolerances.Logits,
+            ["criteria"] = "queries matched by optimal assignment (boxes + scores), then |Δ score (sigmoid)| and |Δ box|",
+            ["tolerance_scores"] = ParityTolerances.Scores,
             ["tolerance_boxes"] = ParityTolerances.Boxes,
-            ["max_abs_diff_logits"] = worstLogits,
+            ["max_abs_diff_scores"] = worstScores,
             ["max_abs_diff_boxes"] = worstBoxes,
+            ["images_with_reordered_queries"] = reorderedImages,
+            ["moved_queries"] = movedQueries,
             ["images"] = rows,
         });
         Assert.True(worstBoxes <= ParityTolerances.Boxes, $"boxes: max |Δ| {worstBoxes:E2} > {ParityTolerances.Boxes:E0}");
-        Assert.True(worstLogits <= ParityTolerances.Logits, $"logits: max |Δ| {worstLogits:E2} > {ParityTolerances.Logits:E0}");
+        Assert.True(worstScores <= ParityTolerances.Scores, $"scores: max |Δ| {worstScores:E2} > {ParityTolerances.Scores:E0}");
+    }
+
+    private static float[] Sigmoid(ReadOnlySpan<float> logits)
+    {
+        var scores = new float[logits.Length];
+        for (var i = 0; i < logits.Length; i++)
+        {
+            scores[i] = 1f / (1f + MathF.Exp(-logits[i]));
+        }
+
+        return scores;
     }
 
     [Theory]
@@ -188,11 +213,14 @@ public sealed class DFineParityTests
     }
 }
 
-/// <summary>Parity criteria of spec §14 (decision A8 of 2026-10-12).</summary>
+/// <summary>Parity criteria of spec §14 (decisions A8 and T1 of 2026-10-12).</summary>
 public static class ParityTolerances
 {
-    public const double Boxes = 1e-4;
-    public const double Logits = 1e-3;
+    /// <summary>Box coordinates (normalized), after query matching.</summary>
+    public const double Boxes = 5e-4;
+
+    /// <summary>Class scores (sigmoid of logits), after query matching.</summary>
+    public const double Scores = 5e-3;
     public const float MinIou = 0.95f;
     public const float MaxScoreDiff = 0.02f;
     public const float ThresholdBand = 0.05f;

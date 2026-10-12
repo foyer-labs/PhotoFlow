@@ -118,6 +118,7 @@ def main() -> None:
     parser.add_argument("--images", type=Path, required=True, help="folder of images, outside the repository")
     parser.add_argument("--variant", choices=sorted(CHECKPOINTS), action="append")
     parser.add_argument("--limit", type=int, default=0, help="use only the first N images")
+    parser.add_argument("--sample", type=int, default=0, help="use N images evenly spaced over the sorted set")
     args = parser.parse_args()
 
     testdata = lc.testdata_root()
@@ -128,6 +129,9 @@ def main() -> None:
     images = lc.list_images(images_dir)
     if args.limit:
         images = images[: args.limit]
+    if args.sample and args.sample < len(images):
+        step = len(images) / args.sample
+        images = [images[int(i * step)] for i in range(args.sample)]
     if not images:
         raise SystemExit(f"No images found in {images_dir}")
 
