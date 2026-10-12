@@ -48,6 +48,7 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 | 2026-10-12 | A9 — Ripresa: `JobItems` e ripresa dell'Import in fase 1 (Home 3c); job d'archivio in background, parallelo, pausa in 1b. spec.md §13 aggiornata. Da proporre nel piano fase 1: copia su `.pftmp` + rinomina dopo verifica, sovrascrittura del temporaneo alla ripresa (nessuna eliminazione, I4) |
 | 2026-10-12 | A11 — `PROMPT_Claude_Code.md` resta solo locale: da inserire in `.gitignore` (fase 0.1), mai committato |
 | 2026-10-12 | Piano fase 0 approvato (`docs/plans/fase-0.md`): Avalonia 12.1.4, xUnit v3 3.2.2 fissato, download del laboratorio (~7 GB) e push su GitHub autorizzati. spec §3 (+`IObjectDetector`, `IImageOperations`) e §15 (YuNet MIT) aggiornate |
+| 2026-10-12 | `IInferenceProvider.CreateSessionAsync(model, target, ct)` asincrono (conformità a CLAUDE.md §4). spec §3 aggiornata |
 | 2026-10-12 | A1 — Tavole rinominate come in §12bis (`PhotoFlow_*_dc.html`); specifica invariata |
 | 2026-10-12 | A10 — Ricostruite le celle troncate di §8 (Volti: `Persone\|Nome`; OCR: `Motorsport\|Numero N`, `Motorsport\|Pilota\|Nome`, `Motorsport\|Team\|Nome`) e §17 (Album → D6), con pipe protetti |
 

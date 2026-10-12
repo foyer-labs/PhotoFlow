@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- CLIP zero-shot, RAM++, captions, OCR, vocabulary (phases 3-5). -->
+  <ItemGroup>
+    <ProjectReference Include="..\PhotoFlow.Core\PhotoFlow.Core.csproj" />
+  </ItemGroup>
+</Project>

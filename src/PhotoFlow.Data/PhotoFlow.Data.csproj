@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Catalog, migrations, search index (phase 1+). -->
+  <ItemGroup>
+    <ProjectReference Include="..\PhotoFlow.Core\PhotoFlow.Core.csproj" />
+  </ItemGroup>
+</Project>

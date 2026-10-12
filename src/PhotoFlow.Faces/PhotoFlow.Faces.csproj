@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Face embeddings, matching, clustering, embedding encryption (phase 2). -->
+  <ItemGroup>
+    <ProjectReference Include="..\PhotoFlow.Core\PhotoFlow.Core.csproj" />
+  </ItemGroup>
+</Project>

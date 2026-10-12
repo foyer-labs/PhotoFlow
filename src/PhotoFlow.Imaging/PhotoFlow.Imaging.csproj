@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Format handlers, decoding and resampling. -->
+  <ItemGroup>
+    <ProjectReference Include="..\PhotoFlow.Core\PhotoFlow.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="SkiaSharp" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Culling analyzers, groupings, decisions; model adapters for detection. -->
+  <ItemGroup>
+    <ProjectReference Include="..\PhotoFlow.Core\PhotoFlow.Core.csproj" />
+  </ItemGroup>
+</Project>

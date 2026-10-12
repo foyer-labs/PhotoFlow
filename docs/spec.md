@@ -117,7 +117,7 @@ public interface IImageHandler { bool CanHandle(FileSignature sig); Task<Preview
 public interface IPhotoAnalyzer { string Id { get; } Task<AnalyzerResult> AnalyzeAsync(PhotoContext photo, SceneProfile profile, CancellationToken ct); }
 public interface IBatchStage { Task RunAsync(JobContext job, IProgress<StageProgress> progress, CancellationToken ct); }
 public interface ITagger { TaggingLevel Level { get; } Task<IReadOnlyList<TagResult>> TagAsync(PhotoContext photo, CancellationToken ct); }
-public interface IInferenceProvider { HardwareInfo Detected { get; } IInferenceSession CreateSession(ModelDescriptor model, ExecutionTarget target); }
+public interface IInferenceProvider { HardwareInfo Detected { get; } Task<IInferenceSession> CreateSessionAsync(ModelDescriptor model, ExecutionTarget target, CancellationToken ct); }
 public interface IInferenceSession : IDisposable { Task<IReadOnlyList<NamedTensor>> RunAsync(IReadOnlyList<NamedTensor> inputs, CancellationToken ct); }
 public interface IMetadataWriter { Task WriteAsync(Asset asset, MetadataChanges changes, WritePolicy policy, CancellationToken ct); }
 public interface IObjectDetector { Task<IReadOnlyList<Detection>> DetectAsync(RgbImage image, CancellationToken ct); }
