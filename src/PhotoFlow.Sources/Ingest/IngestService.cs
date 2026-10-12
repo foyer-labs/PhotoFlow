@@ -97,13 +97,13 @@ public sealed class IngestService : IIngestService
                     throw new ArgumentException($"Destination '{destination.Id}' lies inside the import source: the source is never written.", nameof(request));
                 }
             }
+        }
 
-            foreach (var file in request.Files)
+        foreach (var file in request.Files)
+        {
+            if (Path.IsPathRooted(file.TargetRelativePath) || file.TargetRelativePath.Split('/', '\\').Contains(".."))
             {
-                if (Path.IsPathRooted(file.TargetRelativePath) || file.TargetRelativePath.Split('/', '\\').Contains(".."))
-                {
-                    throw new ArgumentException($"Invalid target path '{file.TargetRelativePath}'.", nameof(request));
-                }
+                throw new ArgumentException($"Invalid target path '{file.TargetRelativePath}'.", nameof(request));
             }
         }
     }

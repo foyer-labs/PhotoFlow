@@ -1,0 +1,62 @@
+<Project>
+  <!--
+    SPDX-License-Identifier: Apache-2.0
+    exiftool provisioning (spec §11, decision F1-5): downloaded once per machine, version pinned, SHA-256 verified
+    against https://exiftool.org/checksums.txt, then copied next to the application under tools/exiftool.
+    Windows: standalone executable. Linux/macOS: Perl distribution (requires perl).
+    No binary is ever stored in the repository.
+  -->
+  <PropertyGroup>
+    <ExifToolVersion>13.59</ExifToolVersion>
+    <ExifToolCacheRoot Condition="'$(ExifToolCacheRoot)' == '' and '$(LOCALAPPDATA)' != ''">$(LOCALAPPDATA)\PhotoFlow.Build</ExifToolCacheRoot>
+    <ExifToolCacheRoot Condition="'$(ExifToolCacheRoot)' == ''">$(HOME)/.cache/PhotoFlow.Build</ExifToolCacheRoot>
+    <ExifToolIsWindows>$([MSBuild]::IsOSPlatform('Windows'))</ExifToolIsWindows>
+
+    <ExifToolArchive Condition="'$(ExifToolIsWindows)' == 'true'">exiftool-$(ExifToolVersion)_64.zip</ExifToolArchive>
+    <ExifToolSha256 Condition="'$(ExifToolIsWindows)' == 'true'">44B512B25AF500724BA579D0A53C8FC5851628B692DD5E5D94AE4A15C2CBA9EC</ExifToolSha256>
+    <ExifToolArchive Condition="'$(ExifToolIsWindows)' != 'true'">Image-ExifTool-$(ExifToolVersion).tar.gz</ExifToolArchive>
+    <ExifToolSha256 Condition="'$(ExifToolIsWindows)' != 'true'">668EA3ACECECB7235FBD0F4900E72D5F12C9B07E5C778FD36CB1E9B5828FD65A</ExifToolSha256>
+
+    <ExifToolUrl>https://sourceforge.net/projects/exiftool/files/$(ExifToolArchive)/download</ExifToolUrl>
+    <ExifToolCacheDir>$([MSBuild]::NormalizeDirectory('$(ExifToolCacheRoot)', 'exiftool-$(ExifToolVersion)'))</ExifToolCacheDir>
+    <ExifToolExtractedMarker>$(ExifToolCacheDir)extracted.ok</ExifToolExtractedMarker>
+  </PropertyGroup>
+
+  <Target Name="PhotoFlowProvisionExifTool" BeforeTargets="AssignTargetPaths" Condition="'$(PhotoFlowSkipExifTool)' != 'true'">
+    <MakeDir Directories="$(ExifToolCacheDir)" />
+
+    <DownloadFile Condition="!Exists('$(ExifToolExtractedMarker)')"
+                  SourceUrl="$(ExifToolUrl)" DestinationFolder="$(ExifToolCacheDir)" DestinationFileName="$(ExifToolArchive)" Retries="3" />
+    <GetFileHash Condition="!Exists('$(ExifToolExtractedMarker)')" Files="$(ExifToolCacheDir)$(ExifToolArchive)" Algorithm="SHA256">
+      <Output TaskParameter="Hash" PropertyName="_ExifToolActualHash" />
+    </GetFileHash>
+    <Error Condition="!Exists('$(ExifToolExtractedMarker)') and '$(_ExifToolActualHash)' != '$(ExifToolSha256)'"
+           Text="exiftool archive SHA-256 mismatch: expected $(ExifToolSha256), got $(_ExifToolActualHash)." />
+    <Unzip Condition="!Exists('$(ExifToolExtractedMarker)') and '$(ExifToolIsWindows)' == 'true'"
+           SourceFiles="$(ExifToolCacheDir)$(ExifToolArchive)" DestinationFolder="$(ExifToolCacheDir)" OverwriteReadOnlyFiles="true" />
+    <Exec Condition="!Exists('$(ExifToolExtractedMarker)') and '$(ExifToolIsWindows)' != 'true'"
+          Command="tar -xzf &quot;$(ExifToolArchive)&quot;" WorkingDirectory="$(ExifToolCacheDir)" />
+    <Copy Condition="!Exists('$(ExifToolExtractedMarker)') and '$(ExifToolIsWindows)' == 'true'"
+          SourceFiles="$(ExifToolCacheDir)exiftool-$(ExifToolVersion)_64\exiftool(-k).exe"
+          DestinationFiles="$(ExifToolCacheDir)exiftool-$(ExifToolVersion)_64\exiftool.exe" />
+    <Touch Condition="!Exists('$(ExifToolExtractedMarker)')" Files="$(ExifToolExtractedMarker)" AlwaysCreate="true" />
+
+    <PropertyGroup>
+      <_ExifToolPayload Condition="'$(ExifToolIsWindows)' == 'true'">$(ExifToolCacheDir)exiftool-$(ExifToolVersion)_64\</_ExifToolPayload>
+      <_ExifToolPayload Condition="'$(ExifToolIsWindows)' != 'true'">$(ExifToolCacheDir)Image-ExifTool-$(ExifToolVersion)/</_ExifToolPayload>
+    </PropertyGroup>
+    <PropertyGroup>
+      <_ExifToolMain Condition="'$(ExifToolIsWindows)' == 'true'">exiftool.exe</_ExifToolMain>
+      <_ExifToolMain Condition="'$(ExifToolIsWindows)' != 'true'">exiftool</_ExifToolMain>
+      <_ExifToolSupportDir Condition="'$(ExifToolIsWindows)' == 'true'">exiftool_files</_ExifToolSupportDir>
+      <_ExifToolSupportDir Condition="'$(ExifToolIsWindows)' != 'true'">lib</_ExifToolSupportDir>
+    </PropertyGroup>
+    <ItemGroup>
+      <_ExifToolSupport Include="$(_ExifToolPayload)$(_ExifToolSupportDir)/**/*" />
+      <None Include="$(_ExifToolPayload)$(_ExifToolMain)" Link="tools/exiftool/$(_ExifToolMain)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+      <None Include="@(_ExifToolSupport)"
+            Link="tools/exiftool/$(_ExifToolSupportDir)/%(_ExifToolSupport.RecursiveDir)%(_ExifToolSupport.Filename)%(_ExifToolSupport.Extension)"
+            CopyToOutputDirectory="PreserveNewest" Visible="false" />
+    </ItemGroup>
+  </Target>
+</Project>

@@ -53,6 +53,18 @@ public sealed class RecordingFileSystem : IFileSystem
         _inner.Move(sourcePath, destinationPath);
     }
 
+    public void Replace(string replacementPath, string destinationPath, string? backupPath)
+    {
+        Guard("Replace (from)", replacementPath);
+        Guard("Replace (to)", destinationPath);
+        if (backupPath is not null)
+        {
+            Guard("Replace (backup)", backupPath);
+        }
+
+        _inner.Replace(replacementPath, destinationPath, backupPath);
+    }
+
     public long GetAvailableFreeSpace(string path) => _inner.GetAvailableFreeSpace(path);
 
     private void Guard(string operation, string path)
@@ -112,6 +124,12 @@ public sealed class FaultInjectingFileSystem : IFileSystem
     {
         ThrowIfUnavailable(destinationPath);
         _inner.Move(sourcePath, destinationPath);
+    }
+
+    public void Replace(string replacementPath, string destinationPath, string? backupPath)
+    {
+        ThrowIfUnavailable(destinationPath);
+        _inner.Replace(replacementPath, destinationPath, backupPath);
     }
 
     public long GetAvailableFreeSpace(string path) => _inner.GetAvailableFreeSpace(path);

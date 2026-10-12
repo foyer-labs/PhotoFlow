@@ -28,6 +28,12 @@ public interface IFileSystem
     /// <summary>Renames a file; never overwrites an existing destination (throws <see cref="IOException"/>).</summary>
     void Move(string sourcePath, string destinationPath);
 
+    /// <summary>
+    /// Atomically replaces <paramref name="destinationPath"/> with <paramref name="replacementPath"/>, optionally keeping the
+    /// previous content as <paramref name="backupPath"/>. Used only to embed metadata in a library file after verification.
+    /// </summary>
+    void Replace(string replacementPath, string destinationPath, string? backupPath);
+
     long GetAvailableFreeSpace(string path);
 }
 
@@ -65,6 +71,9 @@ public sealed class PhysicalFileSystem : IFileSystem
     public void CreateDirectory(string path) => Directory.CreateDirectory(path);
 
     public void Move(string sourcePath, string destinationPath) => File.Move(sourcePath, destinationPath, overwrite: false);
+
+    public void Replace(string replacementPath, string destinationPath, string? backupPath) =>
+        File.Replace(replacementPath, destinationPath, backupPath, ignoreMetadataErrors: true);
 
     public long GetAvailableFreeSpace(string path)
     {

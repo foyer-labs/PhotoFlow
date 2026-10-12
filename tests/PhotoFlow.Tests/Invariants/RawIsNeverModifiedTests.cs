@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+using PhotoFlow.Core.IO;
 using PhotoFlow.Core.Metadata;
 using PhotoFlow.Metadata.ExifTool;
 using PhotoFlow.Tests.Support;
@@ -29,7 +30,8 @@ public sealed class RawIsNeverModifiedTests : IDisposable
         var raw = Path.Combine(_temp.Path, Path.GetFileName(source));
         File.Copy(source, raw);
         var before = FolderSnapshot.Sha256(raw);
-        var writer = new ExifToolMetadataWriter();
+        await using var exifTool = ExifToolFixture.Start();
+        var writer = new ExifToolMetadataWriter(exifTool, new PhysicalFileSystem());
 
         var result = await writer.WriteAsync(
             new MetadataTarget(raw, IsRaw: true),
