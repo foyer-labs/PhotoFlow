@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.IO.Compression;
-using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using PhotoFlow.Inference.Models;
 
 namespace PhotoFlow.Inference.Gpu;
 
@@ -31,8 +31,6 @@ public sealed record GpuRuntimeManifest(string Platform, IReadOnlyList<GpuRuntim
     }
 }
 
-public sealed record GpuRuntimeProgress(string Component, long DownloadedBytes, long TotalBytes);
-
 /// <summary>
 /// Installs the CUDA/cuDNN runtime DLLs needed by the ONNX Runtime CUDA provider (decision F1-2): each archive is
 /// downloaded from NVIDIA's redistributable server, verified with SHA-256 while streaming, and only the listed DLLs are
@@ -48,7 +46,7 @@ public sealed partial class GpuRuntimeInstaller(HttpClient http, GpuRuntimeManif
     /// Downloads (or reuses) and installs every missing component. The user must have accepted the NVIDIA licenses
     /// (CUDA Toolkit EULA, cuDNN SLA) shown before the download; the libraries are for NVIDIA GPUs only.
     /// </summary>
-    public async Task InstallAsync(bool licensesAccepted, IProgress<GpuRuntimeProgress>? progress, CancellationToken ct)
+    public async Task InstallAsync(bool licensesAccepted, IProgress<DownloadProgress>? progress, CancellationToken ct)
     {
         if (!licensesAccepted)
         {
@@ -60,10 +58,7 @@ public sealed partial class GpuRuntimeInstaller(HttpClient http, GpuRuntimeManif
         foreach (var component in manifest.Components.Where(c => !File.Exists(MarkerPath(c))))
         {
             var archive = Path.Combine(downloadDirectory, Path.GetFileName(new Uri(component.Url).LocalPath));
-            if (!File.Exists(archive) || !string.Equals(await Sha256Async(archive, ct).ConfigureAwait(false), component.Sha256, StringComparison.OrdinalIgnoreCase))
-            {
-                await DownloadAsync(component, archive, progress, ct).ConfigureAwait(false);
-            }
+            await VerifiedDownload.FetchAsync(http, new Uri(component.Url), archive, component.Sha256, component.Size, component.Name, progress, ct).ConfigureAwait(false);
 
             Extract(component, archive);
             await File.WriteAllTextAsync(MarkerPath(component), component.Sha256, ct).ConfigureAwait(false);
@@ -86,44 +81,6 @@ public sealed partial class GpuRuntimeInstaller(HttpClient http, GpuRuntimeManif
         }
 
         return InstallAsync(licensesAccepted, null, ct);
-    }
-
-    private async Task DownloadAsync(GpuRuntimeComponent component, string archive, IProgress<GpuRuntimeProgress>? progress, CancellationToken ct)
-    {
-        var partial = archive + ".part";
-        using var response = await http.GetAsync(new Uri(component.Url), HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
-        response.EnsureSuccessStatusCode();
-        using var sha = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-        await using (var source = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false))
-        await using (var target = new FileStream(partial, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 20, useAsync: true))
-        {
-            var buffer = new byte[1 << 20];
-            long total = 0;
-            int read;
-            while ((read = await source.ReadAsync(buffer, ct).ConfigureAwait(false)) > 0)
-            {
-                sha.AppendData(buffer, 0, read);
-                await target.WriteAsync(buffer.AsMemory(0, read), ct).ConfigureAwait(false);
-                total += read;
-                progress?.Report(new GpuRuntimeProgress(component.Name, total, component.Size));
-            }
-        }
-
-        var actual = Convert.ToHexString(sha.GetHashAndReset());
-        if (!actual.Equals(component.Sha256, StringComparison.OrdinalIgnoreCase))
-        {
-            // The bad download stays as ".part" and is overwritten by the next attempt (I4).
-            throw new InvalidDataException($"{component.Name}: SHA-256 {actual} does not match {component.Sha256}.");
-        }
-
-        if (File.Exists(archive))
-        {
-            File.Replace(partial, archive, destinationBackupFileName: null);
-        }
-        else
-        {
-            File.Move(partial, archive);
-        }
     }
 
     private void Extract(GpuRuntimeComponent component, string archive)
@@ -153,12 +110,6 @@ public sealed partial class GpuRuntimeInstaller(HttpClient http, GpuRuntimeManif
     }
 
     private string MarkerPath(GpuRuntimeComponent component) => Path.Combine(runtimeDirectory, $"{component.Name}-{component.Version}.installed");
-
-    private static async Task<string> Sha256Async(string path, CancellationToken ct)
-    {
-        await using var stream = File.OpenRead(path);
-        return Convert.ToHexString(await SHA256.HashDataAsync(stream, ct).ConfigureAwait(false));
-    }
 
     private static Regex Glob(string pattern) =>
         new("^" + Regex.Escape(pattern).Replace(@"\*", "[^/]*", StringComparison.Ordinal) + "$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);

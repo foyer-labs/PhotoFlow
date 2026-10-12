@@ -8,5 +8,6 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="..\..\models\gpu-runtime.json" LogicalName="PhotoFlow.Inference.gpu-runtime.json" />
+    <EmbeddedResource Include="..\..\models\manifest.json" LogicalName="PhotoFlow.Inference.manifest.json" />
   </ItemGroup>
 </Project>
