@@ -10,6 +10,8 @@ using PhotoFlow.App.Services;
 using PhotoFlow.App.ViewModels;
 using PhotoFlow.App.Views;
 using PhotoFlow.Core.Catalog;
+using PhotoFlow.Core.Metadata;
+using PhotoFlow.Core.Pipeline;
 using PhotoFlow.Core.Paths;
 using PhotoFlow.Tests.Support;
 
@@ -105,6 +107,79 @@ public sealed class PageFlowTests : IDisposable
         await Settle(shell.CurrentPage.ActivateAsync());
         Assert.Single(home.Libraries);
         Save(window, "3a-home");
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public async Task Library_on_an_existing_folder_is_sidecar_only_analyzed_in_place_and_embedding_needs_confirmation()
+    {
+        var paths = new DefaultAppPaths(_temp.Sub("profile-lib"));
+        await using var host = await PhotoFlowHost.StartAsync(paths, CancellationToken.None);
+        using var shell = new MainWindowViewModel(host);
+        var window = new MainWindow { DataContext = shell, Width = 1440, Height = 900 };
+        window.Show();
+        await Settle(shell.CurrentPage.ActivateAsync());
+        var home = Assert.IsType<HomeViewModel>(shell.CurrentPage);
+        home.FirstRun.LibraryRoot = _temp.Sub("imports");
+        await Settle(home.FirstRun.FinishCommand.ExecuteAsync(null));
+
+        shell.ShowSection(SectionCatalog.Libraries);
+        var libraries = Assert.IsType<LibrariesViewModel>(shell.CurrentPage);
+        await Settle(libraries.ActivateAsync());
+        Assert.Single(libraries.Libraries);
+
+        // 5a: an existing archive becomes a library in SidecarOnly (D21).
+        var archive = _temp.Sub("archive");
+        Directory.CreateDirectory(Path.Combine(archive, "2024"));
+        for (var i = 1; i <= 3; i++)
+        {
+            SyntheticImages.WriteJpeg(Path.Combine(archive, "2024", $"IMG_{i:0000}.JPG"), 640, 480, i);
+        }
+
+        var before = Directory.EnumerateFiles(archive, "*", SearchOption.AllDirectories).ToDictionary(f => f, File.ReadAllBytes);
+        await Settle(libraries.AddLibraryAsync(archive));
+        Assert.Equal(2, libraries.Libraries.Count);
+        Assert.Equal(archive, libraries.Selected!.Library.RootPath);
+        Assert.True(libraries.PolicySidecar);
+        Assert.Equal(LibraryOrigin.ExistingArchive, libraries.Selected.Library.Origin);
+        Save(window, "5a-library-new");
+
+        // First analysis in place: the job runs, the files are only read.
+        await Settle(libraries.AnalyzeCommand.ExecuteAsync(null));
+        Assert.IsType<JobsViewModel>(shell.CurrentPage);
+        var job = (await host.Catalog.Jobs.ListRecentAsync(1, CancellationToken.None)).Single();
+        Assert.Equal(JobType.AnalyzeInPlace, job.Type);
+        await WaitAsync(() => !host.Jobs.IsRunning(job.Id));
+        Assert.Equal(JobState.Completed, (await host.Catalog.Jobs.GetAsync(job.Id, CancellationToken.None))!.State);
+        foreach (var (file, bytes) in before)
+        {
+            Assert.Equal(bytes, File.ReadAllBytes(file));
+        }
+
+        Assert.Equal(before.Count, Directory.EnumerateFiles(archive, "*", SearchOption.AllDirectories).Count());
+
+        shell.ShowSection(SectionCatalog.Libraries);
+        await Settle(libraries.ActivateAsync());
+        libraries.Selected = libraries.Libraries.Single(l => l.Library.RootPath == archive);
+        await WaitAsync(() => libraries.Formats.StartsWith("JPEG 100", StringComparison.Ordinal));
+        Assert.Equal("3", libraries.Selected!.Count);
+        Save(window, "5a-library-analyzed");
+
+        // Embedded XMP only after the confirmation stating the number of files; cancel keeps the policy.
+        libraries.PolicyEmbedded = true;
+        await WaitAsync(() => libraries.EmbedConfirmation is not null);
+        Assert.Contains("3", libraries.EmbedConfirmation!, StringComparison.Ordinal);
+        Assert.True(libraries.PolicySidecar);
+        Save(window, "5a-embed-confirm");
+        libraries.CancelEmbedCommand.Execute(null);
+        Assert.Null(libraries.EmbedConfirmation);
+        Assert.Equal(WritePolicy.SidecarOnly, (await host.Catalog.Libraries.FindByRootAsync(archive, CancellationToken.None))!.XmpPolicy);
+
+        libraries.PolicyEmbedded = true;
+        await WaitAsync(() => libraries.EmbedConfirmation is not null);
+        await Settle(libraries.ConfirmEmbedCommand.ExecuteAsync(null));
+        Assert.Equal(WritePolicy.EmbeddedForNonRaw, (await host.Catalog.Libraries.FindByRootAsync(archive, CancellationToken.None))!.XmpPolicy);
+        Assert.True(libraries.PolicyEmbedded);
         window.Close();
     }
 

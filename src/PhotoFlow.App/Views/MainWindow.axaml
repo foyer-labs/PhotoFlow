@@ -24,6 +24,7 @@
     <DataTemplate DataType="vm:ImportWizardViewModel"><v:ImportWizardView /></DataTemplate>
     <DataTemplate DataType="vm:JobsViewModel"><v:JobsView /></DataTemplate>
     <DataTemplate DataType="vm:ReviewViewModel"><v:ReviewView /></DataTemplate>
+    <DataTemplate DataType="vm:LibrariesViewModel"><v:LibrariesView /></DataTemplate>
     <DataTemplate DataType="vm:PlaceholderPageViewModel"><v:PlaceholderView /></DataTemplate>
   </Window.DataTemplates>
 

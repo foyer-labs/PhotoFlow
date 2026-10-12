@@ -220,9 +220,9 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     /// Creates and starts the in-place analysis of a library at low priority: half the parallel analysis of an
     /// import, and it waits while an import runs (spec §10, archives).
     /// </summary>
-    public async Task<long> StartArchiveAnalysisAsync(long libraryId, ArchiveOrder order, CancellationToken ct)
+    public async Task<long> StartArchiveAnalysisAsync(long libraryId, string profileId, ArchiveOrder order, CancellationToken ct)
     {
-        var settings = new ArchiveJobSettings(libraryId, Settings.Import.ProfileId, order, FaceMode.DetectOnly,
+        var settings = new ArchiveJobSettings(libraryId, profileId, order, FaceMode.DetectOnly,
             Math.Max(1, PipelineDefaults.DefaultAnalysisWorkers / 2));
         var jobId = await ArchiveJobRunner.CreateAsync(Catalog, FileSystem, settings, ct).ConfigureAwait(false);
         _ = Jobs.StartAsync(jobId, JobPriority.Low);

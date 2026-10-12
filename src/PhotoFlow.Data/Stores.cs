@@ -31,6 +31,17 @@ internal sealed class LibraryStore(SqliteCatalog catalog) : ILibraryStore
             $"SELECT {Columns} FROM Libraries WHERE RootPath = @rootPath COLLATE NOCASE ORDER BY Id LIMIT 1;", new { rootPath }, cancellationToken: ct)), ct).ConfigureAwait(false))
             .Select(Map).FirstOrDefault();
 
+    public async Task<IReadOnlyDictionary<string, int>> CountFormatsAsync(long libraryId, CancellationToken ct) =>
+        (await catalog.RunAsync(c => c.QueryAsync<(string Format, int Count)>(new CommandDefinition(
+            "SELECT a.Format, COUNT(DISTINCT a.Id) FROM Assets a JOIN AssetLocations l ON l.AssetId = a.Id WHERE l.LibraryId = @libraryId GROUP BY a.Format;",
+            new { libraryId }, cancellationToken: ct)), ct).ConfigureAwait(false))
+        .ToDictionary(r => r.Format, r => r.Count, StringComparer.OrdinalIgnoreCase);
+
+    public Task UpdatePolicyAsync(long libraryId, WritePolicy policy, bool isReadOnly, CancellationToken ct) =>
+        catalog.RunAsync(c => c.ExecuteAsync(new CommandDefinition(
+            "UPDATE Libraries SET XmpPolicy = @policy, IsReadOnly = @isReadOnly WHERE Id = @libraryId;",
+            new { libraryId, policy = policy.ToString(), isReadOnly }, cancellationToken: ct)), ct);
+
     public Task<int> CountAssetsAsync(long libraryId, CancellationToken ct) =>
         catalog.RunAsync(c => c.ExecuteScalarAsync<int>(new CommandDefinition(
             "SELECT COUNT(DISTINCT AssetId) FROM AssetLocations WHERE LibraryId = @libraryId;", new { libraryId }, cancellationToken: ct)), ct);

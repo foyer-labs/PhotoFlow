@@ -280,4 +280,26 @@
   <data name="Review.Command.Keep" xml:space="preserve"><value>Tieni</value></data>
   <data name="Review.Command.Discard" xml:space="preserve"><value>Scarta</value></data>
   <data name="Models.License.NonCommercialOnly" xml:space="preserve"><value>solo uso non commerciale</value></data>
+  <data name="Libraries.Empty.Title" xml:space="preserve"><value>Nessuna libreria</value></data>
+  <data name="Libraries.Empty.Body" xml:space="preserve"><value>Una libreria è una cartella in cui le foto sono già. PhotoFlow la legge sul posto: i file non vengono mai spostati né modificati, i metadati vanno nei sidecar XMP.</value></data>
+  <data name="Libraries.AddFolder" xml:space="preserve"><value>Aggiungi una cartella</value></data>
+  <data name="Libraries.New" xml:space="preserve"><value>Nuova libreria</value></data>
+  <data name="Libraries.Analysis.Title" xml:space="preserve"><value>Prima analisi sul posto</value></data>
+  <data name="Libraries.Analysis.Body" xml:space="preserve"><value>Gira in background a bassa priorità e cede il passo agli import. I file vengono solo letti; il lavoro si può mettere in pausa e riprendere.</value></data>
+  <data name="Libraries.Analysis.Order" xml:space="preserve"><value>Ordine</value></data>
+  <data name="Libraries.Analysis.Start" xml:space="preserve"><value>Avvia analisi</value></data>
+  <data name="Libraries.Xmp" xml:space="preserve"><value>Scrittura dei metadati</value></data>
+  <data name="Libraries.Xmp.SidecarNote" xml:space="preserve"><value>Consigliato per un archivio esistente: gli originali non vengono mai toccati.</value></data>
+  <data name="Libraries.Xmp.CatalogNote" xml:space="preserve"><value>Nulla viene scritto accanto alle foto.</value></data>
+  <data name="Libraries.EmbedConfirm" xml:space="preserve"><value>L'XMP verrà scritto dentro {0} file non RAW di questa libreria. exiftool conserva una copia _original di ogni file prima di scrivere. Continuare?</value></data>
+  <data name="Libraries.EmbedConfirm.Apply" xml:space="preserve"><value>Scrivi dentro i file</value></data>
+  <data name="Libraries.ReadOnly" xml:space="preserve"><value>Sola lettura</value></data>
+  <data name="Libraries.ReadOnlyNote" xml:space="preserve"><value>Nulla viene scritto accanto alle foto: decisioni e tag restano nel catalogo.</value></data>
+  <data name="Libraries.RootMissing" xml:space="preserve"><value>La cartella {0} non è raggiungibile. Collega il disco e riprova.</value></data>
+  <data name="Libraries.NotAnalyzed" xml:space="preserve"><value>Non ancora analizzata</value></data>
+  <data name="Libraries.Order.NewestFirst" xml:space="preserve"><value>Dalle più recenti</value></data>
+  <data name="Libraries.Order.ByFolder" xml:space="preserve"><value>Per cartella</value></data>
+  <data name="Libraries.Command.New" xml:space="preserve"><value>nuova libreria</value></data>
+  <data name="Libraries.Command.Analyze" xml:space="preserve"><value>analizza</value></data>
+  <data name="Libraries.Command.Refresh" xml:space="preserve"><value>aggiorna</value></data>
 </root>

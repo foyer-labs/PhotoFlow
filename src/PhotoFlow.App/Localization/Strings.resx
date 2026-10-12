@@ -280,4 +280,26 @@
   <data name="Review.Command.Keep" xml:space="preserve"><value>Keep</value></data>
   <data name="Review.Command.Discard" xml:space="preserve"><value>Discard</value></data>
   <data name="Models.License.NonCommercialOnly" xml:space="preserve"><value>non-commercial use only</value></data>
+  <data name="Libraries.Empty.Title" xml:space="preserve"><value>No library yet</value></data>
+  <data name="Libraries.Empty.Body" xml:space="preserve"><value>A library is a folder where your photos already live. PhotoFlow reads it in place: files are never moved or modified, metadata goes in XMP sidecars.</value></data>
+  <data name="Libraries.AddFolder" xml:space="preserve"><value>Add a folder</value></data>
+  <data name="Libraries.New" xml:space="preserve"><value>New library</value></data>
+  <data name="Libraries.Analysis.Title" xml:space="preserve"><value>First analysis in place</value></data>
+  <data name="Libraries.Analysis.Body" xml:space="preserve"><value>Runs in background at low priority and yields to imports. Files are only read; the work can be paused and resumed.</value></data>
+  <data name="Libraries.Analysis.Order" xml:space="preserve"><value>Order</value></data>
+  <data name="Libraries.Analysis.Start" xml:space="preserve"><value>Start analysis</value></data>
+  <data name="Libraries.Xmp" xml:space="preserve"><value>Metadata writing</value></data>
+  <data name="Libraries.Xmp.SidecarNote" xml:space="preserve"><value>Recommended for an existing archive: originals are never touched.</value></data>
+  <data name="Libraries.Xmp.CatalogNote" xml:space="preserve"><value>Nothing is written next to the photos.</value></data>
+  <data name="Libraries.EmbedConfirm" xml:space="preserve"><value>XMP will be written inside {0} non-RAW files of this library. exiftool keeps an _original copy of each file before writing. Continue?</value></data>
+  <data name="Libraries.EmbedConfirm.Apply" xml:space="preserve"><value>Write inside the files</value></data>
+  <data name="Libraries.ReadOnly" xml:space="preserve"><value>Read-only</value></data>
+  <data name="Libraries.ReadOnlyNote" xml:space="preserve"><value>Nothing is written next to the photos: decisions and tags stay in the catalog.</value></data>
+  <data name="Libraries.RootMissing" xml:space="preserve"><value>The folder {0} is not reachable. Connect the disk and try again.</value></data>
+  <data name="Libraries.NotAnalyzed" xml:space="preserve"><value>Not analyzed yet</value></data>
+  <data name="Libraries.Order.NewestFirst" xml:space="preserve"><value>Newest first</value></data>
+  <data name="Libraries.Order.ByFolder" xml:space="preserve"><value>By folder</value></data>
+  <data name="Libraries.Command.New" xml:space="preserve"><value>new library</value></data>
+  <data name="Libraries.Command.Analyze" xml:space="preserve"><value>analyze</value></data>
+  <data name="Libraries.Command.Refresh" xml:space="preserve"><value>refresh</value></data>
 </root>

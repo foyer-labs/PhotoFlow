@@ -36,6 +36,12 @@ public interface ILibraryStore
 
     /// <summary>Photos (assets) with a location in the library.</summary>
     Task<int> CountAssetsAsync(long libraryId, CancellationToken ct);
+
+    /// <summary>Assets of the library by format (NEF, JPG, TIFF, HEIC…), board 5a.</summary>
+    Task<IReadOnlyDictionary<string, int>> CountFormatsAsync(long libraryId, CancellationToken ct);
+
+    /// <summary>XMP policy and read-only flag (D21: the caller confirms a switch to embedded XMP).</summary>
+    Task UpdatePolicyAsync(long libraryId, Metadata.WritePolicy policy, bool isReadOnly, CancellationToken ct);
 }
 
 public interface IAssetStore

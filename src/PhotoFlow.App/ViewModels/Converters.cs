@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Avalonia.Data.Converters;
+using PhotoFlow.App.Localization;
+using PhotoFlow.Core.Pipeline;
 
 namespace PhotoFlow.App.ViewModels;
 
@@ -21,4 +23,7 @@ public static class Converters
 
     /// <summary>Position of the profile threshold tick on a signal bar.</summary>
     public static readonly IValueConverter ThresholdOffset = new FuncValueConverter<double?, double>(t => Math.Clamp(t ?? -1, -1, 1) * SignalBarWidth);
+
+    /// <summary>Label of an archive analysis order.</summary>
+    public static readonly IValueConverter OrderLabel = new FuncValueConverter<ArchiveOrder, string>(order => Strings.Get("Libraries.Order." + order));
 }
