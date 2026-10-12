@@ -6,9 +6,9 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 
 | Voce | Valore |
 |---|---|
-| Fase corrente | 0 — Setup e laboratorio (non ancora avviata: in attesa di conferma) |
-| Branch | nessuno (repository git inizializzato localmente, nessun commit) |
-| Remoto | https://github.com/foyer-labs/PhotoFlow.git (pubblico, vuoto) |
+| Fase corrente | 0 — Setup e laboratorio: **sviluppo completato, report in attesa di approvazione** ([docs/reports/fase-0.md](reports/fase-0.md)) |
+| Branch | `phase/0-setup` (pushato; pull request verso `main` da approvare) |
+| Remoto | https://github.com/foyer-labs/PhotoFlow.git (pubblico) |
 | Autore dei commit | Foyer Labs <foyerlabs@gmail.com> (config locale del repository) |
 | Ultimo aggiornamento | 2026-10-12 |
 
@@ -21,7 +21,7 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 | uv | 0.11.28 | |
 | git / gh | 2.51 / 2.101 | gh autenticato come foyer-labs |
 | GPU | NVIDIA RTX 3090, 24 GB | Driver 610.88 (CUDA 12/13) |
-| exiftool | non installato | Serve al benchmark (anteprime RAW) |
+| exiftool | 13.59 (solo laboratorio) | In `PHOTOFLOW_TESTDATA/tools/exiftool-13.59`, SHA-256 verificato |
 | `PHOTOFLOW_TESTDATA` | `E:\AI\PhotoFlowTestData` | Variabile utente impostata il 2026-10-12 (i processi già aperti non la vedono finché non vengono riavviati) |
 
 ## Attività completate
@@ -32,6 +32,9 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 - `git init` locale con identità Foyer Labs e remoto `origin`; nessun commit.
 - Installato .NET SDK 10.0.401 (winget).
 - Risolti con l'utente i punti A1-A11 (vedi decisioni); spec.md aggiornata in §2 (D21), §3, §4, §5, §6, §7, §8, §10 (I1), §13, §14, §17 (P11, backlog).
+- Fase 0 sviluppata su phase/0-setup (7 commit): soluzione e Core, guscio Avalonia, CI, hook, manifest, laboratorio, parità D-FINE, benchmark, verifica RAM++, verifiche 0.6. Dettagli ed evidenze in [docs/reports/fase-0.md](reports/fase-0.md).
+- Modelli scaricati e verificati in PHOTOFLOW_TESTDATA/models (buffalo_l con accettazione della licenza per uso di laboratorio).
+- Immagini di sviluppo: 8 COCO val2017 in PHOTOFLOW_TESTDATA/photos-dev (solo per provare gli script).
 
 ## Decisioni prese con l'utente
 
@@ -54,12 +57,19 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 
 ## Problemi aperti
 
-Nessuno.
+| # | Tema | Sintesi |
+|---|---|---|
+| T1 | Tolleranza parità tensori (§14) | Logit ORT vs PyTorch fino a 8,5e-3 (> 1e-3 provvisorio); proposta: punteggi ≤ 1e-3, riquadri ≤ 2e-4 |
+| L1-L2 | Inventario licenze §15 | Aggiornamenti da verifiche 0.6 proposti nel report |
+| R1-R5 | Nuovi rischi | NEF HE non decodificabili (LibRaw), una sola ORT per processo, DirectML vs Windows ML, HdbscanSharp O(n²), binding LibRaw |
+| N5-N6 | Modelli quantizzati | RAM++ int8/CLIP quantizzato non accelerano su GPU; RAM++ int8 non supera la parità (Jaccard 0,895) |
+| N1-N4 | Note per fasi successive | CLIP scheda modello (fase 2), DirectML (0.6→R3), GridSample fp16 CUDA (fase 1), YuNet ingresso fisso (fase 1) |
 
 ## Verifiche manuali in attesa (per l'utente)
 
-Nessuna.
+1. Avviare l'app (`dotnet run --project src/PhotoFlow.App`, tema chiaro con `-- --theme light`): barra titolo nativa, trascinamento, navigazione, scorciatoie.
+2. Fornire foto di test in `E:\AI\PhotoFlowTestData\photos\` (30-50 per la parità, ~200 per il benchmark, NEF Z5 II + JPG).
 
 ## Prossimo passo
 
-Piano della fase 0 scritto in `docs/plans/fase-0.md`, in attesa di approvazione → sviluppo su `phase/0-setup`.
+Approvazione del report di fase 0 e delle proposte T1, L1-L2, R1-R5 → rieseguire parità e benchmark sulle foto reali → pull request `phase/0-setup` → `main` → piano della fase 1.
