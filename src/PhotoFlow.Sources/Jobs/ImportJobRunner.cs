@@ -59,9 +59,10 @@ public sealed class ImportJobRunner : IJobRunner
             throw new InvalidOperationException($"Job {jobId} is not an import job.");
         }
 
-        if (job.State is JobState.Completed or JobState.Cancelled)
+        // A completed job can run again to retry its failed files (summary 3h); a cancelled job is closed.
+        if (job.State == JobState.Cancelled)
         {
-            throw new InvalidOperationException($"Job {jobId} is already {job.State}.");
+            throw new InvalidOperationException($"Job {jobId} was cancelled.");
         }
 
         var settings = DeserializeSettings(job.SettingsSnapshotJson);

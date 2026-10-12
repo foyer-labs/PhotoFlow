@@ -169,21 +169,28 @@ public sealed class ImportJobTests : IDisposable
         var (card, library) = Card(photos: 4, withPair: false, withVideo: false);
         await using var catalog = await OpenCatalogAsync();
         var jobId = await CreateJobAsync(catalog, card, library);
-        using var pause = CancellationTokenSource.CreateLinkedTokenSource(Ct);
-        var first = new RecordingProcessor { AfterProcessed = n => CancelAt(n, 1, pause) };
-        await Runner(catalog, first).RunAsync(jobId, null, pause.Token);
 
-        // The card is removed: simulated by a file system that does not see it.
+        // First run: two files cannot be read (failing card), the other two are copied and analyzed.
+        var failing = new FaultInjectingFileSystem(new PhysicalFileSystem())
+        {
+            FailReads = p => p.StartsWith(card, StringComparison.OrdinalIgnoreCase) && (p.EndsWith("_0003.NEF", StringComparison.Ordinal) || p.EndsWith("_0004.NEF", StringComparison.Ordinal)),
+        };
+        var first = new RecordingProcessor();
+        Assert.Equal(2, (await Runner(catalog, first, fileSystem: failing).RunAsync(jobId, null, Ct)).Failed);
+
+        // The card is removed: simulated by a file system that does not see it. The failed files wait for it.
         var removed = new HiddenFolderFileSystem(new PhysicalFileSystem(), card);
         var second = new RecordingProcessor();
         var summary = await Runner(catalog, second, fileSystem: removed).RunAsync(jobId, null, Ct);
 
         Assert.Equal(JobState.Paused, summary.State);
         Assert.Equal(JobPauseReason.SourceUnavailable, summary.PauseReason);
+        Assert.Empty(second.Processed);
         var third = new RecordingProcessor();
         Assert.Equal(JobState.Completed, (await Runner(catalog, third).RunAsync(jobId, null, Ct)).State);
-        Assert.Equal(4, new[] { first, second, third }.SelectMany(r => r.Processed).Distinct(StringComparer.OrdinalIgnoreCase).Count());
-        Assert.Empty(second.Processed.Intersect(third.Processed, StringComparer.OrdinalIgnoreCase));
+        Assert.Equal(2, first.Processed.Count);
+        Assert.Equal(2, third.Processed.Count);
+        Assert.Empty(first.Processed.Intersect(third.Processed, StringComparer.OrdinalIgnoreCase));
     }
 
     [Fact]
