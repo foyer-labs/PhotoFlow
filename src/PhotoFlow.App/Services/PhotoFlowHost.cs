@@ -40,6 +40,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     private readonly SemaphoreSlim _sessionsGate = new(1, 1);
     private readonly List<IInferenceSession> _sessions = [];
     private CullingPhotoProcessor? _processor;
+    private Task _maintenance = Task.CompletedTask;
 
     private PhotoFlowHost(IAppPaths paths, IFileSystem fileSystem, SettingsStore settingsStore, AppSettings settings, SqliteCatalog catalog, ExifToolSession exifTool)
     {
@@ -64,6 +65,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
             new ImportJobRunner(Catalog, new IngestService(new CopyEngine(FileSystem)), ExifReader, FileSystem, new LazyProcessor(this), Deferred),
             new ArchiveJobRunner(Catalog, ExifReader, FileSystem, new LowPriorityProcessor(this))));
         Cards = new PollingCardDetector();
+        Maintenance = new MaintenanceService(paths, new InternalFileCleaner(paths));
     }
 
     public IAppPaths Paths { get; }
@@ -102,6 +104,9 @@ public sealed class PhotoFlowHost : IAsyncDisposable
 
     public ICardDetector Cards { get; }
 
+    /// <summary>Backups and cleanup of PhotoFlow's internal files (B1).</summary>
+    public MaintenanceService Maintenance { get; }
+
     /// <summary>Jobs found running at startup: the previous session ended unexpectedly (board 3c).</summary>
     public IReadOnlyList<Job> InterruptedJobs { get; private set; } = [];
 
@@ -117,6 +122,8 @@ public sealed class PhotoFlowHost : IAsyncDisposable
         var host = new PhotoFlowHost(paths, fileSystem, settingsStore, settings, catalog, exifTool);
         host.InterruptedJobs = await ImportJobRunner.RecoverInterruptedAsync(catalog, ct).ConfigureAwait(false);
         host.Cards.Start();
+        host._maintenance = Task.Run(() => host.Maintenance.RunAtStartupAsync(
+            catalog, Path.Combine(paths.GpuRuntimeDirectory, "downloads"), host.GpuRuntime.IsInstalled, CancellationToken.None), CancellationToken.None);
         return host;
     }
 
@@ -142,6 +149,16 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     {
         Cards.Dispose();
         await Jobs.DisposeAsync().ConfigureAwait(false);
+        try
+        {
+            await _maintenance.ConfigureAwait(false);
+            await Maintenance.BackupAtCloseAsync(Catalog, CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException or System.Data.Common.DbException)
+        {
+            // A backup that cannot be written must not prevent closing; the daily backup retries.
+        }
+
         foreach (var session in _sessions)
         {
             session.Dispose();

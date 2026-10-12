@@ -19,10 +19,12 @@ public sealed class SqliteCatalog : ICatalog
     private readonly SqliteConnection _connection;
     private readonly FileStream _lock;
     private readonly SemaphoreSlim _gate = new(1, 1);
+    private readonly string _catalogPath;
 
-    private SqliteCatalog(SqliteConnection connection, FileStream lockStream)
+    private SqliteCatalog(SqliteConnection connection, FileStream lockStream, string catalogPath)
     {
         _connection = connection;
+        _catalogPath = catalogPath;
         _lock = lockStream;
         Libraries = new LibraryStore(this);
         Assets = new AssetStore(this);
@@ -58,7 +60,7 @@ public sealed class SqliteCatalog : ICatalog
             await CatalogMigrator.ApplyAsync(options, CatalogMigrator.Embedded(), ct).ConfigureAwait(false);
             var connection = Connections.Open(options.CatalogPath);
             await Connections.ExecuteAsync(connection, $"PRAGMA journal_mode = {CatalogJournal.ModeFor(options.CatalogPath)};", ct).ConfigureAwait(false);
-            return new SqliteCatalog(connection, lockStream);
+            return new SqliteCatalog(connection, lockStream, Path.GetFullPath(options.CatalogPath));
         }
         catch
         {
@@ -69,6 +71,28 @@ public sealed class SqliteCatalog : ICatalog
 
     public async Task<int> GetSchemaVersionAsync(CancellationToken ct) =>
         await RunAsync(c => c.ExecuteScalarAsync<int>(new CommandDefinition("SELECT COALESCE(MAX(Version), 0) FROM SchemaVersion;", cancellationToken: ct)), ct).ConfigureAwait(false);
+
+    public Task<string> BackupAsync(string backupsDirectory, string reason, CancellationToken ct)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(backupsDirectory);
+        Directory.CreateDirectory(backupsDirectory);
+        var stamp = DateTimeOffset.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
+        var name = Path.GetFileNameWithoutExtension(_catalogPath);
+        var extension = Path.GetExtension(_catalogPath);
+        var target = Path.Combine(backupsDirectory, $"{name}-{reason}-{stamp}{extension}");
+        for (var n = 2; File.Exists(target); n++)
+        {
+            target = Path.Combine(backupsDirectory, $"{name}-{reason}-{stamp}-{n}{extension}");
+        }
+
+        return RunAsync(async c =>
+        {
+            await using var destination = Connections.Open(target);
+            ct.ThrowIfCancellationRequested();
+            c.BackupDatabase(destination);
+            return target;
+        }, ct);
+    }
 
     public async ValueTask DisposeAsync()
     {

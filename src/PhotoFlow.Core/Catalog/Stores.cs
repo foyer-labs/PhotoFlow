@@ -18,6 +18,9 @@ public interface ICatalog : IAsyncDisposable
     IDeferredCopyStore DeferredCopies { get; }
 
     IAnalysisStore Analysis { get; }
+
+    /// <summary>Consistent copy of the open catalog into <paramref name="backupsDirectory"/> (spec §9); returns its path.</summary>
+    Task<string> BackupAsync(string backupsDirectory, string reason, CancellationToken ct);
 }
 
 public interface ILibraryStore

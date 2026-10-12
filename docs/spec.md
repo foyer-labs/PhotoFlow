@@ -498,7 +498,7 @@ Catalogo SQLite, foto identificate dall'hash del contenuto: tag, volti e decisio
 | --- | --- |
 | Modalità journal | Rollback automatico su percorso di rete (WAL non funziona su filesystem di rete) |
 | Un PC alla volta | File di lock; apertura rifiutata con messaggio chiaro (dopo 2 s di nuovi tentativi: un processo appena terminato può rilasciare il lock in ritardo) |
-| Backup | A ogni chiusura e programmato, N versioni |
+| Backup | A ogni chiusura e ogni giorno (all'avvio, se l'ultimo è più vecchio di 24 h); si tengono gli ultimi 10 (decisione B1); cache delle miniature entro 4 GB, temporanei oltre 24 h e archivi del pacchetto GPU installato ripuliti |
 | Integrità | Controllo all'apertura; ripristino proposto dall'ultimo backup |
 
 Esportazione/importazione: file unico (es. `.pfcatalog`) con database, galleria persone e configurazione delle librerie; rimappatura dei percorsi all'importazione.
