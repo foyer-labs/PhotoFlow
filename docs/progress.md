@@ -63,6 +63,7 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 | 2026-10-12 | L'utente accetta le licenze NVIDIA (CUDA Toolkit EULA, cuDNN SLA) per installare il pacchetto GPU su questo PC (sviluppo). Verifica licenze: ridistribuzione delle DLL di runtime permessa con l'app, solo su GPU NVIDIA, non modificate, LICENSE.txt conservati, accettazione richiesta all'utente nel primo avvio |
 | 2026-10-12 | Tecnica (fase 1.6): CUDA con TF32 disattivato (con TF32 la parità D-FINE crolla: Δ punteggi 0,16, senza guadagno di velocità); pacchetto GPU da archivi NVIDIA ufficiali (CUDA 13.0.3 + cuDNN 9.27), DLL estratte per nome, archivi conservati come pacchetto offline |
 | 2026-10-12 | Tecnica (fase 1.7): volti buffalo\_l con preparazione antialias e parità insightface 2.1 (CPU identica); punto AF dalle coordinate Nikon (`AFAreaXPosition`…, mirrorless e live view; punti nominali delle reflex senza posizione: zona successiva); nitidezza assoluta = 1 − blur effect multi-scala (il Laplaciano dipende dal contenuto: muri, notturne, panning), Laplaciano per la classifica in raffica; occhi sconosciuti di profilo o rivolti in basso; esposizione solo nella zona del soggetto; analisi a 2048 px. Dettagli e misure in spec §6 e §14 |
+| 2026-10-12 | Tecnica (fase 1.8): job di import in `PhotoFlow.Sources` (QuickHash/xxHash non possono stare in Core); unità di pipeline = foto (gemelli RAW+JPEG), in analisi solo con tutti i file verificati (I3), analisi sul JPEG se presente; impostazioni del job salvate nel job (ripresa identica); in pausa il lavoro già calcolato viene registrato; un job "in esecuzione" all'apertura del catalogo (lock esclusivo) è un'interruzione → in pausa; un job completato con errori si può rilanciare per ritentare i soli file falliti |
 | 2026-10-12 | A1 — Tavole rinominate come in §12bis (`PhotoFlow_*_dc.html`); specifica invariata |
 | 2026-10-12 | A10 — Ricostruite le celle troncate di §8 (Volti: `Persone\|Nome`; OCR: `Motorsport\|Numero N`, `Motorsport\|Pilota\|Nome`, `Motorsport\|Team\|Nome`) e §17 (Album → D6), con pipe protetti |
 
@@ -84,4 +85,4 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 
 ## Prossimo passo
 
-Tappa 1.0 (test delle invarianti) → 1.1 catalogo → … secondo `docs/plans/fase-1.md` → pull request `phase/0-setup` → `main` → piano della fase 1.
+Fase 1 su `phase/1-import`: tappe 1.0-1.8 completate (invarianti, catalogo, exiftool, sorgenti, ingest, gestori, inferenza CUDA/CPU, analisi e decisione, volti buffalo\_l/YuNet, job di import con ripresa e scenari). Prossima: tappa 1.9 (interfaccia), poi 1.10 (misure: set etichettato, prestazioni, checklist XMP).
