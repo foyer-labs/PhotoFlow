@@ -64,6 +64,27 @@ public sealed class AppServicesTests : IDisposable
         }
     }
 
+    [Fact]
+    public async Task Low_priority_work_waits_while_an_import_runs()
+    {
+        var runner = new GatedRunner();
+        await using var manager = new JobManager(() => runner);
+        Assert.False(manager.HasNormalPriorityRunning);
+        await manager.YieldToNormalAsync(Ct); // nothing running: no wait
+
+        var import = manager.StartAsync(1, JobPriority.Normal);
+        await runner.Started.Task.WaitAsync(Ct);
+        Assert.True(manager.HasNormalPriorityRunning);
+        var waiting = manager.YieldToNormalAsync(Ct);
+        await Task.Delay(300, Ct);
+        Assert.False(waiting.IsCompleted);
+
+        manager.Pause(1);
+        await import.WaitAsync(Ct);
+        await waiting.WaitAsync(TimeSpan.FromSeconds(5), Ct);
+        Assert.False(manager.HasNormalPriorityRunning);
+    }
+
     [Theory]
     [InlineData(100, 10, 0, 60, 540)]
     [InlineData(100, 2, 0, 60, null)]

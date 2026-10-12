@@ -206,7 +206,7 @@
                   </RadioButton>
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <Button x:Name="DownloadModels" Classes="primary" Command="{Binding InstallModelsCommand}" IsEnabled="{Binding !IsBusy}" Content="{l:Tr FirstRun.DownloadModels}" />
-                    <Button Classes="secondary" IsEnabled="False" ToolTip.Tip="{l:Tr FirstRun.OfflineLater}" Content="{l:Tr FirstRun.ImportOffline}" />
+                    <Button x:Name="ImportOffline" Classes="secondary" IsEnabled="{Binding !IsBusy}" Content="{l:Tr FirstRun.ImportOffline}" />
                   </StackPanel>
                   <ProgressBar Classes="thin" Minimum="0" Maximum="1" Value="{Binding DownloadProgress}" IsVisible="{Binding IsBusy}" />
                 </StackPanel>

@@ -6,10 +6,13 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
+using PhotoFlow.App.Localization;
 using PhotoFlow.App.Services;
 using PhotoFlow.App.ViewModels;
 using PhotoFlow.App.Views;
 using PhotoFlow.Core.Catalog;
+using PhotoFlow.Core.Metadata;
+using PhotoFlow.Core.Pipeline;
 using PhotoFlow.Core.Paths;
 using PhotoFlow.Tests.Support;
 
@@ -108,6 +111,124 @@ public sealed class PageFlowTests : IDisposable
         window.Close();
     }
 
+    [AvaloniaFact]
+    public async Task Library_on_an_existing_folder_is_sidecar_only_analyzed_in_place_and_embedding_needs_confirmation()
+    {
+        var paths = new DefaultAppPaths(_temp.Sub("profile-lib"));
+        await using var host = await PhotoFlowHost.StartAsync(paths, CancellationToken.None);
+        using var shell = new MainWindowViewModel(host);
+        var window = new MainWindow { DataContext = shell, Width = 1440, Height = 900 };
+        window.Show();
+        await Settle(shell.CurrentPage.ActivateAsync());
+        var home = Assert.IsType<HomeViewModel>(shell.CurrentPage);
+        home.FirstRun.LibraryRoot = _temp.Sub("imports");
+        await Settle(home.FirstRun.FinishCommand.ExecuteAsync(null));
+
+        shell.ShowSection(SectionCatalog.Libraries);
+        var libraries = Assert.IsType<LibrariesViewModel>(shell.CurrentPage);
+        await Settle(libraries.ActivateAsync());
+        Assert.Single(libraries.Libraries);
+
+        // 5a: an existing archive becomes a library in SidecarOnly (D21).
+        var archive = _temp.Sub("archive");
+        Directory.CreateDirectory(Path.Combine(archive, "2024"));
+        for (var i = 1; i <= 3; i++)
+        {
+            SyntheticImages.WriteJpeg(Path.Combine(archive, "2024", $"IMG_{i:0000}.JPG"), 640, 480, i);
+        }
+
+        var before = Directory.EnumerateFiles(archive, "*", SearchOption.AllDirectories).ToDictionary(f => f, File.ReadAllBytes);
+        await Settle(libraries.AddLibraryAsync(archive));
+        Assert.Equal(2, libraries.Libraries.Count);
+        Assert.Equal(archive, libraries.Selected!.Library.RootPath);
+        Assert.True(libraries.PolicySidecar);
+        Assert.Equal(LibraryOrigin.ExistingArchive, libraries.Selected.Library.Origin);
+        Save(window, "5a-library-new");
+
+        // First analysis in place: the job runs, the files are only read.
+        await Settle(libraries.AnalyzeCommand.ExecuteAsync(null));
+        Assert.IsType<JobsViewModel>(shell.CurrentPage);
+        var job = (await host.Catalog.Jobs.ListRecentAsync(1, CancellationToken.None)).Single();
+        Assert.Equal(JobType.AnalyzeInPlace, job.Type);
+        await WaitAsync(() => !host.Jobs.IsRunning(job.Id));
+        Assert.Equal(JobState.Completed, (await host.Catalog.Jobs.GetAsync(job.Id, CancellationToken.None))!.State);
+        foreach (var (file, bytes) in before)
+        {
+            Assert.Equal(bytes, File.ReadAllBytes(file));
+        }
+
+        Assert.Equal(before.Count, Directory.EnumerateFiles(archive, "*", SearchOption.AllDirectories).Count());
+
+        shell.ShowSection(SectionCatalog.Libraries);
+        await Settle(libraries.ActivateAsync());
+        libraries.Selected = libraries.Libraries.Single(l => l.Library.RootPath == archive);
+        await WaitAsync(() => libraries.Formats.StartsWith("JPEG 100", StringComparison.Ordinal));
+        Assert.Equal("3", libraries.Selected!.Count);
+        Save(window, "5a-library-analyzed");
+
+        // Embedded XMP only after the confirmation stating the number of files; cancel keeps the policy.
+        libraries.PolicyEmbedded = true;
+        await WaitAsync(() => libraries.EmbedConfirmation is not null);
+        Assert.Contains("3", libraries.EmbedConfirmation!, StringComparison.Ordinal);
+        Assert.True(libraries.PolicySidecar);
+        Save(window, "5a-embed-confirm");
+        libraries.CancelEmbedCommand.Execute(null);
+        Assert.Null(libraries.EmbedConfirmation);
+        Assert.Equal(WritePolicy.SidecarOnly, (await host.Catalog.Libraries.FindByRootAsync(archive, CancellationToken.None))!.XmpPolicy);
+
+        libraries.PolicyEmbedded = true;
+        await WaitAsync(() => libraries.EmbedConfirmation is not null);
+        await Settle(libraries.ConfirmEmbedCommand.ExecuteAsync(null));
+        Assert.Equal(WritePolicy.EmbeddedForNonRaw, (await host.Catalog.Libraries.FindByRootAsync(archive, CancellationToken.None))!.XmpPolicy);
+        Assert.True(libraries.PolicyEmbedded);
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public async Task Two_background_analyses_run_side_by_side_in_the_jobs_view_and_can_be_paused()
+    {
+        var paths = new DefaultAppPaths(_temp.Sub("profile-par"));
+        await using var host = await PhotoFlowHost.StartAsync(paths, CancellationToken.None);
+        using var shell = new MainWindowViewModel(host);
+        var window = new MainWindow { DataContext = shell, Width = 1440, Height = 900 };
+        window.Show();
+        var ids = new List<long>();
+        foreach (var name in new[] { "uno", "due" })
+        {
+            var root = _temp.Sub("par-" + name);
+            for (var i = 0; i < 60; i++)
+            {
+                SyntheticImages.WriteJpeg(Path.Combine(root, $"IMG_{i:0000}.JPG"), 640, 480, i);
+            }
+
+            var library = await host.Catalog.Libraries.AddAsync(new Library(0, name, root, WritePolicy.SidecarOnly, false, LibraryOrigin.ExistingArchive, null), CancellationToken.None);
+            ids.Add(await host.StartArchiveAnalysisAsync(library, "archive", ArchiveOrder.ByFolder, CancellationToken.None));
+        }
+
+        // Both run at once (snapshot right after the start), each marked as background work.
+        shell.ShowSection(SectionCatalog.Jobs);
+        var jobs = Assert.IsType<JobsViewModel>(shell.CurrentPage);
+        await Settle(jobs.ActivateAsync());
+        Assert.Equal(2, jobs.Running.Count);
+        Assert.All(jobs.Running, j => Assert.Equal(Strings.Get("Jobs.Background.Running"), j.Detail));
+        Save(window, "3g-jobs-parallel");
+        foreach (var id in ids)
+        {
+            host.Jobs.Pause(id);
+        }
+
+        await WaitAsync(() => ids.All(id => !host.Jobs.IsRunning(id)));
+        await Settle(jobs.ActivateAsync());
+        Assert.Empty(jobs.Running);
+        var all = jobs.Queued.Concat(jobs.Completed).ToList();
+        Assert.All(ids, id => Assert.Contains(all, j => j.Job.Id == id));
+
+        // An archive job reads in place: its first stage is "Read", not "Copy".
+        jobs.Selected = all.Single(j => j.Job.Id == ids[0]);
+        await WaitAsync(() => jobs.Stages[0].Label == Strings.Get("Stage.Read"), () => $"label {jobs.Stages[0].Label}");
+        window.Close();
+    }
+
     public void Dispose() => _temp.Dispose();
 
     /// <summary>Two photos as RAW+JPEG twins would be too heavy here: one JPEG pair member is simulated by a copy.</summary>
@@ -142,12 +263,12 @@ public sealed class PageFlowTests : IDisposable
         Dispatcher.UIThread.RunJobs();
     }
 
-    private static async Task WaitAsync(Func<bool> condition)
+    private static async Task WaitAsync(Func<bool> condition, Func<string>? state = null)
     {
         var deadline = DateTime.UtcNow.AddSeconds(60);
         while (!condition())
         {
-            Assert.True(DateTime.UtcNow < deadline, "Timed out waiting for the condition.");
+            Assert.True(DateTime.UtcNow < deadline, "Timed out waiting for the condition. " + state?.Invoke());
             Dispatcher.UIThread.RunJobs();
             await Task.Delay(20);
         }

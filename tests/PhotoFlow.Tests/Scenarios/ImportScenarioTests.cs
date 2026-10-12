@@ -90,9 +90,9 @@ public sealed class ImportScenarioTests : IDisposable
 
         // First run: killed (whole process) after some photos are completed.
         var firstLog = Path.Combine(_temp.Path, "processed-1.log");
-        using (var host = StartHost(jobId, firstLog, delayMs: 40))
+        using (var host = ScenarioHostProcess.Start(CatalogPath, Backups, jobId, firstLog, delayMs: 40))
         {
-            await WaitForAsync(host, line => line.StartsWith("copied", StringComparison.Ordinal) && Completed(line) >= 15 ? "kill" : null);
+            await ScenarioHostProcess.WaitForAsync(host, line => line.StartsWith("copied", StringComparison.Ordinal) && ScenarioHostProcess.Completed(line) >= 15 ? "kill" : null);
             host.Kill(entireProcessTree: true);
             await host.WaitForExitAsync(Ct);
         }
@@ -108,10 +108,10 @@ public sealed class ImportScenarioTests : IDisposable
 
         // Second run: the interrupted job is detected and resumed to the end.
         var secondLog = Path.Combine(_temp.Path, "processed-2.log");
-        using (var host = StartHost(jobId, secondLog, delayMs: 0))
+        using (var host = ScenarioHostProcess.Start(CatalogPath, Backups, jobId, secondLog, delayMs: 0))
         {
             var lines = new List<string>();
-            await WaitForAsync(host, line => { lines.Add(line); return null; });
+            await ScenarioHostProcess.WaitForAsync(host, line => { lines.Add(line); return null; });
             await host.WaitForExitAsync(Ct);
             Assert.Equal(0, host.ExitCode);
             Assert.Contains("interrupted 1", lines);
@@ -135,43 +135,6 @@ public sealed class ImportScenarioTests : IDisposable
     private static DateTimeOffset? Captured(string path) =>
         Start.AddSeconds(int.Parse(Path.GetFileNameWithoutExtension(path)[4..], CultureInfo.InvariantCulture));
 
-    private static int Completed(string line) =>
-        int.Parse(line.Split(' ')[3], CultureInfo.InvariantCulture);
-
-    private Process StartHost(long jobId, string log, int delayMs)
-    {
-        var dll = Path.Combine(AppContext.BaseDirectory, "PhotoFlow.ScenarioHost.dll");
-        var info = new ProcessStartInfo(Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") is { Length: > 0 } host ? host : "dotnet")
-        {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-        };
-        foreach (var argument in new[] { dll, CatalogPath, Backups, jobId.ToString(CultureInfo.InvariantCulture), log, delayMs.ToString(CultureInfo.InvariantCulture) })
-        {
-            info.ArgumentList.Add(argument);
-        }
-
-        return Process.Start(info) ?? throw new InvalidOperationException("ScenarioHost did not start.");
-    }
-
-    /// <summary>Reads the host output until <paramref name="stop"/> returns non-null or the process ends (timeout 2 min).</summary>
-    private static async Task WaitForAsync(Process host, Func<string, string?> stop)
-    {
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(Ct);
-        timeout.CancelAfter(TimeSpan.FromMinutes(2));
-        while (await host.StandardOutput.ReadLineAsync(timeout.Token) is { } line)
-        {
-            if (stop(line) is not null)
-            {
-                return;
-            }
-        }
-
-        var error = await host.StandardError.ReadToEndAsync(timeout.Token);
-        Assert.True(string.IsNullOrWhiteSpace(error), error);
-    }
-
     private static void AssertEveryFileHasAnIdenticalCopy(string card, string library)
     {
         var copies = Directory.EnumerateFiles(library, "*", SearchOption.AllDirectories).Select(FolderSnapshot.Sha256).ToList();
@@ -183,22 +146,7 @@ public sealed class ImportScenarioTests : IDisposable
     private ImportJobRunner Runner(ICatalog catalog, IFileSystem fs) =>
         new(catalog, new IngestService(new CopyEngine(fs)), new FakeExifReader(Captured), fs, new RecordingProcessor());
 
-    /// <summary>After a killed process the OS can release the catalog lock with some delay (seen on CI runners).</summary>
-    private async Task<SqliteCatalog> OpenAsync()
-    {
-        var deadline = DateTime.UtcNow.AddSeconds(15);
-        while (true)
-        {
-            try
-            {
-                return await SqliteCatalog.OpenAsync(new CatalogOpenOptions(CatalogPath, Backups), Ct);
-            }
-            catch (CatalogLockedException) when (DateTime.UtcNow < deadline)
-            {
-                await Task.Delay(250, Ct);
-            }
-        }
-    }
+    private Task<SqliteCatalog> OpenAsync() => ScenarioHostProcess.OpenCatalogAsync(CatalogPath, Backups);
 
     private async Task<long> CreateJobAsync(ICatalog catalog, string card, string library, ImportSelection selection)
     {

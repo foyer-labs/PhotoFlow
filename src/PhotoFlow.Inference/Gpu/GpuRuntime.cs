@@ -65,6 +65,11 @@ public sealed partial class GpuRuntimeInstaller(HttpClient http, GpuRuntimeManif
         }
     }
 
+    /// <summary>True when <paramref name="folder"/> holds every archive still missing, so an offline import needs no network.</summary>
+    public bool HasOfflinePackage(string folder) =>
+        !IsInstalled && manifest.Components.Where(c => !File.Exists(MarkerPath(c)))
+            .All(c => File.Exists(Path.Combine(folder, Path.GetFileName(new Uri(c.Url).LocalPath))));
+
     /// <summary>Installs from archives copied by the user (offline package, spec §11): same verification.</summary>
     public Task ImportOfflineAsync(string folder, bool licensesAccepted, CancellationToken ct)
     {

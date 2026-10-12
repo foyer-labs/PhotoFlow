@@ -25,6 +25,7 @@
                   <DataTemplate x:DataType="vm:JobListItemViewModel">
                     <StackPanel Spacing="4" Margin="0,6">
                       <Grid ColumnDefinitions="*,Auto"><TextBlock Classes="label" Text="{Binding Name}" TextTrimming="CharacterEllipsis" /><TextBlock Grid.Column="1" Classes="micro tertiary" Text="{Binding Remaining}" /></Grid>
+                      <TextBlock Classes="micro tertiary" Text="{Binding Detail}" />
                       <ProgressBar Classes="thin" Minimum="0" Maximum="1" Value="{Binding Progress}" />
                     </StackPanel>
                   </DataTemplate>

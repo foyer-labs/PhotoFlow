@@ -88,6 +88,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IShellNaviga
             ({ } host, SectionCatalog.Home) => new HomeViewModel(host, this, (card, folder) => new ImportWizardViewModel(host, this, card, folder)),
             ({ } host, SectionCatalog.Jobs) => new JobsViewModel(host, this),
             ({ } host, SectionCatalog.Review) => new ReviewViewModel(host),
+            ({ } host, SectionCatalog.Libraries) => new LibrariesViewModel(host, this),
+            ({ } host, SectionCatalog.Settings) => new SettingsViewModel(host),
             _ => new PlaceholderPageViewModel(section, PlaceholderPageViewModel.Phases.GetValueOrDefault(section.Id, "1")),
         };
         _pages[section.Id] = page;
@@ -122,7 +124,13 @@ public sealed partial class MainWindowViewModel : ObservableObject, IShellNaviga
         }
 
         var setup = _host.DescribeAnalysis();
-        StatusText = Strings.Format("Status.Summary", setup.Backend == Core.Inference.ExecutionBackend.Cuda ? "CUDA" : "CPU",
+        var restore = _host.RestoreOutcome switch
+        {
+            { Restored: true } r => Strings.Format("Status.Restored", Path.GetFileName(r.Backup)) + " · ",
+            { } r => Strings.Format("Status.RestoreFailed", r.Error ?? string.Empty) + " · ",
+            null => string.Empty,
+        };
+        StatusText = restore + Strings.Format("Status.Summary", setup.Backend == Core.Inference.ExecutionBackend.Cuda ? "CUDA" : "CPU",
             Strings.Get(setup.EyesAvailable ? "Status.Faces.Eyes" : setup.FaceDetector is null ? "Status.Faces.None" : "Status.Faces.NoEyes"));
     }
 

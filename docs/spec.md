@@ -498,8 +498,8 @@ Catalogo SQLite, foto identificate dall'hash del contenuto: tag, volti e decisio
 | --- | --- |
 | Modalità journal | Rollback automatico su percorso di rete (WAL non funziona su filesystem di rete) |
 | Un PC alla volta | File di lock; apertura rifiutata con messaggio chiaro (dopo 2 s di nuovi tentativi: un processo appena terminato può rilasciare il lock in ritardo) |
-| Backup | A ogni chiusura e programmato, N versioni |
-| Integrità | Controllo all'apertura; ripristino proposto dall'ultimo backup |
+| Backup | A ogni chiusura e ogni giorno (all'avvio, se l'ultimo è più vecchio di 24 h); si tengono gli ultimi 10 (decisione B1); cache delle miniature entro 4 GB, temporanei oltre 24 h e archivi del pacchetto GPU installato ripuliti |
+| Integrità | Controllo all'apertura; ripristino proposto dall'ultimo backup. Un ripristino scelto nelle Impostazioni si applica al prossimo avvio; il catalogo sostituito si sposta in `backup/replaced-*` e non si cancella |
 
 Esportazione/importazione: file unico (es. `.pfcatalog`) con database, galleria persone e configurazione delle librerie; rimappatura dei percorsi all'importazione.
 
@@ -1096,8 +1096,9 @@ Decisioni emerse in Design (confermate), funzioni rinviate a dopo la stabilizzaz
 | Backend GPU per schede non NVIDIA (Windows ML con provider di vendor, o DirectML se corretto): ammesso solo dopo i test di parità | F1-2 |
 | Rivalutare OpenCvSharp se le fasi successive richiedono elaborazioni complesse | F1-4 |
 | Punto AF delle reflex (punti con nome, senza coordinate): mappa delle posizioni per modello | Tappa 1.7 |
-| Importazione del pacchetto offline dei modelli (oggi solo il pacchetto GPU) | Tappa 1.9 |
 | Annulla globale (Ctrl Z) oltre le decisioni della Revisione | Tappa 1.9 |
+| Benchmark in-app (tavola 5f) con tutte le fasi d'analisi | Fase 2 |
+| Scritture del catalogo per foto in un'unica transazione (oggi ~11 commit per foto: il catalogo regge ~45 foto/s, oltre il bisogno con i modelli) | Tappa 1b.7 |
 | Accelerazione SIMD del ricampionamento e dei segnali (oggi l'analisi è limitata dalla CPU: 8 foto in parallelo su 24 thread) | Tappa 1.10 |
 | Cambio di politica XMP di una libreria: unione dei sidecar esistenti negli incorporati (o viceversa) | D21, fase 5 (sincronizzazione) |
 

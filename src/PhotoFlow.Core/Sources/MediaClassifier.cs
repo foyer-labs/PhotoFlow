@@ -81,4 +81,15 @@ public static class MediaClassifier
 
         return MediaKind.Other;
     }
+
+    private static readonly HashSet<string> PhotoExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".jpg", ".jpeg", ".jpe", ".png", ".tif", ".tiff", ".webp", ".heic", ".heif", ".hif", ".avif",
+    };
+
+    /// <summary>
+    /// True for the extensions of photos: a file named like a photo whose content is not recognized is a damaged
+    /// photo to report, not a foreign file to ignore.
+    /// </summary>
+    public static bool HasPhotoExtension(string extension) => PhotoExtensions.Contains(extension) || RawExtensions.Contains(extension);
 }

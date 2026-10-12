@@ -45,4 +45,20 @@ public static class QuickHash
 
     /// <summary>Full content hash as stored in the catalog (hex of the xxHash3 computed during the copy).</summary>
     public static string Format(ulong hash) => hash.ToString("x16", CultureInfo.InvariantCulture);
+
+    /// <summary>xxHash3 of the whole file, same value as the verified copy (background identity of archives).</summary>
+    public static async Task<string> ComputeFullAsync(IFileSystem fileSystem, string path, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(fileSystem);
+        var hasher = new XxHash3();
+        var buffer = new byte[1 << 20];
+        await using var stream = fileSystem.OpenRead(path);
+        int read;
+        while ((read = await stream.ReadAsync(buffer, ct).ConfigureAwait(false)) > 0)
+        {
+            hasher.Append(buffer.AsSpan(0, read));
+        }
+
+        return Format(hasher.GetCurrentHashAsUInt64());
+    }
 }

@@ -36,8 +36,29 @@ public sealed class JobManager(Func<IJobRunner> runnerFactory, TimeProvider? tim
         }
     }
 
+    /// <summary>True while a normal-priority job (an import) runs: low-priority jobs wait (spec §10, archives).</summary>
+    public bool HasNormalPriorityRunning
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _running.Values.Any(r => r.Priority == JobPriority.Normal);
+            }
+        }
+    }
+
+    /// <summary>Waits while a normal-priority job runs (called by low-priority work before each photo).</summary>
+    public async Task YieldToNormalAsync(CancellationToken ct)
+    {
+        while (HasNormalPriorityRunning)
+        {
+            await Task.Delay(TimeSpan.FromMilliseconds(250), _time, ct).ConfigureAwait(false);
+        }
+    }
+
     /// <summary>Starts or resumes the job; returns the task that completes with the run summary.</summary>
-    public Task<JobRunSummary> StartAsync(long jobId)
+    public Task<JobRunSummary> StartAsync(long jobId, JobPriority priority = JobPriority.Normal)
     {
         Running run;
         lock (_gate)
@@ -47,7 +68,7 @@ public sealed class JobManager(Func<IJobRunner> runnerFactory, TimeProvider? tim
                 return existing.Task;
             }
 
-            run = new Running(jobId, _time.GetTimestamp());
+            run = new Running(jobId, _time.GetTimestamp(), priority);
             _running[jobId] = run;
         }
 
@@ -139,9 +160,11 @@ public sealed class JobManager(Func<IJobRunner> runnerFactory, TimeProvider? tim
             state == JobState.Running ? Estimate(last, run.CompletedAtStart ?? last.Completed, elapsed) : null, error));
     }
 
-    private sealed class Running(long jobId, long startedAt)
+    private sealed class Running(long jobId, long startedAt, JobPriority priority)
     {
         public long JobId { get; } = jobId;
+
+        public JobPriority Priority { get; } = priority;
 
         public long StartedAt { get; } = startedAt;
 

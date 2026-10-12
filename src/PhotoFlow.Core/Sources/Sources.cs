@@ -27,8 +27,8 @@ public enum MediaKind
 
 public sealed record ScannedFile(SourceItem Item, MediaKind Kind)
 {
-    /// <summary>Formats analyzed in phase 1 (TIFF/PNG/HEIC/WebP handlers arrive in phase 1b).</summary>
-    public bool IsAnalyzable => Kind is MediaKind.Raw or MediaKind.Jpeg;
+    /// <summary>Photos PhotoFlow decodes and analyzes (RAW, JPEG, PNG, TIFF, HEIF/HEIC/AVIF, WebP).</summary>
+    public bool IsAnalyzable => Kind is MediaKind.Raw or MediaKind.Jpeg or MediaKind.Png or MediaKind.Tiff or MediaKind.Heif or MediaKind.WebP;
 
     /// <summary>Directory + file name without extension: RAW and JPEG with the same key form one photo.</summary>
     public string PairKey => Path.Combine(Path.GetDirectoryName(Item.RelativePath) ?? string.Empty, Path.GetFileNameWithoutExtension(Item.RelativePath));

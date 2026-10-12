@@ -270,7 +270,7 @@ public sealed partial class ImportWizardViewModel : PageViewModel
             }
 
             var date = EventDate is { } d ? DateOnly.FromDateTime(d.Date) : _plan!.ProposedEventDate;
-            var relative = new PathTemplate(PathTemplate.Default).Render(new PathTemplateContext(
+            var relative = _host.PathTemplate.Render(new PathTemplateContext(
                 EventNameOrDefault, date, 1, first.Exif?.Model, Path.GetFileNameWithoutExtension(first.File.Item.RelativePath), Path.GetExtension(first.File.Item.RelativePath).TrimStart('.')));
             return Path.Combine(root, relative);
         }
@@ -320,7 +320,7 @@ public sealed partial class ImportWizardViewModel : PageViewModel
 
                 return files;
             });
-            _plan = await _host.Planner.PlanAsync(_scanned, string.Empty, null, new PathTemplate(PathTemplate.Default), CancellationToken.None);
+            _plan = await _host.Planner.PlanAsync(_scanned, string.Empty, null, _host.PathTemplate, CancellationToken.None);
             EventDate = _plan.ProposedEventDate.ToDateTime(TimeOnly.MinValue);
             SourceTitle = _card is { } card ? Strings.Format("Import.Source.Card", card.Label, card.RootPath.TrimEnd('\\', '/')) : _sourceRoot;
             SourceDetail = Strings.Format("Import.Source.Detail", _plan.Files.Count.ToString("N0", CultureInfo.CurrentCulture), Formats.Bytes(_plan.TotalBytes));
@@ -403,7 +403,7 @@ public sealed partial class ImportWizardViewModel : PageViewModel
 
         var name = EventNameOrDefault;
         var date = EventDate is { } d ? DateOnly.FromDateTime(d.Date) : _plan.ProposedEventDate;
-        var plan = await _host.Planner.PlanAsync(_scanned, name, date, new PathTemplate(PathTemplate.Default), CancellationToken.None);
+        var plan = await _host.Planner.PlanAsync(_scanned, name, date, _host.PathTemplate, CancellationToken.None);
         var destinations = Destinations.Select(v => v.Destination).ToList();
         var jobId = await ImportJobs.CreateAsync(_host.Catalog, plan, Selection, _sourceRoot, destinations, name, date, SelectedProfile.Profile.Id, Faces, CancellationToken.None);
         await _host.UpdateSettingsAsync(s => s with

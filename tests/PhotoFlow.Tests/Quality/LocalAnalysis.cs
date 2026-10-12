@@ -63,8 +63,7 @@ public sealed class LocalAnalysis : IAsyncDisposable
             await Open("insightface-buffalo-l", "det_10g.onnx", InsightFaceDetector.AdapterId),
             await Open("insightface-buffalo-l", "2d106det.onnx", InsightFaceDetector.AdapterId),
             operations);
-        var previews = new PreviewProvider(fileSystem, new ImageHandlerRegistry(
-            [new RawImageHandler(new ExifToolPreviewSource(exifTool), new MagickRawDecoder()), new JpegImageHandler(fileSystem)]));
+        var previews = new PreviewProvider(fileSystem, ImageHandlerRegistry.CreateDefault(fileSystem, new ExifToolPreviewSource(exifTool), new MagickRawDecoder()));
         var processor = new CullingPhotoProcessor(previews, new CullingAnalyzer(operations, detector, faces), new DecisionEngine(), BuiltInProfiles.Get, thumbnails);
         var analysis = new LocalAnalysis(exifTool, processor, target == ExecutionTarget.Gpu ? ExecutionBackend.Cuda : ExecutionBackend.Cpu);
         analysis._sessions.AddRange(sessions);

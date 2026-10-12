@@ -63,7 +63,45 @@ public sealed class ModelRegistryTests : IDisposable
         Assert.False(registry.IsInstalled("m"));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task An_offline_package_installs_without_network_and_leaves_the_folder_untouched(bool inModelFolder)
+    {
+        var (registry, server, payload) = ArrangeWithPayload(requiresAcceptance: true, zip: true, Path.Combine(_temp.Path, "models"));
+        var package = Directory.CreateDirectory(Path.Combine(_temp.Path, "package", inModelFolder ? "m" : string.Empty)).FullName;
+        File.WriteAllBytes(Path.Combine(package, "pack.zip"), payload);
+
+        Assert.Empty(await registry.ImportOfflineAsync(Path.Combine(_temp.Path, "package"), _ => false, Ct));
+        Assert.False(registry.IsInstalled("m"));
+
+        Assert.Equal(["m"], await registry.ImportOfflineAsync(Path.Combine(_temp.Path, "package"), _ => true, Ct));
+        Assert.True(registry.IsInstalled("m"));
+        Assert.Equal(0, server.Requests);
+        Assert.Equal(payload, File.ReadAllBytes(Path.Combine(package, "pack.zip")));
+        Assert.True(await registry.VerifyAsync("m", Ct));
+    }
+
+    [Fact]
+    public async Task A_tampered_offline_file_is_rejected()
+    {
+        var (registry, _, payload) = ArrangeWithPayload(requiresAcceptance: false, zip: false, Path.Combine(_temp.Path, "models"));
+        var package = Directory.CreateDirectory(Path.Combine(_temp.Path, "package")).FullName;
+        payload[0] ^= 0xFF;
+        File.WriteAllBytes(Path.Combine(package, "model.onnx"), payload);
+
+        await Assert.ThrowsAsync<InvalidDataException>(() => registry.ImportOfflineAsync(package, _ => true, Ct));
+
+        Assert.False(registry.IsInstalled("m"));
+    }
+
     private (ModelRegistry Registry, Server Server) Arrange(bool requiresAcceptance, bool zip)
+    {
+        var (registry, server, _) = ArrangeWithPayload(requiresAcceptance, zip, _temp.Path);
+        return (registry, server);
+    }
+
+    private static (ModelRegistry Registry, Server Server, byte[] Payload) ArrangeWithPayload(bool requiresAcceptance, bool zip, string modelsDirectory)
     {
         byte[] payload;
         if (zip)
@@ -89,7 +127,7 @@ public sealed class ModelRegistryTests : IDisposable
             payload.Length, zip ? "zip" : null, zip ? ["det.onnx"] : []);
         var model = new ModelInfo("m", ModelFunction.Faces, "Test", "1", 1, null, "test", new ModelLicense("X", "https://example.invalid", false, requiresAcceptance, null), [file]);
         var server = new Server(payload);
-        return (new ModelRegistry(new HttpClient(server), [model], _temp.Path), server);
+        return (new ModelRegistry(new HttpClient(server), [model], modelsDirectory), server, (byte[])payload.Clone());
     }
 
     public void Dispose() => _temp.Dispose();

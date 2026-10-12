@@ -17,7 +17,9 @@ namespace PhotoFlow.App.ViewModels;
 /// <summary>A stage bar of the selected job (board 3g): stages of later phases show "—".</summary>
 public sealed partial class StageViewModel(string labelKey, bool active) : ObservableObject
 {
-    public string Label => Strings.Get(labelKey);
+    /// <summary>The first stage reads "Copy" for an import and "Read" for an archive analysed in place.</summary>
+    [ObservableProperty]
+    private string _label = Strings.Get(labelKey);
 
     public bool IsActive { get; } = active;
 
@@ -124,13 +126,16 @@ public sealed partial class JobsViewModel : PageViewModel, IDisposable
 
     public override async Task ActivateAsync()
     {
+        // Read first, then replace the lists without awaiting in between: refreshes raised by job events may overlap.
+        var recent = await _host.Catalog.Jobs.ListRecentAsync(30, CancellationToken.None);
         var selectedId = Selected?.Job.Id;
         Running.Clear();
         Queued.Clear();
         Completed.Clear();
-        foreach (var job in await _host.Catalog.Jobs.ListRecentAsync(30, CancellationToken.None))
+        foreach (var job in recent)
         {
-            var item = new JobListItemViewModel(job) { Detail = Describe(job) };
+            var running = _host.Jobs.IsRunning(job.Id);
+            var item = new JobListItemViewModel(job) { Detail = running ? DescribeRunning(job) : Describe(job) };
             (job.State switch
             {
                 _ when _host.Jobs.IsRunning(job.Id) => Running,
@@ -161,7 +166,7 @@ public sealed partial class JobsViewModel : PageViewModel, IDisposable
         if (Selected is { } job)
         {
             PauseMessage = null;
-            _ = _host.Jobs.StartAsync(job.Job.Id);
+            _ = _host.Jobs.StartAsync(job.Job.Id, job.Job.Priority);
             Log.Add(Line(Strings.Get("Jobs.Log.Resumed")));
             OnPropertyChanged(nameof(CanPause));
             OnPropertyChanged(nameof(CanResume));
@@ -194,16 +199,23 @@ public sealed partial class JobsViewModel : PageViewModel, IDisposable
 
     private async Task LoadSelectedAsync()
     {
-        Errors.Clear();
         if (Selected is not { } selected)
         {
+            Errors.Clear();
             return;
         }
 
         var job = await _host.Catalog.Jobs.GetAsync(selected.Job.Id, CancellationToken.None) ?? selected.Job;
+        Stages[0].Label = Strings.Get(job.Type == JobType.AnalyzeInPlace ? "Stage.Read" : "Stage.Copy");
         var items = await _host.Catalog.Jobs.GetItemsAsync(job.Id, CancellationToken.None);
         SelectedDetail = Strings.Format("Jobs.Detail", Strings.Get("JobType." + job.Type), job.CreatedAt.ToLocalTime().ToString("HH:mm", CultureInfo.CurrentCulture),
             items.Count.ToString("N0", CultureInfo.CurrentCulture), Strings.Get("Profile." + (job.ProfileId ?? "events")));
+        if (Selected != selected)
+        {
+            return; // another job was selected meanwhile
+        }
+
+        Errors.Clear();
         foreach (var failed in items.Where(i => i.State == JobItemState.Failed))
         {
             Errors.Add(new JobErrorViewModel(Path.GetFileName(failed.SourcePath), failed.Error ?? string.Empty));
@@ -258,6 +270,7 @@ public sealed partial class JobsViewModel : PageViewModel, IDisposable
         var p = status.Progress;
         item.Progress = p.Total == 0 ? 0 : (double)(p.Completed + p.Failed) / p.Total;
         item.Remaining = status.Remaining is { } r ? Formats.Duration(r) : string.Empty;
+        item.Detail = DescribeRunning(item.Job);
         if (Selected == item)
         {
             UpdateStages(p.Total, p.Copied, p.Completed);
@@ -269,6 +282,11 @@ public sealed partial class JobsViewModel : PageViewModel, IDisposable
             }
         }
     });
+
+    /// <summary>Running jobs side by side (3g): a background analysis says when it is waiting for an import.</summary>
+    private string DescribeRunning(Job job) => job.Priority != JobPriority.Low
+        ? Strings.Get("JobType." + job.Type)
+        : Strings.Get(_host.Jobs.HasNormalPriorityRunning ? "Jobs.Background.Waiting" : "Jobs.Background.Running");
 
     private string Describe(Job job) => $"{job.CreatedAt.ToLocalTime().ToString("d MMM", CultureInfo.CurrentCulture)} · {Strings.Get("Jobs.State." + job.State)}";
 

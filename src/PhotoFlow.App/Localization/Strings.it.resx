@@ -64,7 +64,6 @@
   <data name="FirstRun.AcceptModelLicense" xml:space="preserve"><value>Accetta la licenza di {0} per scaricarlo.</value></data>
   <data name="FirstRun.DownloadModels" xml:space="preserve"><value>Rivedi licenze e scarica</value></data>
   <data name="FirstRun.ImportOffline" xml:space="preserve"><value>Importa pacchetto offline</value></data>
-  <data name="FirstRun.OfflineLater" xml:space="preserve"><value>Arriva con la fase 1b</value></data>
   <data name="FirstRun.Downloading" xml:space="preserve"><value>Download di {0}…</value></data>
   <data name="FirstRun.ModelsReady" xml:space="preserve"><value>Modelli pronti.</value></data>
   <data name="FirstRun.DownloadFailed" xml:space="preserve"><value>Download non riuscito: {0}</value></data>
@@ -280,4 +279,131 @@
   <data name="Review.Command.Keep" xml:space="preserve"><value>Tieni</value></data>
   <data name="Review.Command.Discard" xml:space="preserve"><value>Scarta</value></data>
   <data name="Models.License.NonCommercialOnly" xml:space="preserve"><value>solo uso non commerciale</value></data>
+  <data name="Libraries.Empty.Title" xml:space="preserve"><value>Nessuna libreria</value></data>
+  <data name="Libraries.Empty.Body" xml:space="preserve"><value>Una libreria è una cartella in cui le foto sono già. PhotoFlow la legge sul posto: i file non vengono mai spostati né modificati, i metadati vanno nei sidecar XMP.</value></data>
+  <data name="Libraries.AddFolder" xml:space="preserve"><value>Aggiungi una cartella</value></data>
+  <data name="Libraries.New" xml:space="preserve"><value>Nuova libreria</value></data>
+  <data name="Libraries.Analysis.Title" xml:space="preserve"><value>Prima analisi sul posto</value></data>
+  <data name="Libraries.Analysis.Body" xml:space="preserve"><value>Gira in background a bassa priorità e cede il passo agli import. I file vengono solo letti; il lavoro si può mettere in pausa e riprendere.</value></data>
+  <data name="Libraries.Analysis.Order" xml:space="preserve"><value>Ordine</value></data>
+  <data name="Libraries.Analysis.Start" xml:space="preserve"><value>Avvia analisi</value></data>
+  <data name="Libraries.Xmp" xml:space="preserve"><value>Scrittura dei metadati</value></data>
+  <data name="Libraries.Xmp.SidecarNote" xml:space="preserve"><value>Consigliato per un archivio esistente: gli originali non vengono mai toccati.</value></data>
+  <data name="Libraries.Xmp.CatalogNote" xml:space="preserve"><value>Nulla viene scritto accanto alle foto.</value></data>
+  <data name="Libraries.EmbedConfirm" xml:space="preserve"><value>L'XMP verrà scritto dentro {0} file non RAW di questa libreria. exiftool conserva una copia _original di ogni file prima di scrivere. Continuare?</value></data>
+  <data name="Libraries.EmbedConfirm.Apply" xml:space="preserve"><value>Scrivi dentro i file</value></data>
+  <data name="Libraries.ReadOnly" xml:space="preserve"><value>Sola lettura</value></data>
+  <data name="Libraries.ReadOnlyNote" xml:space="preserve"><value>Nulla viene scritto accanto alle foto: decisioni e tag restano nel catalogo.</value></data>
+  <data name="Libraries.RootMissing" xml:space="preserve"><value>La cartella {0} non è raggiungibile. Collega il disco e riprova.</value></data>
+  <data name="Libraries.NotAnalyzed" xml:space="preserve"><value>Non ancora analizzata</value></data>
+  <data name="Libraries.Order.NewestFirst" xml:space="preserve"><value>Dalle più recenti</value></data>
+  <data name="Libraries.Order.ByFolder" xml:space="preserve"><value>Per cartella</value></data>
+  <data name="Libraries.Command.New" xml:space="preserve"><value>nuova libreria</value></data>
+  <data name="Libraries.Command.Analyze" xml:space="preserve"><value>analizza</value></data>
+  <data name="Libraries.Command.Refresh" xml:space="preserve"><value>aggiorna</value></data>
+  <data name="Settings.Command.NextTab" xml:space="preserve"><value>scheda successiva</value></data>
+  <data name="Settings.Command.PreviousTab" xml:space="preserve"><value>scheda precedente</value></data>
+  <data name="Settings.Tab.Hardware" xml:space="preserve"><value>Hardware</value></data>
+  <data name="Settings.Tab.Models" xml:space="preserve"><value>Modelli</value></data>
+  <data name="Settings.Tab.Catalog" xml:space="preserve"><value>Catalogo</value></data>
+  <data name="Settings.Tab.General" xml:space="preserve"><value>Generali</value></data>
+  <data name="Settings.Tab.Culling" xml:space="preserve"><value>Culling</value></data>
+  <data name="Settings.Phase2" xml:space="preserve"><value>Arriva con la fase 2</value></data>
+  <data name="Settings.Phase5" xml:space="preserve"><value>Arriva con la fase 5</value></data>
+  <data name="Settings.Hardware.Execution" xml:space="preserve"><value>Esecuzione dei modelli</value></data>
+  <data name="Settings.Hardware.Cuda" xml:space="preserve"><value>CUDA · GPU NVIDIA in uso</value></data>
+  <data name="Settings.Hardware.CudaMissing" xml:space="preserve"><value>GPU NVIDIA rilevata · pacchetto GPU non installato: i modelli girano sulla CPU</value></data>
+  <data name="Settings.Hardware.CpuOnly" xml:space="preserve"><value>Solo CPU · più lenta, funziona tutto</value></data>
+  <data name="Settings.Hardware.GpuPack" xml:space="preserve"><value>Pacchetto GPU (CUDA + cuDNN)</value></data>
+  <data name="Settings.Hardware.GpuPackInstalled" xml:space="preserve"><value>Installato e verificato. Si usa dal prossimo avvio.</value></data>
+  <data name="Settings.Hardware.Limits" xml:space="preserve"><value>Lavoro in parallelo</value></data>
+  <data name="Settings.Hardware.Workers" xml:space="preserve"><value>Analisi di un import: {0} foto alla volta. Analisi d'archivio in background: {1} alla volta, e attende mentre gira un import.</value></data>
+  <data name="Settings.Hardware.Benchmark" xml:space="preserve"><value>Esegui benchmark</value></data>
+  <data name="Settings.Hardware.BenchmarkPhase" xml:space="preserve"><value>Arriva con la fase 2, con tutte le fasi d'analisi</value></data>
+  <data name="Settings.Hardware.Note" xml:space="preserve"><value>I modelli si caricano al primo uso e restano in memoria per la sessione. La rete si usa solo per i download.</value></data>
+  <data name="Models.Function.ObjectDetection" xml:space="preserve"><value>Soggetti</value></data>
+  <data name="Models.Function.Faces" xml:space="preserve"><value>Volti</value></data>
+  <data name="Models.Function.Embedding" xml:space="preserve"><value>Somiglianza</value></data>
+  <data name="Models.Function.Tagger" xml:space="preserve"><value>Tag</value></data>
+  <data name="Models.Function.Caption" xml:space="preserve"><value>Didascalie</value></data>
+  <data name="Models.Function.Vlm" xml:space="preserve"><value>Descrizioni</value></data>
+  <data name="Models.Function.Ocr" xml:space="preserve"><value>Numeri (OCR)</value></data>
+  <data name="Models.Function.Aesthetic" xml:space="preserve"><value>Estetica</value></data>
+  <data name="Models.Status.Installed" xml:space="preserve"><value>installato</value></data>
+  <data name="Models.Status.NotDownloaded" xml:space="preserve"><value>non scaricato</value></data>
+  <data name="Models.Status.Verified" xml:space="preserve"><value>verificato ✓</value></data>
+  <data name="Models.Status.VerifyFailed" xml:space="preserve"><value>file modificati: scaricare di nuovo</value></data>
+  <data name="Settings.Models.Folder" xml:space="preserve"><value>{0} in {1} · scaricati su richiesta, verificati SHA-256</value></data>
+  <data name="Settings.Models.ImportOffline" xml:space="preserve"><value>Importa pacchetto offline…</value></data>
+  <data name="Settings.Models.AcceptLicense" xml:space="preserve"><value>Accetto la licenza di questo modello</value></data>
+  <data name="Settings.Models.Download" xml:space="preserve"><value>Scarica</value></data>
+  <data name="Settings.Models.Verify" xml:space="preserve"><value>Verifica</value></data>
+  <data name="Settings.Models.Note" xml:space="preserve"><value>Si possono scegliere solo modelli con adattatore implementato. Il pacchetto offline è una cartella copiata da un altro PC: modelli in &lt;id&gt;/&lt;file&gt; o sciolti, archivi del pacchetto GPU sciolti; ogni file viene verificato e la cartella viene solo letta.</value></data>
+  <data name="Settings.Models.Restart" xml:space="preserve"><value>Modello installato: si usa dalla prossima analisi.</value></data>
+  <data name="Settings.Models.OfflineNothing" xml:space="preserve"><value>Niente da installare in questa cartella (file mancanti, o licenze non accettate).</value></data>
+  <data name="Settings.Models.OfflineDone" xml:space="preserve"><value>{0} modelli installati dal pacchetto offline; {1}</value></data>
+  <data name="Settings.Models.OfflineGpu" xml:space="preserve"><value>pacchetto GPU installato (si usa dal prossimo avvio).</value></data>
+  <data name="Settings.Models.OfflineNoGpu" xml:space="preserve"><value>pacchetto GPU non incluso o licenze NVIDIA non accettate.</value></data>
+  <data name="Settings.Catalog.Position" xml:space="preserve"><value>Posizione</value></data>
+  <data name="Settings.Catalog.Location" xml:space="preserve"><value>{0} · {1}</value></data>
+  <data name="Settings.Catalog.CacheNote" xml:space="preserve"><value>Miniature e cache restano locali e sono ricostruibili.</value></data>
+  <data name="Settings.Catalog.Backup" xml:space="preserve"><value>Backup</value></data>
+  <data name="Settings.Catalog.LastBackup" xml:space="preserve"><value>Ultimo backup: {0}</value></data>
+  <data name="Settings.Catalog.NoBackup" xml:space="preserve"><value>Nessun backup ancora</value></data>
+  <data name="Settings.Catalog.When" xml:space="preserve"><value>Alla chiusura e almeno una volta al giorno; integrità verificata a ogni apertura.</value></data>
+  <data name="Settings.Catalog.Keep" xml:space="preserve"><value>Conserva {0} versioni · {1}</value></data>
+  <data name="Settings.Catalog.BackupNow" xml:space="preserve"><value>Backup ora</value></data>
+  <data name="Settings.Catalog.BackupDone" xml:space="preserve"><value>Backup scritto: {0}</value></data>
+  <data name="Settings.Catalog.BackupFailed" xml:space="preserve"><value>Backup non scritto: {0}</value></data>
+  <data name="Settings.Catalog.Restore" xml:space="preserve"><value>Ripristina…</value></data>
+  <data name="Settings.Catalog.RestorePending" xml:space="preserve"><value>{0} verrà ripristinato al prossimo avvio. Il catalogo attuale viene conservato accanto ai backup.</value></data>
+  <data name="Settings.Catalog.Encryption" xml:space="preserve"><value>Cifratura delle impronte dei volti</value></data>
+  <data name="Settings.Catalog.EncryptionWindows" xml:space="preserve"><value>Legata al mio account Windows</value></data>
+  <data name="Settings.Catalog.EncryptionPassword" xml:space="preserve"><value>Password</value></data>
+  <data name="Settings.Catalog.Export" xml:space="preserve"><value>Esporta / importa</value></data>
+  <data name="Settings.Catalog.ExportButton" xml:space="preserve"><value>Esporta catalogo…</value></data>
+  <data name="Settings.Catalog.ImportButton" xml:space="preserve"><value>Importa e rimappa percorsi…</value></data>
+  <data name="Settings.Catalog.Schema" xml:space="preserve"><value>Schema v{0} · backup automatico prima di ogni migrazione</value></data>
+  <data name="Settings.Language" xml:space="preserve"><value>Lingua dell'interfaccia</value></data>
+  <data name="Settings.Language.System" xml:space="preserve"><value>Come il sistema</value></data>
+  <data name="Settings.Language.Note" xml:space="preserve"><value>Applicata al riavvio della finestra. Le keyword XMP si scrivono sempre in italiano e inglese.</value></data>
+  <data name="Settings.Language.Restart" xml:space="preserve"><value>Lingua salvata: applicata al prossimo avvio.</value></data>
+  <data name="Settings.Theme" xml:space="preserve"><value>Tema</value></data>
+  <data name="Settings.Theme.Dark" xml:space="preserve"><value>Scuro</value></data>
+  <data name="Settings.Theme.Light" xml:space="preserve"><value>Chiaro</value></data>
+  <data name="Settings.Theme.System" xml:space="preserve"><value>Come il sistema</value></data>
+  <data name="Settings.ExifTool" xml:space="preserve"><value>Strumento metadati · exiftool</value></data>
+  <data name="Settings.ExifTool.Bundled" xml:space="preserve"><value>Incluso · versione {0} · {1}</value></data>
+  <data name="Settings.ExifTool.Custom" xml:space="preserve"><value>Scelto da te · versione {0} · {1}</value></data>
+  <data name="Settings.ExifTool.Healthy" xml:space="preserve"><value>In esecuzione continua · risposta in {0} ms ✓</value></data>
+  <data name="Settings.ExifTool.Unhealthy" xml:space="preserve"><value>Non risponde: {0}</value></data>
+  <data name="Settings.ExifTool.Check" xml:space="preserve"><value>Controlla</value></data>
+  <data name="Settings.ExifTool.Other" xml:space="preserve"><value>Usa un altro…</value></data>
+  <data name="Settings.ExifTool.UseBundled" xml:space="preserve"><value>Usa quello incluso</value></data>
+  <data name="Settings.ExifTool.Chosen" xml:space="preserve"><value>exiftool {0} risponde: si usa dal prossimo avvio.</value></data>
+  <data name="Settings.ExifTool.Invalid" xml:space="preserve"><value>Questo file non è un exiftool funzionante: {0}</value></data>
+  <data name="Settings.ExifTool.BundledNext" xml:space="preserve"><value>L'exiftool incluso si usa dal prossimo avvio.</value></data>
+  <data name="Settings.Template" xml:space="preserve"><value>Template dei percorsi d'import</value></data>
+  <data name="Settings.Template.Example" xml:space="preserve"><value>Esempio: {0}</value></data>
+  <data name="Settings.Template.Invalid" xml:space="preserve"><value>Template non valido: {0}</value></data>
+  <data name="Settings.Template.Note" xml:space="preserve"><value>I caratteri non validi nel nome dell'evento diventano "-". "/" separa le cartelle; {ext} è obbligatorio.</value></data>
+  <data name="Settings.Template.Reset" xml:space="preserve"><value>Ripristina il predefinito</value></data>
+  <data name="Settings.Culling.Mode" xml:space="preserve"><value>Modalità del culling</value></data>
+  <data name="Settings.Culling.Prudent" xml:space="preserve"><value>Prudente</value></data>
+  <data name="Settings.Culling.PrudentNote" xml:space="preserve"><value>Gli scarti si scrivono come etichetta rossa ("da rivedere"), mai come rating −1.</value></data>
+  <data name="Settings.Culling.Normal" xml:space="preserve"><value>Normale</value></data>
+  <data name="Settings.Culling.NormalNote" xml:space="preserve"><value>Si sblocca solo con tutte e tre le metriche del set etichettato entro obiettivo (modalità etichettatura).</value></data>
+  <data name="Status.Restored" xml:space="preserve"><value>Catalogo ripristinato da {0}</value></data>
+  <data name="Status.RestoreFailed" xml:space="preserve"><value>Backup non ripristinato (danneggiato): {0}</value></data>
+  <data name="CatalogProblem.Title" xml:space="preserve"><value>Il catalogo è danneggiato</value></data>
+  <data name="CatalogProblem.Body" xml:space="preserve"><value>Il controllo d'integrità all'apertura non è riuscito. Le foto non sono coinvolte: il catalogo contiene solo decisioni, tag e analisi. Ripristina l'ultimo backup: il catalogo danneggiato viene conservato accanto ai backup.</value></data>
+  <data name="CatalogProblem.Backup" xml:space="preserve"><value>Ultimo backup: {0} · {1}</value></data>
+  <data name="CatalogProblem.NoBackup" xml:space="preserve"><value>Nessun backup trovato.</value></data>
+  <data name="CatalogProblem.Restore" xml:space="preserve"><value>Ripristina l'ultimo backup</value></data>
+  <data name="CatalogProblem.Restored" xml:space="preserve"><value>Ripristinato. Il catalogo danneggiato è in {0}.</value></data>
+  <data name="CatalogProblem.Failed" xml:space="preserve"><value>Ripristino non riuscito: {0}</value></data>
+  <data name="Settings.ComesWithPhase" xml:space="preserve"><value>arriva con la fase {0}</value></data>
+  <data name="Stage.Read" xml:space="preserve"><value>Lettura</value></data>
+  <data name="Jobs.Background.Running" xml:space="preserve"><value>In background · bassa priorità</value></data>
+  <data name="Jobs.Background.Waiting" xml:space="preserve"><value>In background · attende l'import</value></data>
 </root>

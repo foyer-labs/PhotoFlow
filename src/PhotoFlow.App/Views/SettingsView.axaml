@@ -1,0 +1,214 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- Settings, boards 5f (hardware), 5g (models), 5h (catalog), 5i (general), 5j (culling). -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:PhotoFlow.App.ViewModels"
+             xmlns:l="using:PhotoFlow.App.Localization"
+             xmlns:svc="using:PhotoFlow.App.Services"
+             x:Class="PhotoFlow.App.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+  <DockPanel>
+    <!-- Tabs -->
+    <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource PF.Brush.Border}" BorderThickness="0,0,0,1" Padding="24,0">
+      <StackPanel Orientation="Horizontal" Spacing="12">
+        <ListBox Classes="tabs" ItemsSource="{Binding Tabs}" SelectedIndex="{Binding SelectedTab}">
+          <ListBox.ItemsPanel>
+            <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+          </ListBox.ItemsPanel>
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="x:String"><TextBlock Classes="label" Text="{Binding Converter={x:Static vm:Converters.Localize}}" /></DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+        <Border Classes="key" VerticalAlignment="Center"><TextBlock Text="Ctrl Tab" /></Border>
+      </StackPanel>
+    </Border>
+
+    <!-- Message and progress -->
+    <StackPanel DockPanel.Dock="Bottom" Margin="24,8" Spacing="6" IsVisible="{Binding Message, Converter={x:Static ObjectConverters.IsNotNull}}">
+      <ProgressBar Classes="thin" Value="{Binding Progress}" Maximum="1" IsVisible="{Binding IsBusy}" />
+      <TextBlock Classes="label secondary" TextWrapping="Wrap" Text="{Binding Message}" />
+    </StackPanel>
+
+    <ScrollViewer>
+      <Panel Margin="24" MaxWidth="{StaticResource PF.Size.SettingsColumnMax}" HorizontalAlignment="Left">
+
+        <!-- 5f Hardware -->
+        <StackPanel Spacing="16" IsVisible="{Binding IsHardware}">
+          <TextBlock Classes="overline" Text="{l:Tr Settings.Hardware.Execution}" />
+          <Border Classes="card" Padding="16">
+            <StackPanel Spacing="6">
+              <TextBlock Classes="label" Text="{Binding BackendText}" />
+              <TextBlock Classes="data tertiary" Text="{Binding GpuText}" />
+              <TextBlock Classes="data tertiary" Text="{Binding CpuText}" />
+            </StackPanel>
+          </Border>
+          <Border Classes="card" Padding="16" IsVisible="{Binding HasGpu}">
+            <StackPanel Spacing="10">
+              <TextBlock Classes="label" Text="{l:Tr Settings.Hardware.GpuPack}" />
+              <TextBlock Classes="label secondary" TextWrapping="Wrap" Text="{l:Tr FirstRun.GpuPack}" />
+              <TextBlock Classes="micro tertiary" Text="{Binding GpuPackSize}" />
+              <StackPanel Spacing="10" IsVisible="{Binding !GpuPackInstalled}">
+                <CheckBox IsChecked="{Binding NvidiaLicensesAccepted}">
+                  <TextBlock TextWrapping="Wrap" Text="{l:Tr FirstRun.AcceptNvidiaLabel}" />
+                </CheckBox>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <Button Classes="primary" Command="{Binding InstallGpuPackCommand}" IsEnabled="{Binding !IsBusy}" Content="{l:Tr FirstRun.DownloadGpuPack}" />
+                  <Button Classes="secondary" Command="{Binding RequestOfflinePackageCommand}" IsEnabled="{Binding !IsBusy}" Content="{l:Tr Settings.Models.ImportOffline}" />
+                </StackPanel>
+              </StackPanel>
+              <TextBlock Classes="label" IsVisible="{Binding GpuPackInstalled}" Text="{l:Tr Settings.Hardware.GpuPackInstalled}" />
+            </StackPanel>
+          </Border>
+          <TextBlock Classes="overline" Text="{l:Tr Settings.Hardware.Limits}" />
+          <TextBlock Classes="label secondary" TextWrapping="Wrap" Text="{Binding WorkersText}" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Classes="secondary" IsEnabled="False" Content="{l:Tr Settings.Hardware.Benchmark}" />
+            <TextBlock Classes="micro tertiary" VerticalAlignment="Center" Text="{l:Tr Settings.Hardware.BenchmarkPhase}" />
+          </StackPanel>
+          <TextBlock Classes="micro tertiary" TextWrapping="Wrap" Text="{l:Tr Settings.Hardware.Note}" />
+        </StackPanel>
+
+        <!-- 5g Models -->
+        <StackPanel Spacing="16" IsVisible="{Binding IsModels}">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Classes="label secondary" VerticalAlignment="Center" TextWrapping="Wrap" Text="{Binding ModelsFolderText}" />
+            <Button Grid.Column="1" Classes="secondary" Command="{Binding RequestOfflinePackageCommand}" IsEnabled="{Binding !IsBusy}" Content="{l:Tr Settings.Models.ImportOffline}" />
+          </Grid>
+          <ItemsControl ItemsSource="{Binding Models}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:ModelRowViewModel">
+                <Border BorderBrush="{DynamicResource PF.Brush.Border}" BorderThickness="0,0,0,1" Padding="0,10" Opacity="{Binding IsAvailable, Converter={x:Static vm:Converters.ActiveOpacity}}">
+                  <Grid ColumnDefinitions="140,*,90,Auto" ColumnSpacing="12">
+                    <TextBlock Classes="label tertiary" Text="{Binding Function}" />
+                    <StackPanel Grid.Column="1" Spacing="4">
+                      <TextBlock Classes="label" Text="{Binding Name}" />
+                      <HyperlinkButton Padding="0" NavigateUri="{Binding LicenseUrl}">
+                        <TextBlock Classes="micro secondary" TextDecorations="Underline" Text="{Binding LicenseText}" />
+                      </HyperlinkButton>
+                      <CheckBox IsVisible="{Binding RequiresAcceptance}" IsEnabled="{Binding CanInstall}" IsChecked="{Binding LicenseAccepted}">
+                        <TextBlock Classes="micro" TextWrapping="Wrap" Text="{l:Tr Settings.Models.AcceptLicense}" />
+                      </CheckBox>
+                    </StackPanel>
+                    <TextBlock Grid.Column="2" Classes="data tertiary" Text="{Binding SizeText}" />
+                    <StackPanel Grid.Column="3" Spacing="6" HorizontalAlignment="Right">
+                      <TextBlock Classes="micro tertiary" HorizontalAlignment="Right" Text="{Binding Status}" />
+                      <Button Classes="secondary" IsVisible="{Binding CanInstall}"
+                              Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).InstallModelCommand}" CommandParameter="{Binding}"
+                              Content="{l:Tr Settings.Models.Download}" />
+                      <Button Classes="ghost" IsVisible="{Binding IsInstalled}"
+                              Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).VerifyModelCommand}" CommandParameter="{Binding}"
+                              Content="{l:Tr Settings.Models.Verify}" />
+                    </StackPanel>
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <TextBlock Classes="micro tertiary" TextWrapping="Wrap" Text="{l:Tr Settings.Models.Note}" />
+        </StackPanel>
+
+        <!-- 5h Catalog -->
+        <StackPanel Spacing="16" IsVisible="{Binding IsCatalog}">
+          <TextBlock Classes="overline" Text="{l:Tr Settings.Catalog.Position}" />
+          <StackPanel Spacing="4">
+            <TextBlock Classes="data" TextWrapping="Wrap" Text="{Binding CatalogText}" />
+            <TextBlock Classes="micro tertiary" Text="{l:Tr Settings.Catalog.CacheNote}" />
+          </StackPanel>
+
+          <TextBlock Classes="overline" Text="{l:Tr Settings.Catalog.Backup}" />
+          <StackPanel Spacing="4">
+            <TextBlock Classes="label" Text="{Binding LastBackupText}" />
+            <TextBlock Classes="micro tertiary" TextWrapping="Wrap" Text="{l:Tr Settings.Catalog.When}" />
+            <TextBlock Classes="micro tertiary" TextWrapping="Wrap" Text="{Binding BackupsText}" />
+          </StackPanel>
+          <Button Classes="secondary" HorizontalAlignment="Left" Command="{Binding BackupNowCommand}" IsEnabled="{Binding !IsBusy}" Content="{l:Tr Settings.Catalog.BackupNow}" />
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <ComboBox ItemsSource="{Binding Backups}" SelectedItem="{Binding SelectedBackup}" HorizontalAlignment="Stretch">
+              <ComboBox.ItemTemplate>
+                <DataTemplate><TextBlock Text="{Binding Label}" /></DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <Button Grid.Column="1" Classes="secondary" Command="{Binding RequestRestoreCommand}" Content="{l:Tr Settings.Catalog.Restore}" />
+          </Grid>
+          <Border Classes="card" Padding="16" IsVisible="{Binding HasPendingRestore}">
+            <StackPanel Spacing="8">
+              <TextBlock Classes="label warning" TextWrapping="Wrap" Text="{Binding PendingRestoreText}" />
+              <Button Classes="secondary" HorizontalAlignment="Left" Command="{Binding CancelRestoreCommand}" Content="{l:Tr Common.Cancel}" />
+            </StackPanel>
+          </Border>
+
+          <TextBlock Classes="overline" Text="{l:Tr Settings.Catalog.Encryption}" />
+          <StackPanel Spacing="4" Opacity="0.6">
+            <RadioButton IsEnabled="False" IsChecked="True" Content="{l:Tr Settings.Catalog.EncryptionWindows}" />
+            <RadioButton IsEnabled="False" Content="{l:Tr Settings.Catalog.EncryptionPassword}" />
+            <TextBlock Classes="micro tertiary" Text="{l:Tr Settings.Phase2}" />
+          </StackPanel>
+
+          <TextBlock Classes="overline" Text="{l:Tr Settings.Catalog.Export}" />
+          <StackPanel Orientation="Horizontal" Spacing="8" Opacity="0.6">
+            <Button Classes="secondary" IsEnabled="False" Content="{l:Tr Settings.Catalog.ExportButton}" />
+            <Button Classes="secondary" IsEnabled="False" Content="{l:Tr Settings.Catalog.ImportButton}" />
+            <TextBlock Classes="micro tertiary" VerticalAlignment="Center" Text="{l:Tr Settings.Phase5}" />
+          </StackPanel>
+          <TextBlock Classes="micro tertiary" Text="{Binding SchemaText}" />
+        </StackPanel>
+
+        <!-- 5i General -->
+        <StackPanel Spacing="16" IsVisible="{Binding IsGeneral}">
+          <TextBlock Classes="overline" Text="{l:Tr Settings.Language}" />
+          <ComboBox ItemsSource="{Binding Languages}" SelectedItem="{Binding Language}" MinWidth="240">
+            <ComboBox.ItemTemplate>
+              <DataTemplate><TextBlock Text="{Binding Label}" /></DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+          <TextBlock Classes="micro tertiary" TextWrapping="Wrap" Text="{l:Tr Settings.Language.Note}" />
+
+          <TextBlock Classes="overline" Text="{l:Tr Settings.Theme}" />
+          <ComboBox ItemsSource="{Binding Themes}" SelectedItem="{Binding Theme}" MinWidth="240">
+            <ComboBox.ItemTemplate>
+              <DataTemplate><TextBlock Text="{Binding Label}" /></DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+
+          <TextBlock Classes="overline" Text="{l:Tr Settings.ExifTool}" />
+          <StackPanel Spacing="4">
+            <TextBlock Classes="data" TextWrapping="Wrap" Text="{Binding ExifToolText}" />
+            <TextBlock Classes="micro tertiary" Text="{Binding ExifToolHealth}" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Classes="secondary" Command="{Binding CheckExifToolCommand}" Content="{l:Tr Settings.ExifTool.Check}" />
+            <Button Classes="secondary" Command="{Binding RequestExifToolCommand}" Content="{l:Tr Settings.ExifTool.Other}" />
+            <Button Classes="ghost" Command="{Binding UseBundledExifToolCommand}" Content="{l:Tr Settings.ExifTool.UseBundled}" />
+          </StackPanel>
+
+          <TextBlock Classes="overline" Text="{l:Tr Settings.Template}" />
+          <TextBox Classes="field" FontFamily="{StaticResource PF.Font.Mono}" Text="{Binding PathTemplate}" />
+          <ItemsControl ItemsSource="{Binding TemplateVariables}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="x:String"><Border Classes="key" Margin="0,0,6,6"><TextBlock Text="{Binding}" /></Border></DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <TextBlock Classes="data tertiary" TextWrapping="Wrap" Text="{Binding TemplateExample}" IsVisible="{Binding TemplateError, Converter={x:Static ObjectConverters.IsNull}}" />
+          <TextBlock Classes="label error" TextWrapping="Wrap" Text="{Binding TemplateError}" IsVisible="{Binding TemplateError, Converter={x:Static ObjectConverters.IsNotNull}}" />
+          <TextBlock Classes="micro tertiary" TextWrapping="Wrap" Text="{l:Tr Settings.Template.Note}" />
+          <Button Classes="ghost" HorizontalAlignment="Left" Command="{Binding ResetTemplateCommand}" Content="{l:Tr Settings.Template.Reset}" />
+        </StackPanel>
+
+        <!-- 5j Culling -->
+        <StackPanel Spacing="16" IsVisible="{Binding IsCulling}">
+          <TextBlock Classes="overline" Text="{l:Tr Settings.Culling.Mode}" />
+          <RadioButton GroupName="culling" IsChecked="{Binding PrudentMode, Mode=OneWay}" IsEnabled="False">
+            <StackPanel><TextBlock Text="{l:Tr Settings.Culling.Prudent}" /><TextBlock Classes="micro tertiary" TextWrapping="Wrap" Text="{l:Tr Settings.Culling.PrudentNote}" /></StackPanel>
+          </RadioButton>
+          <RadioButton GroupName="culling" IsEnabled="False">
+            <StackPanel><TextBlock Text="{l:Tr Settings.Culling.Normal}" /><TextBlock Classes="micro tertiary" TextWrapping="Wrap" Text="{l:Tr Settings.Culling.NormalNote}" /></StackPanel>
+          </RadioButton>
+          <TextBlock Classes="micro tertiary" Text="{l:Tr Settings.Phase2}" />
+        </StackPanel>
+      </Panel>
+    </ScrollViewer>
+  </DockPanel>
+</UserControl>

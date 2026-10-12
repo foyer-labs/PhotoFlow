@@ -18,6 +18,9 @@ public interface ICatalog : IAsyncDisposable
     IDeferredCopyStore DeferredCopies { get; }
 
     IAnalysisStore Analysis { get; }
+
+    /// <summary>Consistent copy of the open catalog into <paramref name="backupsDirectory"/> (spec §9); returns its path.</summary>
+    Task<string> BackupAsync(string backupsDirectory, string reason, CancellationToken ct);
 }
 
 public interface ILibraryStore
@@ -33,6 +36,12 @@ public interface ILibraryStore
 
     /// <summary>Photos (assets) with a location in the library.</summary>
     Task<int> CountAssetsAsync(long libraryId, CancellationToken ct);
+
+    /// <summary>Assets of the library by format (NEF, JPG, TIFF, HEIC…), board 5a.</summary>
+    Task<IReadOnlyDictionary<string, int>> CountFormatsAsync(long libraryId, CancellationToken ct);
+
+    /// <summary>XMP policy and read-only flag (D21: the caller confirms a switch to embedded XMP).</summary>
+    Task UpdatePolicyAsync(long libraryId, Metadata.WritePolicy policy, bool isReadOnly, CancellationToken ct);
 }
 
 public interface IAssetStore
@@ -51,6 +60,11 @@ public interface IAssetStore
     Task<IReadOnlyList<AssetLocation>> GetLocationsAsync(long assetId, CancellationToken ct);
 
     Task AddPairAsync(long rawAssetId, long jpegAssetId, CancellationToken ct);
+
+    /// <summary>Assets of a library still without the full hash (computed in background, spec §10).</summary>
+    Task<IReadOnlyList<(long AssetId, string RelativePath)>> ListWithoutFullHashAsync(long libraryId, int limit, CancellationToken ct);
+
+    Task SetFullHashAsync(long assetId, string fullHash, CancellationToken ct);
 }
 
 public interface IJobStore
