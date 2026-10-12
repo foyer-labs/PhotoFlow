@@ -25,7 +25,8 @@
     <PackageVersion Include="SkiaSharp" Version="3.119.4" />
     <!-- Includes LibRaw 0.22.x for RAW fallback decoding (F1-3); LGPL parts statically linked: see risk R19. -->
     <PackageVersion Include="Magick.NET-Q8-AnyCPU" Version="15.0.0" />
-    <PackageVersion Include="Microsoft.ML.OnnxRuntime" Version="1.31.0" />
+    <!-- CUDA 13 + cuDNN 9 build, includes the CPU provider (decision F1-2). -->
+    <PackageVersion Include="Microsoft.ML.OnnxRuntime.Gpu" Version="1.31.0" />
   </ItemGroup>
 
   <ItemGroup Label="Ingest and catalog">

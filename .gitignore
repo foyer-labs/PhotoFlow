@@ -17,6 +17,7 @@ TestResults/
 models/**
 !models/manifest.json
 !models/manifest.schema.json
+!models/gpu-runtime.json
 *.onnx
 *.onnx.data
 *.pth

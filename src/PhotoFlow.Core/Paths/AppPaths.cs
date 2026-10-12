@@ -21,6 +21,9 @@ public interface IAppPaths
     /// <summary>Downloaded models; configurable (spec §11).</summary>
     string ModelsDirectory { get; }
 
+    /// <summary>GPU runtime libraries (CUDA/cuDNN) and their downloaded archives (decision F1-2).</summary>
+    string GpuRuntimeDirectory { get; }
+
     /// <summary>Always local, rebuildable.</summary>
     string CacheDirectory { get; }
 
@@ -60,6 +63,7 @@ public sealed class DefaultAppPaths : IAppPaths
         CatalogPath = overrides?.CatalogPath ?? Path.Combine(dataRoot, "catalog", CatalogFileName);
         BackupsDirectory = Path.Combine(dataRoot, "backups");
         ModelsDirectory = overrides?.ModelsDirectory ?? Path.Combine(dataRoot, "models");
+        GpuRuntimeDirectory = Path.Combine(dataRoot, "gpu-runtime");
         CacheDirectory = Path.Combine(dataRoot, "cache");
         ThumbnailsDirectory = Path.Combine(CacheDirectory, "thumbnails");
         LogsDirectory = Path.Combine(dataRoot, "logs");
@@ -77,6 +81,8 @@ public sealed class DefaultAppPaths : IAppPaths
     public string BackupsDirectory { get; }
 
     public string ModelsDirectory { get; }
+
+    public string GpuRuntimeDirectory { get; }
 
     public string CacheDirectory { get; }
 
