@@ -38,6 +38,32 @@ internal sealed class AnalysisStore(SqliteCatalog catalog) : IAnalysisStore
             JsonSerializer.Deserialize<Dictionary<string, double>>(r.ScoresJson) ?? []))
         .FirstOrDefault();
 
+    public Task SaveEmbeddingAsync(long assetId, string modelVersion, ReadOnlyMemory<float> vector, CancellationToken ct) =>
+        catalog.RunAsync(c => c.ExecuteAsync(new CommandDefinition(
+            """
+            INSERT INTO Embeddings (AssetId, ModelVersion, Vector, CreatedAtMs) VALUES (@assetId, @modelVersion, @blob, @now)
+            ON CONFLICT (AssetId, ModelVersion) DO UPDATE SET Vector = excluded.Vector, CreatedAtMs = excluded.CreatedAtMs;
+            """,
+            new { assetId, modelVersion, blob = MemoryMarshal.AsBytes(vector.Span).ToArray(), now = Db.Now() }, cancellationToken: ct)), ct);
+
+    public async Task<IReadOnlyDictionary<long, float[]>> GetEmbeddingsAsync(IReadOnlyCollection<long> assetIds, string modelVersion, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(assetIds);
+        var result = new Dictionary<long, float[]>(assetIds.Count);
+        foreach (var chunk in assetIds.Distinct().Chunk(500))
+        {
+            var rows = await catalog.RunAsync(c => c.QueryAsync<(long AssetId, byte[] Vector)>(new CommandDefinition(
+                "SELECT AssetId, Vector FROM Embeddings WHERE ModelVersion = @modelVersion AND AssetId IN @chunk;",
+                new { modelVersion, chunk }, cancellationToken: ct)), ct).ConfigureAwait(false);
+            foreach (var (assetId, vector) in rows)
+            {
+                result[assetId] = MemoryMarshal.Cast<byte, float>(vector).ToArray();
+            }
+        }
+
+        return result;
+    }
+
     public Task ReplaceAutomaticFacesAsync(long assetId, IReadOnlyList<Face> faces, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(faces);

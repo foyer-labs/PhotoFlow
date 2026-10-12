@@ -43,6 +43,9 @@ public enum ResampleMode
 {
     /// <summary>Triangle filter with support scaled on downsampling (Pillow BILINEAR semantics).</summary>
     Bilinear,
+
+    /// <summary>Cubic filter (a = −0.5) with support scaled on downsampling (Pillow BICUBIC semantics, CLIP preprocessing).</summary>
+    Bicubic,
 }
 
 /// <summary>First bytes of a file plus its extension, used to pick the handler.</summary>

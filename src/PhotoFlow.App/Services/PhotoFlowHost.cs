@@ -22,11 +22,12 @@ using PhotoFlow.Metadata.ExifTool;
 using PhotoFlow.Sources.Ingest;
 using PhotoFlow.Sources.Jobs;
 using PhotoFlow.Sources.Scanning;
+using PhotoFlow.Tagging.Clip;
 
 namespace PhotoFlow.App.Services;
 
 /// <summary>Which models the analysis uses, for the status bar and the first run (3b).</summary>
-public sealed record AnalysisSetup(string? ObjectDetector, string? FaceDetector, bool EyesAvailable, ExecutionBackend Backend);
+public sealed record AnalysisSetup(string? ObjectDetector, string? FaceDetector, bool EyesAvailable, ExecutionBackend Backend, string? Embedder = null);
 
 /// <summary>
 /// Composition of the non-UI services (catalog, exiftool, handlers, models, jobs, card detection), started once at
@@ -40,8 +41,10 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     /// <summary>Model adapters this version can run: only these models can be downloaded or chosen (board 5g).</summary>
     public static readonly IReadOnlySet<string> ImplementedAdapters = new HashSet<string>(StringComparer.Ordinal)
     {
-        "dfine-hf-v1", "insightface-buffalo-v1", "yunet-v1",
+        "dfine-hf-v1", "insightface-buffalo-v1", "yunet-v1", "clip-hf-v1",
     };
+
+    public const string ClipModelId = "clip-vit-b32";
 
     private readonly SemaphoreSlim _sessionsGate = new(1, 1);
     private readonly List<IInferenceSession> _sessions = [];
@@ -215,7 +218,8 @@ public sealed class PhotoFlowHost : IAsyncDisposable
             : Models.IsInstalled("dfine-s-obj2coco") ? "dfine-s-obj2coco" : null;
         var buffalo = Models.IsInstalled("insightface-buffalo-l") && Settings.AcceptedModelLicenses.Contains("insightface-buffalo-l");
         var faces = buffalo ? "insightface-buffalo-l" : Models.IsInstalled("opencv-yunet-2023mar") ? "opencv-yunet-2023mar" : null;
-        return new AnalysisSetup(detector, faces, buffalo, gpu ? ExecutionBackend.Cuda : ExecutionBackend.Cpu);
+        return new AnalysisSetup(detector, faces, buffalo, gpu ? ExecutionBackend.Cuda : ExecutionBackend.Cpu,
+            Models.IsInstalled(ClipModelId) ? ClipModelId : null);
     }
 
     public async ValueTask DisposeAsync()
@@ -273,7 +277,10 @@ public sealed class PhotoFlowHost : IAsyncDisposable
                 faces = new YuNetFaceDetector(await Open(yunet, "face_detection_yunet_2023mar.onnx").ConfigureAwait(false), operations);
             }
 
-            _processor = new CullingPhotoProcessor(Previews, new CullingAnalyzer(operations, objects, faces), new DecisionEngine(), BuiltInProfiles.Get, Thumbnails);
+            IImageEmbedder? embedder = setup.Embedder is { } clip
+                ? new ClipImageEmbedder(await Open(clip, "vision_model.onnx").ConfigureAwait(false), operations)
+                : null;
+            _processor = new CullingPhotoProcessor(Previews, new CullingAnalyzer(operations, objects, faces), new DecisionEngine(), BuiltInProfiles.Get, Thumbnails, embedder);
             return _processor;
         }
         finally

@@ -18,8 +18,11 @@ public sealed class CullingPhotoProcessor : IPhotoProcessor
     private readonly IDecisionEngine _engine;
     private readonly Func<string, SceneProfile> _profiles;
     private readonly IThumbnailStore? _thumbnails;
+    private readonly IImageEmbedder? _embedder;
 
-    public CullingPhotoProcessor(IPreviewProvider previews, CullingAnalyzer analyzer, IDecisionEngine engine, Func<string, SceneProfile> profiles, IThumbnailStore? thumbnails)
+    /// <param name="embedder">CLIP image embedding for bursts and similar photos (phase 2); null without the model.</param>
+    public CullingPhotoProcessor(IPreviewProvider previews, CullingAnalyzer analyzer, IDecisionEngine engine, Func<string, SceneProfile> profiles, IThumbnailStore? thumbnails,
+        IImageEmbedder? embedder = null)
     {
         ArgumentNullException.ThrowIfNull(previews);
         ArgumentNullException.ThrowIfNull(analyzer);
@@ -30,6 +33,7 @@ public sealed class CullingPhotoProcessor : IPhotoProcessor
         _engine = engine;
         _profiles = profiles;
         _thumbnails = thumbnails;
+        _embedder = embedder;
     }
 
     public async Task<PhotoProcessingResult> ProcessAsync(PhotoInput photo, ProcessingOptions options, CancellationToken ct)
@@ -49,6 +53,9 @@ public sealed class CullingPhotoProcessor : IPhotoProcessor
         }
 
         var analysis = await _analyzer.AnalyzeDetailedAsync(new PhotoContext(null, photo.Path, preview, photo.Exif), profile, ct).ConfigureAwait(false);
+        var embedding = _embedder is null
+            ? null
+            : new ImageEmbedding(_embedder.ModelVersion, await _embedder.EmbedAsync(preview.Image, ct).ConfigureAwait(false));
         var decision = _engine.Decide(analysis.Signals, profile);
         var (width, height) = (preview.Image.Width, preview.Image.Height);
         var faces = analysis.Faces.Select(f => new Face(
@@ -69,6 +76,7 @@ public sealed class CullingPhotoProcessor : IPhotoProcessor
             new AnalyzerResult(_analyzer.Id, analysis.ModelVersion, CullingScores.ToScores(analysis.Signals)),
             faces,
             decision,
-            $"{_engine.Version}+{analysis.ModelVersion}+{profile.Id}@{profile.Version}");
+            $"{_engine.Version}+{analysis.ModelVersion}+{profile.Id}@{profile.Version}",
+            embedding);
     }
 }

@@ -102,4 +102,8 @@ public sealed record PhotoProcessingResult(
     AnalyzerResult Analysis,
     IReadOnlyList<Face> Faces,
     DecisionProposal Decision,
-    string DecisionVersion);
+    string DecisionVersion,
+    ImageEmbedding? Embedding = null);
+
+/// <summary>An L2-normalized image embedding and the model version that produced it.</summary>
+public sealed record ImageEmbedding(string ModelVersion, float[] Vector);

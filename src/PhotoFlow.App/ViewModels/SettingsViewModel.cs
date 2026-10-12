@@ -107,7 +107,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         Themes = Enum.GetValues<ThemePreference>().Select(t => new SettingChoice<ThemePreference>(t, Strings.Get("Settings.Theme." + t))).ToList();
         Models = new ObservableCollection<ModelRowViewModel>(host.Models.Models
             .OrderBy(m => m.Phase).ThenBy(m => m.Function)
-            .Select(m => new ModelRowViewModel(m, m.Phase <= 1 && PhotoFlowHost.ImplementedAdapters.Contains(m.Adapter))));
+            .Select(m => new ModelRowViewModel(m, PhotoFlowHost.ImplementedAdapters.Contains(m.Adapter))));
         _pathTemplate = host.Settings.Import.PathTemplate;
         _language = Languages.FirstOrDefault(l => l.Value == host.Settings.Language) ?? Languages[0];
         _theme = Themes.First(t => t.Value == host.Settings.Theme);

@@ -303,6 +303,11 @@ public sealed class ArchiveJobRunner : IJobRunner
 
                 await catalog.Analysis.SaveResultAsync(new AnalyzerResultRecord(0, analyzed.AssetId, result.Analysis.AnalyzerId, result.Analysis.ModelVersion, settings.ProfileId, result.Analysis.Scores), done).ConfigureAwait(false);
                 await catalog.Analysis.ReplaceAutomaticFacesAsync(analyzed.AssetId, result.Faces, done).ConfigureAwait(false);
+                if (result.Embedding is { } embedding)
+                {
+                    await catalog.Analysis.SaveEmbeddingAsync(analyzed.AssetId, embedding.ModelVersion, embedding.Vector, done).ConfigureAwait(false);
+                }
+
                 foreach (var id in members.Select(m => m.AssetId).Distinct())
                 {
                     await catalog.Decisions.SetAutomaticAsync(id, result.Decision.Outcome, result.Decision.Reasons, result.DecisionVersion, done).ConfigureAwait(false);

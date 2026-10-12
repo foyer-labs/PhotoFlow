@@ -412,6 +412,11 @@ public sealed class ImportJobRunner : IJobRunner
             var done = CancellationToken.None;
             await catalog.Analysis.SaveResultAsync(new AnalyzerResultRecord(0, assetId, result.Analysis.AnalyzerId, result.Analysis.ModelVersion, settings.ProfileId, result.Analysis.Scores), done).ConfigureAwait(false);
             await catalog.Analysis.ReplaceAutomaticFacesAsync(assetId, result.Faces, done).ConfigureAwait(false);
+            if (result.Embedding is { } embedding)
+            {
+                await catalog.Analysis.SaveEmbeddingAsync(assetId, embedding.ModelVersion, embedding.Vector, done).ConfigureAwait(false);
+            }
+
             var assetIds = analyzable.Select(i => group.Verified[i.Id].AssetId).Distinct().ToList();
             foreach (var id in assetIds)
             {

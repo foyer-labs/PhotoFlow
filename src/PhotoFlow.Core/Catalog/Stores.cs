@@ -138,6 +138,12 @@ public interface IAnalysisStore
     Task ReplaceAutomaticFacesAsync(long assetId, IReadOnlyList<Face> faces, CancellationToken ct);
 
     Task<IReadOnlyList<Face>> GetFacesAsync(long assetId, CancellationToken ct);
+
+    /// <summary>Stores the image embedding of the asset for a model version, replacing an earlier one of the same version.</summary>
+    Task SaveEmbeddingAsync(long assetId, string modelVersion, ReadOnlyMemory<float> vector, CancellationToken ct);
+
+    /// <summary>Embeddings of a model version for the given assets (assets without one are absent).</summary>
+    Task<IReadOnlyDictionary<long, float[]>> GetEmbeddingsAsync(IReadOnlyCollection<long> assetIds, string modelVersion, CancellationToken ct);
 }
 
 public sealed class CatalogLockedException(string message) : IOException(message);
