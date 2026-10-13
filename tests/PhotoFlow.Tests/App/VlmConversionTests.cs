@@ -40,7 +40,8 @@ public sealed class VlmConversionTests : IDisposable
         await File.WriteAllTextAsync(Path.Combine(tools, "requirements.txt"), "torch==2.14.1\n", Ct);
         await File.WriteAllTextAsync(Path.Combine(tools, "convert.py"), "# fake\n", Ct);
         var python = new FakePython();
-        var conversion = new VlmConversion(registry, paths, python, tools);
+        long free = long.MaxValue; // the CI machines have less than the ~45 GB of a real conversion
+        var conversion = new VlmConversion(registry, paths, python, tools, _ => free);
 
         // Nothing in the source folder: stopped at the verification, Python never asked.
         var missing = await Assert.ThrowsAsync<VlmConversionException>(() => conversion.ConvertAsync(model.Id, null, Ct));
@@ -60,8 +61,13 @@ public sealed class VlmConversionTests : IDisposable
         python.Installed = false;
         Assert.Equal(VlmConversionStage.Python, (await Assert.ThrowsAsync<VlmConversionException>(() => conversion.ConvertAsync(model.Id, null, Ct))).Stage);
 
-        // Python 3.12: environment, packages, conversion; the model is installed.
+        // Python 3.12, but not enough free space: stopped before the environment.
         python.Installed = true;
+        free = 20L * 1024 * 1024 * 1024;
+        Assert.Equal(VlmConversionStage.Space, (await Assert.ThrowsAsync<VlmConversionException>(() => conversion.ConvertAsync(model.Id, null, Ct))).Stage);
+        free = long.MaxValue;
+
+        // Python 3.12: environment, packages, conversion; the model is installed.
         python.Calls.Clear();
         var stages = new List<VlmConversionProgress>();
         await conversion.ConvertAsync(model.Id, new SyncProgress<VlmConversionProgress>(stages.Add), Ct);

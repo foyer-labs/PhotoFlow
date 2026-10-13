@@ -51,7 +51,8 @@ public interface IVlmToolchain
 /// writes the ONNX Runtime GenAI model; only when it succeeds the model is moved in place and marked installed. Every
 /// line goes to a log in the logs folder. The weights are only read.
 /// </summary>
-public sealed class VlmConversion(ModelRegistry models, IAppPaths paths, IVlmToolchain toolchain, string toolsDirectory)
+/// <param name="freeBytes">Free space of the drive of a folder (the real drive by default; tests give their own).</param>
+public sealed class VlmConversion(ModelRegistry models, IAppPaths paths, IVlmToolchain toolchain, string toolsDirectory, Func<string, long>? freeBytes = null)
 {
     // Measured on the 7B (13 Oct 2026): model 6.5 GB, intermediate files of the export 27 GB, environment 4-5 GB.
     public const long ModelBytesNeeded = 8L * 1024 * 1024 * 1024;
@@ -111,7 +112,7 @@ public sealed class VlmConversion(ModelRegistry models, IAppPaths paths, IVlmToo
         var needs = new[] { (paths.ModelsDirectory, ModelBytesNeeded), (paths.TempDirectory, WorkBytesNeeded), (paths.CacheDirectory, File.Exists(VenvPython) ? 0 : EnvironmentBytesNeeded) }
             .GroupBy(n => DriveOf(n.Item1), StringComparer.OrdinalIgnoreCase)
             .Select(g => (Folder: g.First().Item1, Bytes: g.Sum(n => n.Item2)));
-        if (needs.FirstOrDefault(n => FreeBytes(n.Folder) < n.Bytes) is { Folder: not null } lacking)
+        if (needs.FirstOrDefault(n => (freeBytes ?? FreeBytes)(n.Folder) < n.Bytes) is { Folder: not null } lacking)
         {
             throw Fail(VlmConversionStage.Space,
                 $"Not enough free space on {DriveOf(lacking.Folder)}: {lacking.Bytes / (1024 * 1024 * 1024)} GB needed during the conversion (about 7 GB stay).");
