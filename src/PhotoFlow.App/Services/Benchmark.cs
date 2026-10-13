@@ -132,7 +132,7 @@ public sealed class BenchmarkRunner(PhotoFlowHost host)
         var clock = Stopwatch.StartNew();
         await Parallel.ForEachAsync(sample, new ParallelOptions { MaxDegreeOfParallelism = workers, CancellationToken = ct }, async (path, token) =>
         {
-            await processor.ProcessAsync(new PhotoInput(path, null, null), new ProcessingOptions("events", FaceMode.Recognize), token).ConfigureAwait(false);
+            await processor.ProcessAsync(new PhotoInput(path, null, null), new ProcessingOptions("events", FaceMode.Recognize, Tagger: true), token).ConfigureAwait(false);
             lock (stages)
             {
                 Step();

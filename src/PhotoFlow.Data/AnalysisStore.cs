@@ -65,6 +65,10 @@ internal sealed class AnalysisStore(SqliteCatalog catalog) : IAnalysisStore
             """,
             new { assetId, modelVersion, blob = MemoryMarshal.AsBytes(vector.Span).ToArray(), now = Db.Now() }, cancellationToken: ct)), ct);
 
+    public async Task<IReadOnlyList<long>> ListEmbeddedAssetsAsync(string modelVersion, CancellationToken ct) =>
+        (await catalog.RunAsync(c => c.QueryAsync<long>(new CommandDefinition(
+            "SELECT AssetId FROM Embeddings WHERE ModelVersion = @modelVersion ORDER BY AssetId;", new { modelVersion }, cancellationToken: ct)), ct).ConfigureAwait(false)).ToList();
+
     public async Task<IReadOnlyDictionary<long, float[]>> GetEmbeddingsAsync(IReadOnlyCollection<long> assetIds, string modelVersion, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(assetIds);

@@ -4,6 +4,7 @@ using PhotoFlow.Core.Analysis;
 using PhotoFlow.Core.Catalog;
 using PhotoFlow.Core.Imaging;
 using PhotoFlow.Core.Pipeline;
+using PhotoFlow.Core.Tagging;
 
 namespace PhotoFlow.Analysis.Culling;
 
@@ -21,6 +22,7 @@ public sealed class CullingPhotoProcessor : IPhotoProcessor
     private readonly IImageEmbedder? _embedder;
     private readonly IFaceEmbedder? _faceEmbedder;
     private readonly Func<IFingerprintProtector>? _protector;
+    private readonly IImageTagger? _tagger;
 
     /// <summary>Faces smaller than this (long side, reference scale) get no fingerprint (spec §7 <c>minFaceSizePx</c>).</summary>
     public const double MinFingerprintFaceSize = 48;
@@ -28,8 +30,9 @@ public sealed class CullingPhotoProcessor : IPhotoProcessor
     /// <param name="embedder">CLIP image embedding for bursts and similar photos (phase 2); null without the model.</param>
     /// <param name="faceEmbedder">Fingerprints for the Recognize mode; null without the model.</param>
     /// <param name="protector">Current fingerprint encryption; without an available key no fingerprint is computed (P13).</param>
+    /// <param name="tagger">Image tagger (level B, phase 3), run when the options ask for it; null without the model.</param>
     public CullingPhotoProcessor(IPreviewProvider previews, CullingAnalyzer analyzer, IDecisionEngine engine, Func<string, SceneProfile> profiles, IThumbnailStore? thumbnails,
-        IImageEmbedder? embedder = null, IFaceEmbedder? faceEmbedder = null, Func<IFingerprintProtector>? protector = null)
+        IImageEmbedder? embedder = null, IFaceEmbedder? faceEmbedder = null, Func<IFingerprintProtector>? protector = null, IImageTagger? tagger = null)
     {
         ArgumentNullException.ThrowIfNull(previews);
         ArgumentNullException.ThrowIfNull(analyzer);
@@ -43,6 +46,7 @@ public sealed class CullingPhotoProcessor : IPhotoProcessor
         _embedder = embedder;
         _faceEmbedder = faceEmbedder;
         _protector = protector;
+        _tagger = tagger;
     }
 
     public async Task<PhotoProcessingResult> ProcessAsync(PhotoInput photo, ProcessingOptions options, CancellationToken ct)
@@ -65,6 +69,7 @@ public sealed class CullingPhotoProcessor : IPhotoProcessor
         var embedding = _embedder is null
             ? null
             : new ImageEmbedding(_embedder.ModelVersion, await _embedder.EmbedAsync(preview.Image, ct).ConfigureAwait(false));
+        var tags = options.Tagger && _tagger is not null ? await _tagger.TagAsync(preview.Image, ct).ConfigureAwait(false) : null;
         var decision = _engine.Decide(analysis.Signals, profile);
         var (width, height) = (preview.Image.Width, preview.Image.Height);
         var protector = profile.Faces == FaceMode.Recognize && _faceEmbedder is not null ? _protector?.Invoke() : null;
@@ -99,6 +104,7 @@ public sealed class CullingPhotoProcessor : IPhotoProcessor
             faces,
             decision,
             $"{_engine.Version}+{analysis.ModelVersion}+{profile.Id}@{profile.Version}",
-            embedding);
+            embedding,
+            tags);
     }
 }

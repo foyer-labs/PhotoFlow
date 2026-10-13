@@ -120,9 +120,10 @@
             <TextBlock Classes="micro tertiary" TextWrapping="Wrap" Text="{l:Tr Import.Faces.NoRecognizer}" IsVisible="{Binding !CanRecognize}" />
             <TextBlock Classes="label tertiary" TextWrapping="Wrap" Text="{l:Tr Import.Faces.Note}" />
             <TextBlock Classes="label" Margin="0,16,0,0" Text="{l:Tr Import.Tags}" />
-            <StackPanel Spacing="6" Opacity="0.5">
-              <CheckBox IsEnabled="False" Content="{l:Tr Import.Tags.A}" ToolTip.Tip="{l:Tr Common.ComesWithPhase3}" />
-              <CheckBox IsEnabled="False" Content="{l:Tr Import.Tags.B}" ToolTip.Tip="{l:Tr Common.ComesWithPhase3}" />
+            <StackPanel Spacing="6">
+              <CheckBox IsChecked="{Binding TagsA}" IsEnabled="{Binding CanTagA}" Content="{l:Tr Import.Tags.A}" />
+              <CheckBox IsChecked="{Binding TagsB}" IsEnabled="{Binding CanTagB}" Content="{l:Tr Import.Tags.B}" />
+              <TextBlock Classes="micro tertiary" TextWrapping="Wrap" Text="{l:Tr Import.Tags.NoModel}" IsVisible="{Binding !CanTagB}" />
               <CheckBox IsEnabled="False" Content="{l:Tr Import.Tags.C}" ToolTip.Tip="{l:Tr Common.ComesWithPhase5}" />
               <CheckBox IsEnabled="False" Content="{l:Tr Import.Tags.D}" ToolTip.Tip="{l:Tr Common.ComesWithPhase5}" />
             </StackPanel>

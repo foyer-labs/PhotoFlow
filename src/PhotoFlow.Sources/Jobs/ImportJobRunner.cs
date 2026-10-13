@@ -7,6 +7,7 @@ using PhotoFlow.Core.Ingest;
 using PhotoFlow.Core.IO;
 using PhotoFlow.Core.Metadata;
 using PhotoFlow.Core.Pipeline;
+using PhotoFlow.Core.Tagging;
 using PhotoFlow.Core.Sources;
 using PhotoFlow.Sources.Ingest;
 
@@ -388,7 +389,7 @@ public sealed class ImportJobRunner : IJobRunner
             PhotoProcessingResult result;
             try
             {
-                result = await owner._processor.ProcessAsync(new PhotoInput(path, hash, exifSummary), new ProcessingOptions(settings.ProfileId, settings.Faces), ct).ConfigureAwait(false);
+                result = await owner._processor.ProcessAsync(new PhotoInput(path, hash, exifSummary), new ProcessingOptions(settings.ProfileId, settings.Faces, (settings.Tags ?? TagLevels.Default).HasFlag(TagLevels.Tagger)), ct).ConfigureAwait(false);
             }
             catch (Exception e) when (e is not OperationCanceledException)
             {
@@ -421,6 +422,11 @@ public sealed class ImportJobRunner : IJobRunner
             if (result.Embedding is { } embedding)
             {
                 await catalog.Analysis.SaveEmbeddingAsync(assetId, embedding.ModelVersion, embedding.Vector, done).ConfigureAwait(false);
+            }
+
+            if (result.Tags is { } tags)
+            {
+                await catalog.Tags.ReplaceAutomaticAsync(assetId, TagSource.RamPlus, tags.FirstOrDefault()?.ModelVersion, tags.Select(t => (t.TagKey, (double?)t.Confidence)).ToList(), done).ConfigureAwait(false);
             }
 
             var assetIds = analyzable.Select(i => group.Verified[i.Id].AssetId).Distinct().ToList();

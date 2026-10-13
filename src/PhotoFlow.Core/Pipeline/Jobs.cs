@@ -20,7 +20,8 @@ public sealed record ImportJobSettings(
     string ProfileId,
     int MaxParallelFiles = 2,
     int AnalysisWorkers = 0,
-    FaceMode? Faces = null);
+    FaceMode? Faces = null,
+    Tagging.TagLevels? Tags = null);
 
 /// <summary>Order of an archive analysis (spec §10, archives).</summary>
 public enum ArchiveOrder
@@ -43,7 +44,8 @@ public sealed record ArchiveJobSettings(
     ArchiveOrder Order = ArchiveOrder.NewestFirst,
     FaceMode? Faces = null,
     int AnalysisWorkers = 0,
-    bool FullHash = true);
+    bool FullHash = true,
+    Tagging.TagLevels? Tags = null);
 
 public static class PipelineDefaults
 {
@@ -92,7 +94,8 @@ public interface IPhotoProcessor
 }
 
 /// <param name="Faces">Face analysis chosen for the job (board 3e); null keeps the profile's mode.</param>
-public sealed record ProcessingOptions(string ProfileId, FaceMode? Faces = null);
+/// <param name="Tagger">Run the image tagger (level B, RAM++) on the photo.</param>
+public sealed record ProcessingOptions(string ProfileId, FaceMode? Faces = null, bool Tagger = false);
 
 /// <param name="Path">Verified copy in the library (never the source).</param>
 /// <param name="ContentHash">xxHash3 of the file (thumbnail key).</param>
@@ -105,7 +108,8 @@ public sealed record PhotoProcessingResult(
     IReadOnlyList<Face> Faces,
     DecisionProposal Decision,
     string DecisionVersion,
-    ImageEmbedding? Embedding = null);
+    ImageEmbedding? Embedding = null,
+    IReadOnlyList<Tagging.TagResult>? Tags = null);
 
 /// <summary>An L2-normalized image embedding and the model version that produced it.</summary>
 public sealed record ImageEmbedding(string ModelVersion, float[] Vector);

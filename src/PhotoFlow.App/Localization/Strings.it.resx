@@ -659,4 +659,5 @@
   <data name="Settings.Benchmark.Stage.Captions" xml:space="preserve"><value>Didascalie C</value></data>
   <data name="Settings.Benchmark.Estimates" xml:space="preserve"><value>Import di 1.000 scatti: {0} di analisi · archivio di {1} foto: {2} in bassa priorità ({3} ms/foto con {4} foto in parallelo; copia esclusa).</value></data>
   <data name="Settings.Benchmark.Note" xml:space="preserve"><value>Circa 50 foto delle tue librerie, in sola lettura: nulla viene scritto. La VRAM è letta dal driver NVIDIA (tutti i processi); senza, si mostra solo la RAM di PhotoFlow.</value></data>
+  <data name="Import.Tags.NoModel" xml:space="preserve"><value>I tag generici richiedono il modello RAM++ (Impostazioni › Modelli); su sola CPU serve circa un secondo per foto.</value></data>
 </root>

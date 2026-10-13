@@ -25,13 +25,17 @@ using PhotoFlow.Metadata.ExifTool;
 using PhotoFlow.Sources.Ingest;
 using PhotoFlow.Sources.Jobs;
 using PhotoFlow.Sources.Scanning;
+using PhotoFlow.Core.Tagging;
 using PhotoFlow.Tagging.Clip;
+using PhotoFlow.Tagging.RamPlus;
+using PhotoFlow.Tagging.Vocabulary;
 
 namespace PhotoFlow.App.Services;
 
 /// <summary>Which models the analysis uses, for the status bar and the first run (3b).</summary>
 /// <summary>The loaded models of the analysis (null when not installed).</summary>
-public sealed record AnalysisComponents(IImageOperations Operations, IObjectDetector? Objects, IFaceDetector? Faces, IImageEmbedder? Embedder, IFaceEmbedder? Fingerprints);
+public sealed record AnalysisComponents(IImageOperations Operations, IObjectDetector? Objects, IFaceDetector? Faces, IImageEmbedder? Embedder, IFaceEmbedder? Fingerprints,
+    IImageTagger? Tagger = null);
 
 public sealed record AnalysisSetup(string? ObjectDetector, string? FaceDetector, bool EyesAvailable, ExecutionBackend Backend, string? Embedder = null, string? FaceRecognizer = null);
 
@@ -47,10 +51,11 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     /// <summary>Model adapters this version can run: only these models can be downloaded or chosen (board 5g).</summary>
     public static readonly IReadOnlySet<string> ImplementedAdapters = new HashSet<string>(StringComparer.Ordinal)
     {
-        "dfine-hf-v1", "insightface-buffalo-v1", "yunet-v1", "clip-hf-v1", "sface-v1",
+        "dfine-hf-v1", "insightface-buffalo-v1", "yunet-v1", "clip-hf-v1", "sface-v1", "ramplus-v1",
     };
 
     public const string ClipModelId = "clip-vit-b32";
+    public const string RamPlusModelId = "ramplus-fp32";
     public const string SFaceModelId = "opencv-sface-2021dec";
 
     private readonly SemaphoreSlim _sessionsGate = new(1, 1);
@@ -190,6 +195,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
             : ExifToolOptions.Bundled(AppContext.BaseDirectory));
         var host = new PhotoFlowHost(paths, fileSystem, settingsStore, settings, catalog, exifTool) { RestoreOutcome = restoreOutcome };
         host.InterruptedJobs = await ImportJobRunner.RecoverInterruptedAsync(catalog, ct).ConfigureAwait(false);
+        await catalog.Tags.SeedVocabularyAsync(RamPlusVocabulary.Entries, TagSource.RamPlus, ct).ConfigureAwait(false);
         host.Cards.Start();
         host._maintenance = Task.Run(() => host.Maintenance.RunAtStartupAsync(
             catalog, Path.Combine(paths.GpuRuntimeDirectory, "downloads"), host.GpuRuntime.IsInstalled, CancellationToken.None), CancellationToken.None);
@@ -241,6 +247,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
             new ReanalysisStage(Catalog, FileSystem, new LazyProcessor(this), null, Profiles.Get, PipelineDefaults.DefaultAnalysisWorkers),
             new GroupDecisionStage(Catalog, Profiles.Get, new DecisionEngine()),
             new FacesStage(Catalog, () => FingerprintKeys.Protector),
+            new TaggingStage(Catalog, GetCustomTagScanAsync),
         ];
     }
 
@@ -283,6 +290,10 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     }
 
     /// <summary>Models the analysis would use now (installed and, where needed, accepted).</summary>
+    /// <summary>The tagging levels of the last import, or by hardware: RAM++ only with a GPU (spec §5).</summary>
+    public TagLevels DefaultTagLevels => Settings.Import.Tags
+        ?? (Inference.Detected.AvailableBackends.Contains(ExecutionBackend.Cuda) ? TagLevels.Default : TagLevels.ZeroShot);
+
     public AnalysisSetup DescribeAnalysis()
     {
         var gpu = Inference.Detected.AvailableBackends.Contains(ExecutionBackend.Cuda);
@@ -324,7 +335,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     {
         var c = await GetAnalysisComponentsAsync(ct).ConfigureAwait(false);
         var created = new CullingPhotoProcessor(Previews, new CullingAnalyzer(c.Operations, c.Objects, c.Faces), new DecisionEngine(), Profiles.Get, Thumbnails,
-            c.Embedder, c.Fingerprints, () => FingerprintKeys.Protector);
+            c.Embedder, c.Fingerprints, () => FingerprintKeys.Protector, c.Tagger);
         return Interlocked.CompareExchange(ref _processor, created, null) ?? created;
     }
 
@@ -368,7 +379,14 @@ public sealed class PhotoFlowHost : IAsyncDisposable
                 SFaceModelId => new SFaceEmbedder(await Open(SFaceModelId, SFaceEmbedder.File).ConfigureAwait(false)),
                 _ => null,
             };
-            _components = new AnalysisComponents(operations, objects, faces, embedder, fingerprints);
+            IImageTagger? tagger = null;
+            if (Models.IsInstalled(RamPlusModelId))
+            {
+                var classes = RamPlusClasses.Load(Models.Resolve(RamPlusModelId, RamPlusTagger.TagListFile).FilePath, Models.Resolve(RamPlusModelId, RamPlusTagger.ThresholdsFile).FilePath);
+                tagger = new RamPlusTagger(await Open(RamPlusModelId, RamPlusTagger.ModelFile).ConfigureAwait(false), operations, classes, Settings.Tagging.ThresholdAdjustment);
+            }
+
+            _components = new AnalysisComponents(operations, objects, faces, embedder, fingerprints, tagger);
             return _components;
         }
         finally
@@ -391,7 +409,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     public async Task<long> StartArchiveAnalysisAsync(long libraryId, string profileId, ArchiveOrder order, CancellationToken ct)
     {
         var settings = new ArchiveJobSettings(libraryId, profileId, order, Settings.Import.Faces,
-            Math.Max(1, PipelineDefaults.DefaultAnalysisWorkers / 2));
+            Math.Max(1, PipelineDefaults.DefaultAnalysisWorkers / 2), Tags: DefaultTagLevels);
         var jobId = await ArchiveJobRunner.CreateAsync(Catalog, FileSystem, settings, ct).ConfigureAwait(false);
         _ = Jobs.StartAsync(jobId, JobPriority.Low);
         return jobId;
@@ -417,6 +435,21 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     }
 
     private ClipSceneClassifier? _sceneClassifier;
+    private ClipTextEmbedder? _textEmbedder;
+    private CustomTagClassifier? _customTags;
+
+    /// <summary>The personal CLIP tags (level A) over the stored embeddings; null without the CLIP model.</summary>
+    public async Task<CustomTagScan?> GetCustomTagScanAsync(CancellationToken ct)
+    {
+        if (!Models.IsInstalled(ClipModelId))
+        {
+            return null;
+        }
+
+        await GetSceneClassifierAsync(ct).ConfigureAwait(false);
+        _customTags ??= new CustomTagClassifier(_textEmbedder!);
+        return new CustomTagScan(Catalog, _customTags, $"{ClipModelId}@{Models.Get(ClipModelId).Version}");
+    }
 
     private async Task<ClipSceneClassifier> GetSceneClassifierAsync(CancellationToken ct)
     {
@@ -427,7 +460,8 @@ public sealed class PhotoFlowHost : IAsyncDisposable
             {
                 var session = await Inference.CreateSessionAsync(Models.Resolve(ClipModelId, "text_model.onnx"), ExecutionTarget.Auto, ct).ConfigureAwait(false);
                 _sessions.Add(session);
-                _sceneClassifier = new ClipSceneClassifier(new ClipTextEmbedder(session, ClipTokenizer.Load(Models.Resolve(ClipModelId, "tokenizer.json").FilePath)));
+                _textEmbedder = new ClipTextEmbedder(session, ClipTokenizer.Load(Models.Resolve(ClipModelId, "tokenizer.json").FilePath));
+                _sceneClassifier = new ClipSceneClassifier(_textEmbedder);
             }
 
             return _sceneClassifier;

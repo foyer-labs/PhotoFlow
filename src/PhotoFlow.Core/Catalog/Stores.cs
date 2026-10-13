@@ -25,6 +25,8 @@ public interface ICatalog : IAsyncDisposable
 
     ILabelStore Labels { get; }
 
+    ITagStore Tags { get; }
+
     /// <summary>Consistent copy of the open catalog into <paramref name="backupsDirectory"/> (spec §9); returns its path.</summary>
     Task<string> BackupAsync(string backupsDirectory, string reason, CancellationToken ct);
 }
@@ -167,6 +169,9 @@ public interface IAnalysisStore
 
     /// <summary>Embeddings of a model version for the given assets (assets without one are absent).</summary>
     Task<IReadOnlyDictionary<long, float[]>> GetEmbeddingsAsync(IReadOnlyCollection<long> assetIds, string modelVersion, CancellationToken ct);
+
+    /// <summary>Photos with an embedding of this model.</summary>
+    Task<IReadOnlyList<long>> ListEmbeddedAssetsAsync(string modelVersion, CancellationToken ct);
 }
 
 /// <summary>Groups of a job (spec §9 <c>Groups</c>, <c>GroupMembers</c>).</summary>
@@ -261,3 +266,47 @@ public interface ILabelStore
 public sealed class CatalogLockedException(string message) : IOException(message);
 
 public sealed class CatalogCorruptException(string message) : IOException(message);
+
+/// <summary>
+/// Tags and their assignments (spec §8, §9). I5: an analysis replaces only the automatic tags of its own source; manual
+/// tags are never removed by it, and a tag the user removed stays suppressed until the user adds it again.
+/// </summary>
+public interface ITagStore
+{
+    /// <summary>Adds the entries not yet in the catalog; existing tags (and the user's edits) are left as they are.</summary>
+    Task SeedVocabularyAsync(IReadOnlyList<VocabularyEntry> entries, TagSource source, CancellationToken ct);
+
+    Task<Tag?> FindAsync(string key, CancellationToken ct);
+
+    /// <summary>The tag with this key, created with these values when missing.</summary>
+    Task<long> EnsureAsync(string key, TagSource source, string? category, string? italian, bool reviewed, CancellationToken ct);
+
+    /// <summary>Every tag with the number of photos where it is active.</summary>
+    Task<IReadOnlyList<Tag>> ListAsync(CancellationToken ct);
+
+    /// <summary>The automatic tags of <paramref name="source"/> on the photo become <paramref name="tags"/> (I5 above).</summary>
+    Task ReplaceAutomaticAsync(long assetId, TagSource source, string? modelVersion, IReadOnlyList<(string Key, double? Confidence)> tags, CancellationToken ct);
+
+    /// <summary>The user's tag (created as a manual tag when the key is new); a suppressed tag becomes active again.</summary>
+    Task AddManualAsync(long assetId, string key, CancellationToken ct);
+
+    /// <summary>The user removes a tag from the photo: it stays as "suppressed" so that no analysis adds it again.</summary>
+    Task SuppressAsync(long assetId, long tagId, CancellationToken ct);
+
+    /// <summary>Tags of the photo, active and suppressed.</summary>
+    Task<IReadOnlyList<AssetTagInfo>> GetForAssetAsync(long assetId, CancellationToken ct);
+
+    /// <summary>Active tags of several photos.</summary>
+    Task<IReadOnlyDictionary<long, IReadOnlyList<Tag>>> GetActiveForAssetsAsync(IReadOnlyCollection<long> assetIds, CancellationToken ct);
+
+    /// <summary>Vocabulary review (board 5c): Italian label, reviewed, category, blacklist.</summary>
+    Task UpdateAsync(long tagId, string? italian, bool reviewed, string? category, bool blacklisted, CancellationToken ct);
+
+    /// <summary>Photos with at least one active automatic tag (P15: the core vocabulary forms after 1,000).</summary>
+    Task<int> CountTaggedAssetsAsync(CancellationToken ct);
+
+    Task<IReadOnlyList<(Tag Tag, CustomTag Custom)>> ListCustomAsync(CancellationToken ct);
+
+    /// <summary>Creates or updates a personal CLIP tag (board 5d); returns its id.</summary>
+    Task<long> SaveCustomAsync(string key, string italian, string? category, string clipDescription, double threshold, double margin, CancellationToken ct);
+}

@@ -659,4 +659,5 @@
   <data name="Settings.Benchmark.Stage.Captions" xml:space="preserve"><value>Captions C</value></data>
   <data name="Settings.Benchmark.Estimates" xml:space="preserve"><value>Import of 1,000 shots: {0} of analysis · archive of {1} photos: {2} at low priority ({3} ms/photo with {4} photos in parallel; copy excluded).</value></data>
   <data name="Settings.Benchmark.Note" xml:space="preserve"><value>About 50 photos of your libraries, read only: nothing is written. VRAM is read from the NVIDIA driver (all processes); without it only the RAM of PhotoFlow is shown.</value></data>
+  <data name="Import.Tags.NoModel" xml:space="preserve"><value>Generic tags need the RAM++ model (Settings › Models); on CPU only it takes about a second per photo.</value></data>
 </root>

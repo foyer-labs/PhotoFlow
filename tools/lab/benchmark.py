@@ -163,7 +163,7 @@ class RamPlusStage(Stage):
 
     def __init__(self, testdata: Path, provider: list[str]) -> None:
         super().__init__(testdata, provider)
-        self.sess = self.session(testdata / "models" / "ramplus-int8" / "ram_plus_int8.onnx")
+        self.sess = self.session(testdata / "models" / "ramplus-fp32" / "ram_plus.onnx")
         self.input = self.sess.get_inputs()[0].name
 
     def run(self, image: Image.Image) -> dict:

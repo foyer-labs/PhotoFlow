@@ -66,8 +66,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--images", type=Path, required=True)
     parser.add_argument("--limit", type=int, default=0)
-    parser.add_argument("--model", default="ramplus-int8", help="model folder under PHOTOFLOW_TESTDATA/models")
-    parser.add_argument("--onnx", default="ram_plus_int8.onnx", help="ONNX file in the model folder")
+    parser.add_argument("--model", default="ramplus-fp32", help="model folder under PHOTOFLOW_TESTDATA/models")
+    parser.add_argument("--onnx", default="ram_plus.onnx", help="ONNX file in the model folder")
     parser.add_argument("--provider", default="CPUExecutionProvider")
     args = parser.parse_args()
 
