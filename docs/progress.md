@@ -84,6 +84,9 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 | 2026-10-13 | Fase 4 unita in `main` (PR #6) dopo la CI verde |
 | 2026-10-13 | Fase 5 (tappe 5.0-5.8), decisioni prese in autonomia:<br>• F5-1 didascalie Florence-2 base-ft con adattatori nostri; l'encoder visivo di `onnx-community` non corrisponde all'originale, lo esportiamo noi; parità esatta su CPU e CUDA.<br>• F5-2 livello D rinviato: licenze del 3B e runtime separato del 7B.<br>• F5-3 trasferimento delle assegnazioni dei volti per IoU ≥ 0,5.<br>• F5-4 `.pfcatalog` con impronte ricifrate da una password d'esportazione; importazione al prossimo avvio.<br>• F5-5 sincronizzazione XMP con stato e contenuto del file.<br>Inoltre: scelta dei modelli (rilevatore, volti) tra quelli installati; pulsante di ricalcolo delle impronte quando un catalogo arriva senza. Misure: cambio di modello dei volti su 230 foto senza persone perse; didascalie +644 ms per foto. spec §4, §5, §8, §9, §15, §17 aggiornate. **Da fare all'utente**: pubblicare la release `models-florence2-base-ft-1` con `vision_encoder_pf.onnx` (azione pubblica, non fatta in autonomia) |
 | 2026-10-13 | Fase 5b (riapertura di F5-2 da parte dell'utente): U1 Qwen2.5-VL-7B; U2 pesi scaricati a mano e convertiti dall'app; U3 Python già installato; U4 ONNX Runtime GenAI in un processo separato (eccezione a CLAUDE.md §3); U5 solo italiano, C resta. Durante la fase l'utente ha indicato di non forzare la VRAM: **P16 rivista a GPU ≥ 12 GB** (misura: picco ~10 GB del solo 7B int4) |
+| 2026-10-13 | Fase 5b e posizione del catalogo scelta dall'utente (al primo avvio; Sposta / Apri un catalogo esistente) unite in `main` (PR #8) |
+| 2026-10-13 | Richieste dell'utente dopo le prove (PR #9): pannello Filtri in Consultazione (persone, eventi, tag in gruppi AND/OR con conteggi, migrazione 0018); chiusura dell'anteprima grande; clic sulla copia da tenere nei Duplicati; Persone più chiare, «Sposta a…» con elenco, rinomina corretta, «Apri foto» con percorso, tag e riquadro; volti sulla foto con nomi, clic per dire chi è, volto aggiunto a mano (N). Corretta una gara tra salvataggi delle impostazioni vista in CI. spec §7, §12bis, §17 aggiornate |
+| 2026-10-13 | Release **0.1.0** (branch `release/0.1.0`): installer e aggiornamenti Velopack (id `FoyerLabs.PhotoFlow`, feed dalle release GitHub, spec §11); disinstallazione che toglie solo cache e temporanei; README, guida utente, FAQ e note di rilascio in italiano con 13 screenshot da un catalogo dimostrativo disegnato; licenze nel pacchetto e revisione R19. Report in `docs/reports/release-0.1.0.md` |
 
 ## Problemi aperti
 
@@ -103,4 +106,4 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 
 ## Prossimo passo
 
-Fase 5b: report in `docs/reports/fase-5b.md`, PR da unire dopo la CI verde. Restano le verifiche manuali elencate nei report, la pubblicazione della release del modello Florence-2 e il backlog (§17).
+PhotoFlow 0.1.0 pubblicato. Restano le verifiche manuali del report di rilascio (installazione, aggiornamento, disinstallazione) e di quelli delle fasi, e il backlog (§17).

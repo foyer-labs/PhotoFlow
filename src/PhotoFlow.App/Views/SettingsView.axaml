@@ -258,6 +258,18 @@
 
         <!-- 5i General -->
         <StackPanel Spacing="16" IsVisible="{Binding IsGeneral}">
+          <!-- Updates (spec §11) -->
+          <TextBlock Classes="overline" Text="{l:Tr Settings.Updates.Title}" />
+          <StackPanel Spacing="6">
+            <TextBlock Classes="label" Text="{Binding VersionText}" />
+            <CheckBox IsChecked="{Binding CheckUpdates}"><TextBlock Classes="label" Text="{l:Tr Settings.Updates.CheckAtStart}" /></CheckBox>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button Classes="secondary" IsEnabled="{Binding !IsBusy}" Command="{Binding CheckUpdatesNowCommand}" Content="{l:Tr Settings.Updates.CheckNow}" />
+              <Button Classes="primary" IsVisible="{Binding CanInstallUpdate}" IsEnabled="{Binding !IsBusy}" Command="{Binding InstallUpdateCommand}" Content="{l:Tr Settings.Updates.Install}" />
+            </StackPanel>
+            <TextBlock Classes="label secondary" TextWrapping="Wrap" Text="{Binding UpdateText}" IsVisible="{Binding UpdateText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          </StackPanel>
+
           <TextBlock Classes="overline" Text="{l:Tr Settings.Language}" />
           <ComboBox ItemsSource="{Binding Languages}" SelectedItem="{Binding Language}" MinWidth="240">
             <ComboBox.ItemTemplate>

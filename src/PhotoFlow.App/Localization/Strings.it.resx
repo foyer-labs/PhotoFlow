@@ -1001,4 +1001,16 @@
   <data name="Browse.IdentifyFace" xml:space="preserve"><value>Chi è questo volto (ora: {0})?</value></data>
   <data name="Browse.FaceIdentified" xml:space="preserve"><value>Volto assegnato: è tuo, e aiuta a riconoscere la persona nelle altre foto.</value></data>
   <data name="Browse.ClickFaceHint" xml:space="preserve"><value>Clic su un volto per dire chi è · N per aggiungere un volto non trovato</value></data>
+  <data name="Status.UpdateAvailable" xml:space="preserve"><value>Aggiornamento {0} disponibile (Impostazioni › Generali)</value></data>
+  <data name="Settings.Updates.Title" xml:space="preserve"><value>Aggiornamenti</value></data>
+  <data name="Settings.Updates.Version" xml:space="preserve"><value>PhotoFlow {0}</value></data>
+  <data name="Settings.Updates.CheckAtStart" xml:space="preserve"><value>Cerca una nuova versione all'avvio</value></data>
+  <data name="Settings.Updates.CheckNow" xml:space="preserve"><value>Controlla ora</value></data>
+  <data name="Settings.Updates.Install" xml:space="preserve"><value>Scarica, installa e riavvia</value></data>
+  <data name="Settings.Updates.UpToDate" xml:space="preserve"><value>Hai l'ultima versione.</value></data>
+  <data name="Settings.Updates.Available" xml:space="preserve"><value>È disponibile la versione {0}. Catalogo, modelli e impostazioni restano come sono.</value></data>
+  <data name="Settings.Updates.Downloading" xml:space="preserve"><value>Scaricamento… {0}%</value></data>
+  <data name="Settings.Updates.JobRunning" xml:space="preserve"><value>C'è un job in corso: installa l'aggiornamento quando finisce.</value></data>
+  <data name="Settings.Updates.Failed" xml:space="preserve"><value>Non è stato possibile controllare o installare l'aggiornamento: {0}</value></data>
+  <data name="Settings.Updates.NotInstalled" xml:space="preserve"><value>PhotoFlow è avviato da una cartella di sviluppo: gli aggiornamenti funzionano con la versione installata.</value></data>
 </root>

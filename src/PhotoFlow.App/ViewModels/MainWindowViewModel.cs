@@ -135,7 +135,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IShellNaviga
             { } r => Strings.Format("Status.RestoreFailed", r.Error ?? string.Empty) + " · ",
             null => string.Empty,
         };
-        StatusText = restore + Strings.Format("Status.Summary", setup.Backend == Core.Inference.ExecutionBackend.Cuda ? "CUDA" : "CPU",
+        var update = _host.Updates.AvailableVersion is { } version ? Strings.Format("Status.UpdateAvailable", version) + " · " : string.Empty;
+        StatusText = update + restore + Strings.Format("Status.Summary", setup.Backend == Core.Inference.ExecutionBackend.Cuda ? "CUDA" : "CPU",
             Strings.Get(setup.EyesAvailable ? "Status.Faces.Eyes" : setup.FaceDetector is null ? "Status.Faces.None" : "Status.Faces.NoEyes"));
     }
 

@@ -45,6 +45,9 @@ public sealed record AppSettings
 
     public XmpSettings Xmp { get; init; } = new();
 
+    /// <summary>Look for a newer version at startup (spec §10: the network use can be turned off).</summary>
+    public bool CheckUpdates { get; init; } = true;
+
     /// <summary>The model chosen by the user for a function, among the installed ones (spec §5); missing: the default.</summary>
     public IReadOnlyDictionary<string, string> ModelChoices { get; init; } = new Dictionary<string, string>();
 }

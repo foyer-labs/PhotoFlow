@@ -127,6 +127,9 @@ public sealed class PhotoFlowHost : IAsyncDisposable
 
     public IAppPaths Paths { get; }
 
+    /// <summary>Updates of the application (spec §11).</summary>
+    public AppUpdates Updates { get; } = new();
+
     /// <summary>Where the catalog lives and the changes waiting for the next start (spec §9); set by the application.</summary>
     public CatalogLocationService? CatalogLocation { get; set; }
 
@@ -568,8 +571,19 @@ public sealed class PhotoFlowHost : IAsyncDisposable
         _shutdown.Dispose();
     }
 
+    /// <summary>
+    /// Replaces the per-photo analysis (demo catalog of the documentation screenshots, tests): the jobs, their batch
+    /// stages and the catalog stay the real ones. Null in normal use.
+    /// </summary>
+    public IPhotoProcessor? ProcessorOverride { get; set; }
+
     private async Task<IPhotoProcessor> GetProcessorAsync(CancellationToken ct)
     {
+        if (ProcessorOverride is { } replacement)
+        {
+            return replacement;
+        }
+
         var c = await GetAnalysisComponentsAsync(ct).ConfigureAwait(false);
         var created = new CullingPhotoProcessor(Previews, new CullingAnalyzer(c.Operations, c.Objects, c.Faces), new DecisionEngine(), Profiles.Get, Thumbnails,
             c.Embedder, c.Fingerprints, () => FingerprintKeys.Protector, c.Tagger, c.TextReader, c.Captioner);

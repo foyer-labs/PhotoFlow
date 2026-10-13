@@ -1001,4 +1001,16 @@
   <data name="Browse.IdentifyFace" xml:space="preserve"><value>Who is this face (now: {0})?</value></data>
   <data name="Browse.FaceIdentified" xml:space="preserve"><value>Face assigned: it is yours, and it helps recognizing the person in the other photos.</value></data>
   <data name="Browse.ClickFaceHint" xml:space="preserve"><value>Click a face to say who it is · N to add a face not found</value></data>
+  <data name="Status.UpdateAvailable" xml:space="preserve"><value>Update {0} available (Settings › General)</value></data>
+  <data name="Settings.Updates.Title" xml:space="preserve"><value>Updates</value></data>
+  <data name="Settings.Updates.Version" xml:space="preserve"><value>PhotoFlow {0}</value></data>
+  <data name="Settings.Updates.CheckAtStart" xml:space="preserve"><value>Look for a new version at startup</value></data>
+  <data name="Settings.Updates.CheckNow" xml:space="preserve"><value>Check now</value></data>
+  <data name="Settings.Updates.Install" xml:space="preserve"><value>Download, install and restart</value></data>
+  <data name="Settings.Updates.UpToDate" xml:space="preserve"><value>You have the latest version.</value></data>
+  <data name="Settings.Updates.Available" xml:space="preserve"><value>Version {0} is available. Catalog, models and settings stay as they are.</value></data>
+  <data name="Settings.Updates.Downloading" xml:space="preserve"><value>Downloading… {0}%</value></data>
+  <data name="Settings.Updates.JobRunning" xml:space="preserve"><value>A job is running: install the update when it ends.</value></data>
+  <data name="Settings.Updates.Failed" xml:space="preserve"><value>Could not check or install the update: {0}</value></data>
+  <data name="Settings.Updates.NotInstalled" xml:space="preserve"><value>PhotoFlow runs from a build folder: updates come with the installed version.</value></data>
 </root>

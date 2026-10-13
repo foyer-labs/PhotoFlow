@@ -22,7 +22,7 @@ public sealed class ArchitectureTests
         ["PhotoFlow.Data"] = ["Microsoft.Data.Sqlite", "Dapper"],
         ["PhotoFlow.Imaging"] = ["SkiaSharp", "Magick.NET"],
         ["PhotoFlow.Inference"] = ["Microsoft.ML.OnnxRuntime"],
-        ["PhotoFlow.App"] = ["Avalonia", "CommunityToolkit.Mvvm", "Microsoft.Extensions.", "Serilog"],
+        ["PhotoFlow.App"] = ["Avalonia", "CommunityToolkit.Mvvm", "Microsoft.Extensions.", "Serilog", "Velopack"],
 
         // Level D captions in a process of their own (phase 5b, exception U4 of CLAUDE.md §3).
         ["PhotoFlow.Vlm"] = ["Microsoft.ML.OnnxRuntimeGenAI"],
