@@ -25,15 +25,26 @@ internal sealed class OnnxRuntimeSession : IInferenceSession
 
     public IReadOnlyDictionary<string, string> Metadata => _session.ModelMetadata.CustomMetadataMap;
 
+    public IReadOnlyList<string> InputNames => _session.InputNames;
+
+    public IReadOnlyList<string> OutputNames => _session.OutputNames;
+
     public Task<IReadOnlyList<NamedTensor>> RunAsync(IReadOnlyList<NamedTensor> inputs, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(inputs);
-        return Task.Run(() => Run(inputs, ct), ct);
+        return Task.Run(() => Run(inputs, _session.OutputNames, ct), ct);
+    }
+
+    public Task<IReadOnlyList<NamedTensor>> RunAsync(IReadOnlyList<NamedTensor> inputs, IReadOnlyList<string> outputs, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(inputs);
+        ArgumentNullException.ThrowIfNull(outputs);
+        return Task.Run(() => Run(inputs, outputs, ct), ct);
     }
 
     public void Dispose() => _session.Dispose();
 
-    private IReadOnlyList<NamedTensor> Run(IReadOnlyList<NamedTensor> inputs, CancellationToken ct)
+    private IReadOnlyList<NamedTensor> Run(IReadOnlyList<NamedTensor> inputs, IReadOnlyList<string> outputNames, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
         var inputValues = new List<OrtValue>(inputs.Count);
@@ -47,7 +58,6 @@ internal sealed class OnnxRuntimeSession : IInferenceSession
             using var runOptions = new RunOptions();
             using var registration = ct.Register(() => runOptions.Terminate = true);
             var inputNames = inputs.Select(t => t.Name).ToArray();
-            var outputNames = _session.OutputNames;
             using var outputs = _session.Run(runOptions, inputNames, inputValues, outputNames);
             ct.ThrowIfCancellationRequested();
 
@@ -78,6 +88,7 @@ internal sealed class OnnxRuntimeSession : IInferenceSession
             TensorElementType.Float32 => OrtValue.CreateTensorValueFromMemory(OrtMemoryInfo.DefaultInstance, MemoryMarshal.AsMemory(tensor.AsFloat32()), shape),
             TensorElementType.Int64 => OrtValue.CreateTensorValueFromMemory(OrtMemoryInfo.DefaultInstance, MemoryMarshal.AsMemory(tensor.AsInt64()), shape),
             TensorElementType.UInt8 => OrtValue.CreateTensorValueFromMemory(OrtMemoryInfo.DefaultInstance, MemoryMarshal.AsMemory(tensor.AsUInt8()), shape),
+            TensorElementType.Bool => OrtValue.CreateTensorValueFromMemory(OrtMemoryInfo.DefaultInstance, MemoryMarshal.AsMemory(tensor.AsBool()), shape),
             _ => throw new NotSupportedException($"Tensor element type {tensor.ElementType} is not supported."),
         };
     }
@@ -91,6 +102,7 @@ internal sealed class OnnxRuntimeSession : IInferenceSession
             OrtElementType.Float => NamedTensor.Float32(name, value.GetTensorDataAsSpan<float>().ToArray(), shape),
             OrtElementType.Int64 => NamedTensor.Int64(name, value.GetTensorDataAsSpan<long>().ToArray(), shape),
             OrtElementType.UInt8 => NamedTensor.UInt8(name, value.GetTensorDataAsSpan<byte>().ToArray(), shape),
+            OrtElementType.Bool => NamedTensor.Bool(name, value.GetTensorDataAsSpan<bool>().ToArray(), shape),
             _ => throw new NotSupportedException($"Output '{name}' has unsupported element type {info.ElementDataType}."),
         };
     }
