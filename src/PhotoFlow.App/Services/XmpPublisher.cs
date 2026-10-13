@@ -7,7 +7,7 @@ using PhotoFlow.Core.Metadata;
 
 namespace PhotoFlow.App.Services;
 
-public sealed record XmpWriteSummary(int Written, int Skipped, IReadOnlyList<(string Path, string Error)> Failed);
+public sealed record XmpWriteSummary(int Written, int Skipped, IReadOnlyList<(string Path, string Error)> Failed, IReadOnlyList<long> FailedAssets);
 
 /// <summary>
 /// Writes the confirmed decisions as XMP (spec §4, §6; boards 2g/2h), with the library policy. Discard → rating −1
@@ -41,6 +41,7 @@ public sealed class XmpPublisher(ICatalog catalog, IMetadataWriter writer)
         ArgumentNullException.ThrowIfNull(assetIds);
         int written = 0, skipped = 0, done = 0;
         var failed = new List<(string, string)>();
+        var failedAssets = new List<long>();
         var libraries = (await catalog.Libraries.ListAsync(ct).ConfigureAwait(false)).ToDictionary(l => l.Id);
         foreach (var assetId in assetIds)
         {
@@ -51,7 +52,8 @@ public sealed class XmpPublisher(ICatalog catalog, IMetadataWriter writer)
             if (asset is null || changes is null || (sync?.XmpSignature == Signature(changes) && !sync.WritePending))
             {
                 skipped++;
-                progress?.Report(++done);
+                done++;
+                progress?.Report(done);
                 continue;
             }
 
@@ -68,6 +70,7 @@ public sealed class XmpPublisher(ICatalog catalog, IMetadataWriter writer)
                 if (result.Outcome == MetadataWriteOutcome.Failed)
                 {
                     failed.Add((path, result.Error ?? string.Empty));
+                    failedAssets.Add(assetId);
                     await catalog.XmpSync.MarkPendingAsync(assetId, result.Error, ct).ConfigureAwait(false);
                 }
                 else
@@ -77,9 +80,10 @@ public sealed class XmpPublisher(ICatalog catalog, IMetadataWriter writer)
                 }
             }
 
-            progress?.Report(++done);
+            done++;
+            progress?.Report(done);
         }
 
-        return new XmpWriteSummary(written, skipped, failed);
+        return new XmpWriteSummary(written, skipped, failed, failedAssets.Distinct().ToList());
     }
 }

@@ -23,6 +23,8 @@ public interface ICatalog : IAsyncDisposable
 
     IPeopleStore People { get; }
 
+    ILabelStore Labels { get; }
+
     /// <summary>Consistent copy of the open catalog into <paramref name="backupsDirectory"/> (spec §9); returns its path.</summary>
     Task<string> BackupAsync(string backupsDirectory, string reason, CancellationToken ct);
 }
@@ -60,6 +62,9 @@ public interface IAssetStore
     Task<Asset?> FindByFullHashAsync(string fullHash, CancellationToken ct);
 
     Task AddLocationAsync(AssetLocation location, CancellationToken ct);
+
+    /// <summary>The file of the asset was moved inside its library (explicit user action, P6).</summary>
+    Task MoveLocationAsync(long libraryId, string fromRelativePath, string toRelativePath, CancellationToken ct);
 
     Task<IReadOnlyList<AssetLocation>> GetLocationsAsync(long assetId, CancellationToken ct);
 
@@ -108,6 +113,11 @@ public interface IDecisionStore
 
     /// <summary>Effective outcomes (the user's, else the automatic one) of the assets of a job, by outcome.</summary>
     Task<IReadOnlyDictionary<CullingOutcome, int>> CountOutcomesForJobAsync(long jobId, CancellationToken ct);
+
+    /// <summary>A correction of the user with the signals of the time (spec §6, learning from the corrections).</summary>
+    Task AddCorrectionAsync(Correction correction, CancellationToken ct);
+
+    Task<IReadOnlyList<Correction>> ListCorrectionsAsync(CancellationToken ct);
 }
 
 public interface IXmpSyncStore
@@ -232,6 +242,17 @@ public interface IPeopleStore
 
     /// <summary>Drops every fingerprint and prototype (key reset): assignments and names stay.</summary>
     Task ClearFingerprintsAsync(CancellationToken ct);
+}
+
+/// <summary>The labelled set of the culling metrics (spec §14).</summary>
+public interface ILabelStore
+{
+    Task SetAsync(long assetId, PhotoLabel label, string sessionId, CancellationToken ct);
+
+    /// <summary>Removes a label (undo in the labelling mode).</summary>
+    Task RemoveAsync(long assetId, CancellationToken ct);
+
+    Task<IReadOnlyList<LabeledPhoto>> ListAsync(CancellationToken ct);
 }
 
 public sealed class CatalogLockedException(string message) : IOException(message);

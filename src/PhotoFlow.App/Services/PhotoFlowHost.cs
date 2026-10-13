@@ -233,6 +233,19 @@ public sealed class PhotoFlowHost : IAsyncDisposable
         ];
     }
 
+    /// <summary>
+    /// "Re-analyze as…" for a group (D8, board 2a): the user's profile for its photos, then the photos measured with
+    /// another profile are analyzed again and the job decided again (user decisions untouched, I5).
+    /// </summary>
+    public async Task ReanalyzeAsync(long jobId, IReadOnlyList<long> assetIds, string profileId, CancellationToken ct)
+    {
+        await Catalog.Groups.SetUserProfileAsync(jobId, assetIds, profileId, ct).ConfigureAwait(false);
+        var job = await Catalog.Jobs.GetAsync(jobId, ct).ConfigureAwait(false) ?? throw new InvalidOperationException($"Job {jobId} not found.");
+        var context = new JobContext(jobId, job.Type, job.ProfileId ?? "events");
+        await new ReanalysisStage(Catalog, FileSystem, new LazyProcessor(this), null).RunAsync(context, null, ct).ConfigureAwait(false);
+        await new GroupDecisionStage(Catalog, BuiltInProfiles.Get, new DecisionEngine()).RunAsync(context, null, ct).ConfigureAwait(false);
+    }
+
     /// <summary>Models the analysis would use now (installed and, where needed, accepted).</summary>
     public AnalysisSetup DescribeAnalysis()
     {

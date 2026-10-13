@@ -35,6 +35,7 @@ public sealed class SqliteCatalog : ICatalog
         Analysis = new AnalysisStore(this);
         Groups = new GroupStore(this);
         People = new PeopleStore(this);
+        Labels = new LabelStore(this);
     }
 
     public ILibraryStore Libraries { get; }
@@ -54,6 +55,8 @@ public sealed class SqliteCatalog : ICatalog
     public IGroupStore Groups { get; }
 
     public IPeopleStore People { get; }
+
+    public ILabelStore Labels { get; }
 
     public static async Task<SqliteCatalog> OpenAsync(CatalogOpenOptions options, CancellationToken ct)
     {

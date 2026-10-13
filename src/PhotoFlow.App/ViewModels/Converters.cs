@@ -25,6 +25,19 @@ public static class Converters
     public static readonly IValueConverter ThresholdOffset = new FuncValueConverter<double?, double>(t => Math.Clamp(t ?? -1, -1, 1) * SignalBarWidth);
 
     /// <summary>Label of an archive analysis order.</summary>
+    /// <summary>Discarded photos are dimmed to 35 % in the grid (§12bis).</summary>
+    public static readonly IValueConverter DiscardOpacity = new FuncValueConverter<bool, double>(discard => discard ? 0.35 : 1.0);
+
+    /// <summary>Labelling: Z shows the preview pixel for pixel.</summary>
+    public static readonly IValueConverter ZoomStretch = new FuncValueConverter<bool, Avalonia.Media.Stretch>(zoomed => zoomed ? Avalonia.Media.Stretch.None : Avalonia.Media.Stretch.Uniform);
+
+    /// <summary>Width of the metric bars of the labelling panel.</summary>
+    public const double MetricBarWidth = 300;
+
+    public static readonly IValueConverter MetricOffset = new FuncValueConverter<double, double>(v => Math.Clamp(v, 0, 1) * MetricBarWidth);
+
+    public static readonly IValueConverter MetricWidth = new FuncValueConverter<MetricViewModel?, double>(m => m is null ? 0 : Math.Max(2, (m.High - m.Low) * MetricBarWidth));
+
     /// <summary>A resource key shown as its localized text (tab names).</summary>
     public static readonly IValueConverter Localize = new FuncValueConverter<string, string>(key => key is null ? string.Empty : Strings.Get(key));
 

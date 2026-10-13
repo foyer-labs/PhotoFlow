@@ -87,7 +87,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IShellNaviga
         {
             ({ } host, SectionCatalog.Home) => new HomeViewModel(host, this, (card, folder) => new ImportWizardViewModel(host, this, card, folder)),
             ({ } host, SectionCatalog.Jobs) => new JobsViewModel(host, this),
-            ({ } host, SectionCatalog.Review) => new ReviewViewModel(host),
+            ({ } host, SectionCatalog.Review) => new ReviewViewModel(host, this),
             ({ } host, SectionCatalog.Libraries) => new LibrariesViewModel(host, this),
             ({ } host, SectionCatalog.Settings) => new SettingsViewModel(host),
             _ => new PlaceholderPageViewModel(section, PlaceholderPageViewModel.Phases.GetValueOrDefault(section.Id, "1")),

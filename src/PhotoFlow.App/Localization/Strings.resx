@@ -406,4 +406,102 @@
   <data name="Stage.Read" xml:space="preserve"><value>Read</value></data>
   <data name="Jobs.Background.Running" xml:space="preserve"><value>Background · low priority</value></data>
   <data name="Jobs.Background.Waiting" xml:space="preserve"><value>Background · waiting for the import</value></data>
+  <data name="Common.ComesWithPhase4" xml:space="preserve"><value>Comes with phase 4</value></data>
+  <data name="Label.Good" xml:space="preserve"><value>Good</value></data>
+  <data name="Label.Blurred" xml:space="preserve"><value>Blurred</value></data>
+  <data name="Label.EyesClosed" xml:space="preserve"><value>Eyes closed</value></data>
+  <data name="Label.Exposure" xml:space="preserve"><value>Exposure</value></data>
+  <data name="Label.Other" xml:space="preserve"><value>Other</value></data>
+  <data name="Label.BurstBest" xml:space="preserve"><value>best of the burst</value></data>
+  <data name="Labeling.Title" xml:space="preserve"><value>Labelling</value></data>
+  <data name="Labeling.Blind" xml:space="preserve"><value>Blind · verdict hidden</value></data>
+  <data name="Labeling.BurstHint" xml:space="preserve"><value>Burst: ← → choose the best, Enter confirms it.</value></data>
+  <data name="Labeling.BurstOf" xml:space="preserve"><value>burst of {0}</value></data>
+  <data name="Labeling.Command.Label" xml:space="preserve"><value>label</value></data>
+  <data name="Labeling.Command.Skip" xml:space="preserve"><value>skip</value></data>
+  <data name="Labeling.Command.BurstBest" xml:space="preserve"><value>best of the burst</value></data>
+  <data name="Labeling.Command.Burst" xml:space="preserve"><value>burst</value></data>
+  <data name="Labeling.Command.Exit" xml:space="preserve"><value>stop, resume later</value></data>
+  <data name="Labeling.Done" xml:space="preserve"><value>Session complete</value></data>
+  <data name="Labeling.DoneBody" xml:space="preserve"><value>Every label is saved. Start another session when you like.</value></data>
+  <data name="Labeling.Exit" xml:space="preserve"><value>Stop</value></data>
+  <data name="Labeling.Labeled" xml:space="preserve"><value>{0} photos labelled · target 300–500</value></data>
+  <data name="Labeling.Metrics" xml:space="preserve"><value>Culling metrics</value></data>
+  <data name="Labeling.MetricsNote" xml:space="preserve"><value>Bar = 95% confidence interval; mark = target.</value></data>
+  <data name="Labeling.NormalAllowed" xml:space="preserve"><value>All three metrics are within target: the normal mode can be turned on in Settings.</value></data>
+  <data name="Labeling.PrudentStays" xml:space="preserve"><value>Prudent mode stays on until all three metrics are within target.</value></data>
+  <data name="Labeling.Offline" xml:space="preserve"><value>The original is not reachable: thumbnail shown.</value></data>
+  <data name="Labeling.PerProfile" xml:space="preserve"><value>Per profile</value></data>
+  <data name="Labeling.Previous" xml:space="preserve"><value>Previous: {0} → {1} · Ctrl Z to correct</value></data>
+  <data name="Labeling.Progress" xml:space="preserve"><value>{0} / {1} · ~{2}</value></data>
+  <data name="Labeling.Skip" xml:space="preserve"><value>Skip</value></data>
+  <data name="Labeling.Verdict" xml:space="preserve"><value>System: {0}</value></data>
+  <data name="Metric.WrongDiscards" xml:space="preserve"><value>Wrong discards</value></data>
+  <data name="Metric.Intercepted" xml:space="preserve"><value>Discards intercepted</value></data>
+  <data name="Metric.ToReview" xml:space="preserve"><value>Share to review</value></data>
+  <data name="Metric.TargetBelow" xml:space="preserve"><value>target &lt; {0}</value></data>
+  <data name="Metric.TargetAbove" xml:space="preserve"><value>target &gt; {0}</value></data>
+  <data name="Metric.Verdict.WithinTarget" xml:space="preserve"><value>✓ Within target</value></data>
+  <data name="Metric.Verdict.Uncertain" xml:space="preserve"><value>Uncertain: the interval crosses the target</value></data>
+  <data name="Metric.Verdict.OffTarget" xml:space="preserve"><value>Off target</value></data>
+  <data name="Metric.Verdict.NoData" xml:space="preserve"><value>No data yet</value></data>
+  <data name="People.Unnamed" xml:space="preserve"><value>Person {0}</value></data>
+  <data name="Reason.burst.best" xml:space="preserve"><value>best of the burst</value></data>
+  <data name="Reason.burst.similar" xml:space="preserve"><value>valid, not the first</value></data>
+  <data name="Reason.burst.tie" xml:space="preserve"><value>first two tied</value></data>
+  <data name="Review.Analyzing" xml:space="preserve"><value>Analysis {0}/{1} · ~{2}</value></data>
+  <data name="Review.Analyzing.Body" xml:space="preserve"><value>Outcomes and bursts appear when the analysis has finished for every photo: grouping needs the whole set. Meanwhile P, X and stars already count and win over the proposal.</value></data>
+  <data name="Review.Analyzing.Filters" xml:space="preserve"><value>Outcome filters not available yet</value></data>
+  <data name="Review.CatalogOnly" xml:space="preserve"><value>Catalog only for these</value></data>
+  <data name="Review.Command.Compare" xml:space="preserve"><value>compare</value></data>
+  <data name="Review.Command.Details" xml:space="preserve"><value>panel</value></data>
+  <data name="Review.Command.Filter" xml:space="preserve"><value>filters</value></data>
+  <data name="Review.Command.Fit" xml:space="preserve"><value>fit</value></data>
+  <data name="Review.Command.Grid" xml:space="preserve"><value>grid</value></data>
+  <data name="Review.Command.Labeling" xml:space="preserve"><value>labelling</value></data>
+  <data name="Review.Command.MoveDiscards" xml:space="preserve"><value>move the discards</value></data>
+  <data name="Review.Command.NextGroup" xml:space="preserve"><value>next burst</value></data>
+  <data name="Review.Command.Numbers" xml:space="preserve"><value>numbers</value></data>
+  <data name="Review.Command.PreviousGroup" xml:space="preserve"><value>previous burst</value></data>
+  <data name="Review.Command.Reanalyze" xml:space="preserve"><value>re-analyze group</value></data>
+  <data name="Review.Command.Retry" xml:space="preserve"><value>retry XMP</value></data>
+  <data name="Review.Command.Size" xml:space="preserve"><value>size</value></data>
+  <data name="Review.Command.Sync" xml:space="preserve"><value>synchronize</value></data>
+  <data name="Review.Command.Zoom" xml:space="preserve"><value>100%</value></data>
+  <data name="Review.Compare.Exposure" xml:space="preserve"><value>Exp</value></data>
+  <data name="Review.Compare.Hint" xml:space="preserve"><value>P = best: the other valid photos become similar · X discard · 1–5 stars · Z 100% · F fit · S synchronize · ↑ ↓ pan · Shift+click in the grid adds or removes · Esc grid</value></data>
+  <data name="Review.Compare.Sharpness" xml:space="preserve"><value>Sharp</value></data>
+  <data name="Review.Confirm.OpenPeople" xml:space="preserve"><value>Then open People ({0} new groups)</value></data>
+  <data name="Review.Empty.Title" xml:space="preserve"><value>Nothing to review</value></data>
+  <data name="Review.Empty.Body" xml:space="preserve"><value>Import a card or a folder (Ctrl I), or analyze a library: its photos appear here.</value></data>
+  <data name="Review.Empty.Reopen" xml:space="preserve"><value>Reopening a confirmed job is safe: changes rewrite only the XMP concerned.</value></data>
+  <data name="Review.Empty.FilterHint" xml:space="preserve"><value>Click the filter again to see them all.</value></data>
+  <data name="Review.Group.Burst" xml:space="preserve"><value>Burst {0}</value></data>
+  <data name="Review.Group.Bracketing" xml:space="preserve"><value>Bracketing {0}</value></data>
+  <data name="Review.Group.Timelapse" xml:space="preserve"><value>Sequence {0}</value></data>
+  <data name="Review.Group.Panorama" xml:space="preserve"><value>Panorama {0}</value></data>
+  <data name="Review.Group.Duplicates" xml:space="preserve"><value>Duplicates {0}</value></data>
+  <data name="Review.Group.Shots" xml:space="preserve"><value>{0} shots</value></data>
+  <data name="Review.Group.Suggestion" xml:space="preserve"><value>looks like {0} {1} · Shift R re-analyze</value></data>
+  <data name="Review.Group.Tie" xml:space="preserve"><value>First two tied: choose the best</value></data>
+  <data name="Review.Group.BracketingNote" xml:space="preserve"><value>Exposure bracketing: never ranked, no "similar"</value></data>
+  <data name="Review.Group.TimelapseNote" xml:space="preserve"><value>Regular interval: kept as a sequence, no ranking</value></data>
+  <data name="Review.Mode.Grid" xml:space="preserve"><value>Grid</value></data>
+  <data name="Review.Mode.Compare" xml:space="preserve"><value>Compare</value></data>
+  <data name="Review.Mode.Numbers" xml:space="preserve"><value>Numbers</value></data>
+  <data name="Review.Mode.Labeling" xml:space="preserve"><value>Labelling</value></data>
+  <data name="Review.MoveDiscards" xml:space="preserve"><value>Move the discards…</value></data>
+  <data name="Review.MoveDiscards.Apply" xml:space="preserve"><value>Move into _scarti</value></data>
+  <data name="Review.MoveDiscards.Body" xml:space="preserve"><value>They move into a _scarti folder of their own library with their sidecar, keeping their path. Nothing is deleted; read-only libraries are left alone.</value></data>
+  <data name="Review.MoveDiscards.Done" xml:space="preserve"><value>{0} files moved into _scarti, {1} left in place.</value></data>
+  <data name="Review.MoveDiscards.None" xml:space="preserve"><value>No discards in this job.</value></data>
+  <data name="Review.MoveDiscards.Question" xml:space="preserve"><value>Move {0} discarded photos into _scarti?</value></data>
+  <data name="Review.NumbersPhase4" xml:space="preserve"><value>The Numbers view comes with phase 4 (motorsport OCR).</value></data>
+  <data name="Review.People" xml:space="preserve"><value>People</value></data>
+  <data name="Review.People.Note" xml:space="preserve"><value>Tags and names are written only after the confirmation.</value></data>
+  <data name="Review.Reanalyzed" xml:space="preserve"><value>{0} analyzed again as {1}.</value></data>
+  <data name="Review.Reanalyzing" xml:space="preserve"><value>Analyzing {0} again as {1}…</value></data>
+  <data name="Review.Retry" xml:space="preserve"><value>Retry</value></data>
+  <data name="Review.Single" xml:space="preserve"><value>Single shot</value></data>
+  <data name="Review.XmpPending" xml:space="preserve"><value>XMP pending</value></data>
 </root>

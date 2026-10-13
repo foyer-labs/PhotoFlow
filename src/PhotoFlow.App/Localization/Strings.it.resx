@@ -406,4 +406,102 @@
   <data name="Stage.Read" xml:space="preserve"><value>Lettura</value></data>
   <data name="Jobs.Background.Running" xml:space="preserve"><value>In background · bassa priorità</value></data>
   <data name="Jobs.Background.Waiting" xml:space="preserve"><value>In background · attende l'import</value></data>
+  <data name="Common.ComesWithPhase4" xml:space="preserve"><value>Arriva con la fase 4</value></data>
+  <data name="Label.Good" xml:space="preserve"><value>Buona</value></data>
+  <data name="Label.Blurred" xml:space="preserve"><value>Mossa</value></data>
+  <data name="Label.EyesClosed" xml:space="preserve"><value>Occhi chiusi</value></data>
+  <data name="Label.Exposure" xml:space="preserve"><value>Esposizione</value></data>
+  <data name="Label.Other" xml:space="preserve"><value>Altro</value></data>
+  <data name="Label.BurstBest" xml:space="preserve"><value>migliore della raffica</value></data>
+  <data name="Labeling.Title" xml:space="preserve"><value>Etichettatura</value></data>
+  <data name="Labeling.Blind" xml:space="preserve"><value>Alla cieca · verdetto nascosto</value></data>
+  <data name="Labeling.BurstHint" xml:space="preserve"><value>Raffica: ← → scegli la migliore, Invio la conferma.</value></data>
+  <data name="Labeling.BurstOf" xml:space="preserve"><value>raffica di {0}</value></data>
+  <data name="Labeling.Command.Label" xml:space="preserve"><value>etichetta</value></data>
+  <data name="Labeling.Command.Skip" xml:space="preserve"><value>salta</value></data>
+  <data name="Labeling.Command.BurstBest" xml:space="preserve"><value>migliore della raffica</value></data>
+  <data name="Labeling.Command.Burst" xml:space="preserve"><value>raffica</value></data>
+  <data name="Labeling.Command.Exit" xml:space="preserve"><value>interrompi, riprendi dopo</value></data>
+  <data name="Labeling.Done" xml:space="preserve"><value>Sessione completata</value></data>
+  <data name="Labeling.DoneBody" xml:space="preserve"><value>Ogni etichetta è salvata. Avvia un'altra sessione quando vuoi.</value></data>
+  <data name="Labeling.Exit" xml:space="preserve"><value>Interrompi</value></data>
+  <data name="Labeling.Labeled" xml:space="preserve"><value>{0} foto etichettate · obiettivo 300–500</value></data>
+  <data name="Labeling.Metrics" xml:space="preserve"><value>Metriche del culling</value></data>
+  <data name="Labeling.MetricsNote" xml:space="preserve"><value>Barra = intervallo di confidenza al 95%; tacca = obiettivo.</value></data>
+  <data name="Labeling.NormalAllowed" xml:space="preserve"><value>Le tre metriche sono entro obiettivo: la modalità normale si può attivare nelle Impostazioni.</value></data>
+  <data name="Labeling.PrudentStays" xml:space="preserve"><value>La modalità prudente resta attiva finché tutte e tre le metriche non sono entro obiettivo.</value></data>
+  <data name="Labeling.Offline" xml:space="preserve"><value>L'originale non è raggiungibile: si vede la miniatura.</value></data>
+  <data name="Labeling.PerProfile" xml:space="preserve"><value>Per profilo</value></data>
+  <data name="Labeling.Previous" xml:space="preserve"><value>Precedente: {0} → {1} · Ctrl Z per correggere</value></data>
+  <data name="Labeling.Progress" xml:space="preserve"><value>{0} / {1} · ~{2}</value></data>
+  <data name="Labeling.Skip" xml:space="preserve"><value>Salta</value></data>
+  <data name="Labeling.Verdict" xml:space="preserve"><value>Sistema: {0}</value></data>
+  <data name="Metric.WrongDiscards" xml:space="preserve"><value>Scarti sbagliati</value></data>
+  <data name="Metric.Intercepted" xml:space="preserve"><value>Scarti intercettati</value></data>
+  <data name="Metric.ToReview" xml:space="preserve"><value>Quota da rivedere</value></data>
+  <data name="Metric.TargetBelow" xml:space="preserve"><value>obiettivo &lt; {0}</value></data>
+  <data name="Metric.TargetAbove" xml:space="preserve"><value>obiettivo &gt; {0}</value></data>
+  <data name="Metric.Verdict.WithinTarget" xml:space="preserve"><value>✓ Entro obiettivo</value></data>
+  <data name="Metric.Verdict.Uncertain" xml:space="preserve"><value>Incerto: l'intervallo supera l'obiettivo</value></data>
+  <data name="Metric.Verdict.OffTarget" xml:space="preserve"><value>Fuori obiettivo</value></data>
+  <data name="Metric.Verdict.NoData" xml:space="preserve"><value>Nessun dato</value></data>
+  <data name="People.Unnamed" xml:space="preserve"><value>Persona {0}</value></data>
+  <data name="Reason.burst.best" xml:space="preserve"><value>migliore della raffica</value></data>
+  <data name="Reason.burst.similar" xml:space="preserve"><value>valida, non la prima</value></data>
+  <data name="Reason.burst.tie" xml:space="preserve"><value>prime due a pari merito</value></data>
+  <data name="Review.Analyzing" xml:space="preserve"><value>Analisi {0}/{1} · ~{2}</value></data>
+  <data name="Review.Analyzing.Body" xml:space="preserve"><value>Esiti e raffiche compariranno quando l'analisi sarà terminata per tutte le foto: il raggruppamento deve vedere l'intero lotto. Intanto P, X e stelle sono già validi e vinceranno sulla proposta.</value></data>
+  <data name="Review.Analyzing.Filters" xml:space="preserve"><value>Filtri d'esito non ancora disponibili</value></data>
+  <data name="Review.CatalogOnly" xml:space="preserve"><value>Solo catalogo per questi</value></data>
+  <data name="Review.Command.Compare" xml:space="preserve"><value>confronta</value></data>
+  <data name="Review.Command.Details" xml:space="preserve"><value>pannello</value></data>
+  <data name="Review.Command.Filter" xml:space="preserve"><value>filtri</value></data>
+  <data name="Review.Command.Fit" xml:space="preserve"><value>adatta</value></data>
+  <data name="Review.Command.Grid" xml:space="preserve"><value>griglia</value></data>
+  <data name="Review.Command.Labeling" xml:space="preserve"><value>etichettatura</value></data>
+  <data name="Review.Command.MoveDiscards" xml:space="preserve"><value>sposta scarti</value></data>
+  <data name="Review.Command.NextGroup" xml:space="preserve"><value>raffica successiva</value></data>
+  <data name="Review.Command.Numbers" xml:space="preserve"><value>numeri</value></data>
+  <data name="Review.Command.PreviousGroup" xml:space="preserve"><value>raffica precedente</value></data>
+  <data name="Review.Command.Reanalyze" xml:space="preserve"><value>rianalizza gruppo</value></data>
+  <data name="Review.Command.Retry" xml:space="preserve"><value>riprova XMP</value></data>
+  <data name="Review.Command.Size" xml:space="preserve"><value>dimensione</value></data>
+  <data name="Review.Command.Sync" xml:space="preserve"><value>sincronizza</value></data>
+  <data name="Review.Command.Zoom" xml:space="preserve"><value>100%</value></data>
+  <data name="Review.Compare.Exposure" xml:space="preserve"><value>Esp</value></data>
+  <data name="Review.Compare.Hint" xml:space="preserve"><value>P = migliore: le altre valide diventano simili · X scarta · 1–5 stelle · Z 100% · F adatta · S sincronizza · ↑ ↓ sposta · Maiusc+clic nella griglia aggiunge o toglie · Esc griglia</value></data>
+  <data name="Review.Compare.Sharpness" xml:space="preserve"><value>Nit</value></data>
+  <data name="Review.Confirm.OpenPeople" xml:space="preserve"><value>Al termine apri Persone ({0} nuovi gruppi)</value></data>
+  <data name="Review.Empty.Title" xml:space="preserve"><value>Niente da rivedere</value></data>
+  <data name="Review.Empty.Body" xml:space="preserve"><value>Importa una scheda o una cartella (Ctrl I), oppure analizza una libreria: le foto compariranno qui.</value></data>
+  <data name="Review.Empty.Reopen" xml:space="preserve"><value>Riaprire un job confermato è sicuro: le modifiche riscrivono solo gli XMP interessati.</value></data>
+  <data name="Review.Empty.FilterHint" xml:space="preserve"><value>Clicca di nuovo il filtro per vederle tutte.</value></data>
+  <data name="Review.Group.Burst" xml:space="preserve"><value>Raffica {0}</value></data>
+  <data name="Review.Group.Bracketing" xml:space="preserve"><value>Bracketing {0}</value></data>
+  <data name="Review.Group.Timelapse" xml:space="preserve"><value>Sequenza {0}</value></data>
+  <data name="Review.Group.Panorama" xml:space="preserve"><value>Panorama {0}</value></data>
+  <data name="Review.Group.Duplicates" xml:space="preserve"><value>Duplicati {0}</value></data>
+  <data name="Review.Group.Shots" xml:space="preserve"><value>{0} scatti</value></data>
+  <data name="Review.Group.Suggestion" xml:space="preserve"><value>sembra {0} {1} · Maiusc R rianalizza</value></data>
+  <data name="Review.Group.Tie" xml:space="preserve"><value>Prime due a pari merito: scegli la migliore</value></data>
+  <data name="Review.Group.BracketingNote" xml:space="preserve"><value>Bracketing d'esposizione: nessuna classifica, nessuna "simile"</value></data>
+  <data name="Review.Group.TimelapseNote" xml:space="preserve"><value>Intervallo regolare: tenuta come sequenza, nessuna classifica</value></data>
+  <data name="Review.Mode.Grid" xml:space="preserve"><value>Griglia</value></data>
+  <data name="Review.Mode.Compare" xml:space="preserve"><value>Confronto</value></data>
+  <data name="Review.Mode.Numbers" xml:space="preserve"><value>Numeri</value></data>
+  <data name="Review.Mode.Labeling" xml:space="preserve"><value>Etichettatura</value></data>
+  <data name="Review.MoveDiscards" xml:space="preserve"><value>Sposta scarti…</value></data>
+  <data name="Review.MoveDiscards.Apply" xml:space="preserve"><value>Sposta in _scarti</value></data>
+  <data name="Review.MoveDiscards.Body" xml:space="preserve"><value>Vanno in una cartella _scarti della loro libreria con il loro sidecar, mantenendo il percorso. Nulla viene eliminato; le librerie in sola lettura restano intatte.</value></data>
+  <data name="Review.MoveDiscards.Done" xml:space="preserve"><value>{0} file spostati in _scarti, {1} lasciati dove sono.</value></data>
+  <data name="Review.MoveDiscards.None" xml:space="preserve"><value>Nessuno scarto in questo job.</value></data>
+  <data name="Review.MoveDiscards.Question" xml:space="preserve"><value>Spostare {0} foto scartate in _scarti?</value></data>
+  <data name="Review.NumbersPhase4" xml:space="preserve"><value>La vista Numeri arriva con la fase 4 (OCR motorsport).</value></data>
+  <data name="Review.People" xml:space="preserve"><value>Persone</value></data>
+  <data name="Review.People.Note" xml:space="preserve"><value>Tag e nomi si scrivono solo dopo la conferma.</value></data>
+  <data name="Review.Reanalyzed" xml:space="preserve"><value>{0} rianalizzata come {1}.</value></data>
+  <data name="Review.Reanalyzing" xml:space="preserve"><value>Rianalisi di {0} come {1}…</value></data>
+  <data name="Review.Retry" xml:space="preserve"><value>Riprova</value></data>
+  <data name="Review.Single" xml:space="preserve"><value>Scatto singolo</value></data>
+  <data name="Review.XmpPending" xml:space="preserve"><value>XMP in sospeso</value></data>
 </root>

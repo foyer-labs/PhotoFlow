@@ -241,6 +241,21 @@ public enum CullingOutcome
     Kept,
 }
 
+/// <summary>Labels of the labelling mode (spec §14: 1 good, 2 blurred, 3 eyes closed, 4 exposure, 5 other).</summary>
+public enum PhotoLabel
+{
+    Good,
+    Blurred,
+    EyesClosed,
+    Exposure,
+    Other,
+
+    /// <summary>Chosen as the best of its burst.</summary>
+    BurstBest,
+}
+
+public sealed record LabeledPhoto(long AssetId, PhotoLabel Label, string SessionId, DateTimeOffset LabeledAt);
+
 public sealed record Correction(
     long Id,
     long AssetId,
