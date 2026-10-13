@@ -1,6 +1,6 @@
 # Piano della fase 2 — Raffiche, Revisione completa, Persone
 
-Stato: **in esecuzione in autonomia** (indicazione dell'utente del 2026-10-12: procedere fino alla fine del progetto senza fermarsi ai cancelli di fase, decidendo secondo la specifica). Branch: `phase/2-review-people`.
+Stato: **completata** il 2026-10-13 in autonomia (indicazione dell'utente del 2026-10-12: procedere fino alla fine del progetto senza fermarsi ai cancelli di fase, decidendo secondo la specifica); report in [`docs/reports/fase-2.md`](../reports/fase-2.md). Branch: `phase/2-review-people`.
 
 Riferimenti: spec §3 (pipeline: fasi 3-5 e 7, `IBatchStage`), §5 (CLIP), §6 (raffiche, sequenze speciali, decisione per gruppo, metriche, correzioni, scelta del profilo), §7 (volti, impronte, clustering, cifratura), §9 (tabelle `Embeddings`, `Groups`, `GroupMembers`, `Persons`, `PersonPrototypes`, `Corrections`), §12bis (Revisione 2a-2h, Persone 4a-4c3, scorciatoie), §13 (fase 2), §14 (parità embedding ≥ 0,999, etichettatura); D8, D11, D12, D20, D23; P1, P2, P3, P4, P6, P12, P13, P17; R11, R18.
 

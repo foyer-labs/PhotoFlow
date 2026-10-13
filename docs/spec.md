@@ -214,7 +214,7 @@ Tutti i modelli girano in ONNX Runtime; ogni funzione ha un modello attivo selez
 | --- | --- | --- | --- | --- |
 | Rilevamento oggetti | D-FINE S (CPU) / M (GPU), pesi `obj2coco` fp32 | RF-DETR Nano-Large | 10-19M parametri | Conversioni `onnx-community` fissate per commit + SHA-256, verificate con test di parità contro il nostro export (`tools/lab`); riserva: nostro export su GitHub Releases |
 | Volti (rilevamento, landmark, impronte) | InsightFace buffalo\_l | buffalo\_s; YuNet/SFace (Apache 2.0) | 326 MB | Nativo |
-| Embedding (raffiche, ricerca, duplicati, zero-shot) | CLIP ViT-B/32 | — | 153 MB (quantizzato) / 606 MB | Disponibile (Xenova) |
+| Embedding (raffiche, ricerca, duplicati, zero-shot) | CLIP ViT-B/32 fp32 (F2-1) | — | 606 MB (immagine 352 MB + testo 254 MB) | Disponibile (Xenova, fissato per commit + SHA-256); la conversione quantizzata è esclusa (coseno 0,87-0,97 con l'originale) |
 | Tagger | RAM++ int8 | RAM++ fp32 | 873 MB / 1,86 GB | Export della community |
 | Didascalie | Florence-2 base | Florence-2 large | \~0,5 / \~1,5 GB | Florence2-Sharp (NuGet) |
 | VLM (livello D) | Qwen2.5-VL | — | 3-5 GB circa | ONNX Runtime GenAI (C#) |
@@ -222,6 +222,8 @@ Tutti i modelli girano in ONNX Runtime; ogni funzione ha un modello attivo selez
 | Estetica | Predittore LAION su embedding CLIP | — | < 5 MB | Riscrivibile in poche righe |
 
 Qwen3-VL è escluso finché ONNX Runtime GenAI non lo supporta nativamente.
+
+Fase 2 (13 ott 2026): CLIP in C# con preparazione identica all'originale (ridimensionamento bicubico come Pillow del lato corto a 224, ritaglio centrale, normalizzazione CLIP) e tokenizzatore BPE portato in C#; parità con `openai/clip-vit-base-patch32` (PyTorch): tensore d'ingresso identico, coseno 1,0 su CPU e CUDA. L'embedding si calcola sull'anteprima già decodificata (fase 3 della pipeline) e si salva nella tabella `Embeddings` con la versione del modello.
 
 Note dal laboratorio (fase 0, 12 ott 2026): RAM++ int8 e CLIP quantizzato non accelerano su GPU (la quantizzazione dinamica gira in CPU: RAM++ int8 528 ms/foto su RTX 3090 contro 614 su CPU), quindi su GPU vanno usate le varianti fp32/fp16. La RAM++ int8 della community non supera la parità con l'originale (stesso insieme di tag in 1 immagine su 8, Jaccard medio 0,895): in fase 3 si usa fp32 o un export verificato. D-FINE fp16 non è usabile con CUDA (GridSample solo fp32).
 
@@ -275,6 +277,8 @@ Uno scarto avviene solo su un segnale ad alta affidabilità chiaramente oltre so
 | Senza EXIF | Solo similarità |
 | Cambio di soggetto | Crollo della similarità spezza la raffica |
 
+Fase 2 (13 ott 2026, `SequenceGrouper`): i raggruppamenti si calcolano per fotocamera (modello + numero di serie), come barriera di lotto quando tutte le foto del job sono analizzate, e si ricalcolano per intero a ogni ripresa (idempotenti, F2-4); i gruppi manuali restano. Raffica: scatti consecutivi con intervallo ≤ `maxBurstGapSeconds` del profilo (2,0 s, da `SubSecDateTimeOriginal`, tolleranza 1 ms) e similarità CLIP tra scatti consecutivi ≥ `minSimilarity` (0,90); sotto soglia la raffica si spezza. Senza data di scatto: solo similarità; senza embedding: solo tempo. Classifica (P17): punteggio composito con i pesi del profilo su componenti normalizzate nella raffica (dettaglio relativo al massimo della raffica, esposizione, occhi, soggetto relativo al massimo); la prima è "migliore", le altre valide "simili"; se le prime due distano meno di `tieMargin` (0,02) entrambe sono "da rivedere"; gli scarti tecnici restano scarti. La decisione per gruppo si rifà dai segnali salvati con il profilo di ciascuna foto, senza nuova analisi.
+
 ### Segnali per foto
 
 | Segnale | Misura | Affidabilità |
@@ -309,6 +313,8 @@ Fase 1 (scatti singoli, 12 ott 2026). Scarto solo con: fotogramma vuoto; nitidez
 | Timelapse | Intervallo regolare ripetuto | Gruppo "sequenza", nessuna classifica |
 | Panorama | Contrassegno manuale (automatico nel backlog) | Nessuna classifica |
 
+Regole della fase 2 (13 ott 2026): bracketing = almeno 3 scatti ravvicinati con compensazione dell'esposizione che copre ≥ 0,3 EV, oppure (senza compensazione) EV100 calcolato da tempo, diaframma e ISO che varia di ≥ 1 EV; timelapse = almeno 10 scatti a intervallo ≥ 1 s costante entro ±10% (±1 s quando mancano i decimi di secondo). Le due regole si applicano prima delle raffiche: una sequenza riconosciuta non diventa mai raffica (test `SequenceGrouperTests`, `GroupingStageTests` con EXIF reali scritti da exiftool).
+
 ### Metriche obiettivo
 
 | Metrica | Obiettivo |
@@ -321,9 +327,13 @@ Fase 1 (scatti singoli, 12 ott 2026). Scarto solo con: fotogramma vuoto; nitidez
 
 Ogni correzione è salvata in `Corrections` con i segnali dell'epoca; dopo un numero sufficiente di correzioni per profilo, l'applicativo suggerisce di spostare le soglie. Non cambia nulla da solo e non addestra modelli.
 
+Fase 2 (13 ott 2026, `ThresholdAdvisor`): con almeno 30 correzioni su un profilo personalizzato, la sezione Profili propone la soglia di scarto per mosso che avrebbe minimizzato 3 × scarti sbagliati − scarti intercettati (gli scarti sbagliati pesano di più, come negli obiettivi), con il conteggio di cosa cambia; si applica solo con "Applica suggerimento" e salvataggio. Le altre soglie (occhi, esposizione) nel backlog.
+
 ### Profili predefiniti
 
 Definiti in `profiles/*.json` (versionati, incorporati nell'applicazione) con zone, soglie e pesi.
+
+Profili personalizzati (fase 2, 13 ott 2026): si creano duplicando un profilo (predefiniti in sola lettura) e si salvano nella cartella `profiles` della configurazione come `custom-<nome>.v<versione>.json`; ogni salvataggio scrive la versione successiva e conserva le precedenti; un file illeggibile viene segnalato e lasciato dov'è. Un profilo che non c'è più (file spostato) viene sostituito da Eventi invece di bloccare job e revisione. Due profili con la stessa "chiave di misura" (zone di nitidezza, classi del soggetto, volti attivi o no, soglie degli occhi) producono gli stessi segnali: passare dall'uno all'altro cambia solo la decisione, senza rianalisi.
 
 | Profilo | Zona nitidezza | Esposizione | Volti | Soggetto | OCR |
 | --- | --- | --- | --- | --- | --- |
@@ -353,6 +363,8 @@ Definiti in `profiles/*.json` (versionati, incorporati nell'applicazione) con zo
 | Manuale + suggerimento (default) | Profilo principale scelto all'avvio; i gruppi che sembrano di altro tipo vengono segnalati nella revisione |
 | Automatica (per job) | CLIP assegna il profilo per gruppo; profilo di riserva obbligatorio sotto soglia di confidenza, con segnalazione; profilo e confidenza mostrati nel riepilogo |
 | Personalizzazione | Duplica e modifica un profilo; i predefiniti restano intatti; cambio profilo per gruppo con rianalisi |
+
+Fase 2 (13 ott 2026): zero-shot CLIP con un insieme di frasi inglesi per scena (Archivio escluso), probabilità = softmax di 100 · coseno, media sulle foto del gruppo. Automatica: profilo assegnato con probabilità ≥ 0,5, altrimenti il profilo di riserva; manuale: suggerimento nella revisione con probabilità ≥ 0,6 e diverso dal profilo del job. Le foto analizzate con un profilo diverso da quello assegnato si rianalizzano in parallelo (solo se la chiave di misura cambia); la scelta dell'utente per un gruppo non viene mai sostituita (I5). Misura sul set locale (230 foto, CUDA): la modalità automatica aggiunge ~55% al tempo d'analisi (52 s contro 33 s). Classificare la scena per foto prima dell'analisi è nel backlog.
 
 ## 7. Volti
 
@@ -389,6 +401,8 @@ Impostabile globalmente e sovrascrivibile per profilo.
 | `matchThreshold` | Valore iniziale da tarare sui dati reali |
 | `clusterMinSize` | Sotto soglia i volti restano "non assegnati" |
 
+Valori della fase 2 (13 ott 2026): impronte ArcFace w600k\_r50 (buffalo\_l, 512 valori) o SFace (128 valori) su ritaglio allineato ai 5 punti (Umeyama sul modello ArcFace, poi trasformazione affine come OpenCV; parità: coseno ≥ 0,99999 con insightface e OpenCV); nessuna impronta per volti sotto 48 px alla scala di riferimento. Riconoscimento: coseno con i campioni ≥ 0,45 (ArcFace) o 0,363 (SFace, valore OpenCV); se il secondo candidato dista meno di 0,05 il volto resta non assegnato; nella fascia di 0,10 sotto soglia diventa un suggerimento (chip ambra); campioni: fino a 5 per persona per anno, dai volti confermati. Clustering: HDBSCAN in C# (F2-2), selezione "excess of mass", `min_cluster_size` 3, `min_samples` 2 (F2-6), Prim esatto fino a 3.000 volti per blocco, oltre su grafo k-NN (k = 15); parità con scikit-learn 1.9 (altezze del dendrogramma identiche, partizioni identiche).
+
 ### Flusso
 
 1. Rilevamento (condiviso con il culling) e impronte.
@@ -396,6 +410,8 @@ Impostabile globalmente e sovrascrivibile per profilo.
 3. Clustering HDBSCAN solo dei non assegnati, a blocchi (per anno o cartella), con ricerca per vicini approssimata: con \~100.000 volti la matrice completa delle distanze non sta in memoria.
 4. Revisione: rinomina, unisci, separa, ignora; gruppi ordinati per dimensione.
 5. Scrittura: regioni MWG e `Persone|Nome` come keyword.
+
+Scrittura (fase 2): solo le persone con nome e non ignorate, solo per foto confermate; `Nome` nelle keyword piatte e `Persone|Nome` in quelle gerarchiche; regioni MWG (`mwg-rs:RegionInfo`, area normalizzata al centro, tipo `Face`) scritte da exiftool come struttura completa: le regioni di altri programmi (nome non gestito da PhotoFlow) restano; un RAW riceve le persone del JPEG gemello (sidecar).
 
 ### Regole di qualità
 
@@ -413,6 +429,8 @@ Impostabile globalmente e sovrascrivibile per profilo.
 | Chiave | Default: account utente del sistema (Windows; portachiavi su Mac/Linux); alternativa: password |
 | Chiave non disponibile | Richiesta della password, oppure ricalcolo delle impronte; le assegnazioni restano (in chiaro, legate alla posizione del volto) |
 | Esportazione | Impronte cifrate con password di esportazione, oppure escluse e ricalcolate sulla destinazione |
+
+Fase 2 (13 ott 2026, F2-3): AES-256-GCM per impronta (versione, identificativo della chiave, nonce, tag, testo cifrato; dati associati fissi); chiave dati in `face-key.json` nella cartella di configurazione, protetta da DPAPI dell'account Windows e, se l'utente la imposta, da una password (PBKDF2-SHA256, 600.000 iterazioni) che la apre su altri account o PC e la riprotegge per l'account corrente. Senza chiave leggibile (P13): galleria consultabile, riconoscimento sospeso, "Inserisci password" o "Ricalcola impronte" (nuova chiave, impronte ricalcolate dalle anteprime, nomi e assegnazioni intatti). Portachiavi Mac/Linux nel backlog: lì serve la password.
 
 ### Licenza
 
@@ -1097,7 +1115,12 @@ Decisioni emerse in Design (confermate), funzioni rinviate a dopo la stabilizzaz
 | Rivalutare OpenCvSharp se le fasi successive richiedono elaborazioni complesse | F1-4 |
 | Punto AF delle reflex (punti con nome, senza coordinate): mappa delle posizioni per modello | Tappa 1.7 |
 | Annulla globale (Ctrl Z) oltre le decisioni della Revisione | Tappa 1.9 |
-| Benchmark in-app (tavola 5f) con tutte le fasi d'analisi | Fase 2 |
+| Profilo automatico: classificare la scena per foto con CLIP prima dell'analisi, così solo le foto il cui gruppo cambia profilo vanno rianalizzate (oggi +55% sul set locale) | Tappa 2.12 |
+| Suggerimenti dalle correzioni anche per le soglie degli occhi e dell'esposizione | Tappa 2.10 |
+| Persone: annulla (Ctrl Z) di unisci/separa/rinomina, selezione a rettangolo, "Apri foto" dalla pagina persona (tavole 4a, 4b) | Tappa 2.8 |
+| Modelli caricati e scaricati fase per fase (tavola 5f: "bastano 4-6 GB di VRAM"); oggi restano caricati per tutta la sessione | Tappa 2.11 |
+| Portachiavi Mac/Linux per la chiave delle impronte (oggi password) | F2-3 |
+| Eliminare un profilo personalizzato (oggi si può solo smettere di usarlo; i file restano nella cartella dei profili) | Tappa 2.10 |
 | Scritture del catalogo per foto in un'unica transazione (oggi ~11 commit per foto: il catalogo regge ~45 foto/s, oltre il bisogno con i modelli) | Tappa 1b.7 |
 | Accelerazione SIMD del ricampionamento e dei segnali (oggi l'analisi è limitata dalla CPU: 8 foto in parallelo su 24 thread) | Tappa 1.10 |
 | Cambio di politica XMP di una libreria: unione dei sidecar esistenti negli incorporati (o viceversa) | D21, fase 5 (sincronizzazione) |
@@ -1113,7 +1136,7 @@ Decisioni emerse in Design (confermate), funzioni rinviate a dopo la stabilizzaz
 - [x] Perl disponibile sulle versioni recenti di macOS (12 ott 2026: presente su macOS 26 per evidenza indiretta, deprecato da Apple dal 2019 — R20)
 - [ ] Riconoscimento di monoposto e prototipi da parte di D-FINE (COCO) sulle foto in pista
 - [ ] Qualità di YuNet/SFace rispetto a buffalo\_l
-- [ ] Tempi reali con il benchmark (sostituiscono le stime della sezione 5)
+- [x] Tempi reali con il benchmark (13 ott 2026: benchmark in-app nelle Impostazioni, tavola 5f; misure locali in `docs/reports/fase-2.md`)
 
 ### Fonti consultate
 
