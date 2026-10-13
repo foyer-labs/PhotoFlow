@@ -226,7 +226,43 @@ internal sealed class PeopleStore(SqliteCatalog catalog) : IPeopleStore
     private static FaceFingerprint Map(FingerprintRow r) =>
         new(r.FaceId, r.AssetId, (int?)r.Year, r.EncryptedEmbedding, r.EmbeddingModel ?? string.Empty, r.PersonId, Db.ParseOrNull<AssignmentOrigin>(r.AssignmentOrigin));
 
-    private sealed record FingerprintRow(long FaceId, long AssetId, long? Year, byte[] EncryptedEmbedding, string? EmbeddingModel, long? PersonId, string? AssignmentOrigin);
+    // Classes with setters, not records: SQLite reports a NULL expression column as a BLOB, which defeats Dapper's
+    // constructor matching (the setters convert).
+    private sealed class FingerprintRow
+    {
+        public long FaceId { get; set; }
 
-    private sealed record SummaryRow(long Id, string? Name, long Ignored, long? CoverFaceId, long FaceCount, long PhotoCount, long? FirstYear, long? LastYear, long? ManualFaces);
+        public long AssetId { get; set; }
+
+        public long? Year { get; set; }
+
+        public byte[] EncryptedEmbedding { get; set; } = [];
+
+        public string? EmbeddingModel { get; set; }
+
+        public long? PersonId { get; set; }
+
+        public string? AssignmentOrigin { get; set; }
+    }
+
+    private sealed class SummaryRow
+    {
+        public long Id { get; set; }
+
+        public string? Name { get; set; }
+
+        public long Ignored { get; set; }
+
+        public long? CoverFaceId { get; set; }
+
+        public long FaceCount { get; set; }
+
+        public long PhotoCount { get; set; }
+
+        public long? FirstYear { get; set; }
+
+        public long? LastYear { get; set; }
+
+        public long? ManualFaces { get; set; }
+    }
 }

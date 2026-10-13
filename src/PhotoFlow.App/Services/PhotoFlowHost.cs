@@ -229,6 +229,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
             new ProfileStage(Catalog, embedder is null ? null : new LazySceneClassifier(this), embedder),
             new ReanalysisStage(Catalog, FileSystem, new LazyProcessor(this), null),
             new GroupDecisionStage(Catalog, BuiltInProfiles.Get, new DecisionEngine()),
+            new FacesStage(Catalog, () => FingerprintKeys.Protector),
         ];
     }
 

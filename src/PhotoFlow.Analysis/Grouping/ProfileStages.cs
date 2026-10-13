@@ -66,7 +66,8 @@ public sealed class ProfileStage(ICatalog catalog, ISceneClassifier? classifier,
                 await catalog.Groups.SetProfileAsync(id, profile, confidence, ct).ConfigureAwait(false);
             }
 
-            progress?.Report(new StageProgress(Stage, ++done, units.Count, null));
+            done++;
+            progress?.Report(new StageProgress(Stage, done, units.Count, null));
         }
 
         await catalog.Groups.SetAutomaticProfilesAsync(job.JobId, rows, ct).ConfigureAwait(false);
@@ -94,7 +95,7 @@ public sealed class ReanalysisStage(ICatalog catalog, IFileSystem fileSystem, IP
         {
             var profileId = profiles.GetValueOrDefault(photo.AnalyzedAssetId)?.ProfileId ?? job.ProfileId;
             var asset = await catalog.Assets.GetAsync(photo.AnalyzedAssetId, ct).ConfigureAwait(false);
-            if (await LocateAsync(photo.AnalyzedAssetId, ct).ConfigureAwait(false) is not { } path || asset is null)
+            if (await AssetFiles.LocateAsync(catalog, fileSystem, photo.AnalyzedAssetId, ct).ConfigureAwait(false) is not { } path || asset is null)
             {
                 continue; // the file is not reachable now: the photo keeps its signals until a later run
             }
@@ -102,24 +103,8 @@ public sealed class ReanalysisStage(ICatalog catalog, IFileSystem fileSystem, IP
             var result = await processor.ProcessAsync(new PhotoInput(path, asset.FullHash ?? asset.QuickHash, asset.Exif), new ProcessingOptions(profileId, faces), ct).ConfigureAwait(false);
             await catalog.Analysis.SaveResultAsync(new AnalyzerResultRecord(0, photo.AnalyzedAssetId, result.Analysis.AnalyzerId, result.Analysis.ModelVersion, profileId, result.Analysis.Scores), CancellationToken.None).ConfigureAwait(false);
             await catalog.Analysis.ReplaceAutomaticFacesAsync(photo.AnalyzedAssetId, result.Faces, CancellationToken.None).ConfigureAwait(false);
-            progress?.Report(new StageProgress(Stage, ++done, pending.Count, path));
+            done++;
+            progress?.Report(new StageProgress(Stage, done, pending.Count, path));
         }
-    }
-
-    private async Task<string?> LocateAsync(long assetId, CancellationToken ct)
-    {
-        foreach (var location in await catalog.Assets.GetLocationsAsync(assetId, ct).ConfigureAwait(false))
-        {
-            if (await catalog.Libraries.GetAsync(location.LibraryId, ct).ConfigureAwait(false) is { } library)
-            {
-                var path = Path.Combine(library.RootPath, location.RelativePath);
-                if (fileSystem.FileExists(path))
-                {
-                    return path;
-                }
-            }
-        }
-
-        return null;
     }
 }

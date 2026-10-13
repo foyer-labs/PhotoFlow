@@ -133,7 +133,8 @@ public sealed class GroupDecisionStage(ICatalog catalog, Func<string, SceneProfi
                 await catalog.Decisions.SetAutomaticAsync(twin, proposal.Outcome, proposal.Reasons, version, CancellationToken.None).ConfigureAwait(false);
             }
 
-            progress?.Report(new StageProgress(Stage, ++done, decided.Count, null));
+            done++;
+            progress?.Report(new StageProgress(Stage, done, decided.Count, null));
         }
     }
 }

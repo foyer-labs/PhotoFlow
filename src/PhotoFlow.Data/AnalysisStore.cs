@@ -92,7 +92,12 @@ internal sealed class AnalysisStore(SqliteCatalog catalog) : IAnalysisStore
             await c.ExecuteAsync(new CommandDefinition(
                 "DELETE FROM Faces WHERE AssetId = @assetId AND (AssignmentOrigin IS NULL OR AssignmentOrigin <> @manual);",
                 new { assetId, manual = nameof(AssignmentOrigin.Manual) }, transaction, cancellationToken: ct)).ConfigureAwait(false);
-            foreach (var face in faces)
+
+            // Faces decided by the user stay as they are: the same face found again is not added twice.
+            var kept = (await c.QueryAsync<(double X1, double Y1, double X2, double Y2)>(new CommandDefinition(
+                "SELECT X1, Y1, X2, Y2 FROM Faces WHERE AssetId = @assetId;", new { assetId }, transaction, cancellationToken: ct)).ConfigureAwait(false))
+                .Select(r => new BoundingBox((float)r.X1, (float)r.Y1, (float)r.X2, (float)r.Y2)).ToList();
+            foreach (var face in faces.Where(f => !kept.Any(k => k.IntersectionOverUnion(f.Box) >= 0.5f)))
             {
                 await c.ExecuteAsync(new CommandDefinition(
                     """
