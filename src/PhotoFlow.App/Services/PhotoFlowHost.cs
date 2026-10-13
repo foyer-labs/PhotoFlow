@@ -30,6 +30,9 @@ using PhotoFlow.Tagging.Clip;
 namespace PhotoFlow.App.Services;
 
 /// <summary>Which models the analysis uses, for the status bar and the first run (3b).</summary>
+/// <summary>The loaded models of the analysis (null when not installed).</summary>
+public sealed record AnalysisComponents(IImageOperations Operations, IObjectDetector? Objects, IFaceDetector? Faces, IImageEmbedder? Embedder, IFaceEmbedder? Fingerprints);
+
 public sealed record AnalysisSetup(string? ObjectDetector, string? FaceDetector, bool EyesAvailable, ExecutionBackend Backend, string? Embedder = null, string? FaceRecognizer = null);
 
 /// <summary>
@@ -53,6 +56,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     private readonly SemaphoreSlim _sessionsGate = new(1, 1);
     private readonly List<IInferenceSession> _sessions = [];
     private CullingPhotoProcessor? _processor;
+    private AnalysisComponents? _components;
     private Task _maintenance = Task.CompletedTask;
 
     private PhotoFlowHost(IAppPaths paths, IFileSystem fileSystem, SettingsStore settingsStore, AppSettings settings, SqliteCatalog catalog, ExifToolSession exifTool)
@@ -318,12 +322,21 @@ public sealed class PhotoFlowHost : IAsyncDisposable
 
     private async Task<IPhotoProcessor> GetProcessorAsync(CancellationToken ct)
     {
+        var c = await GetAnalysisComponentsAsync(ct).ConfigureAwait(false);
+        var created = new CullingPhotoProcessor(Previews, new CullingAnalyzer(c.Operations, c.Objects, c.Faces), new DecisionEngine(), Profiles.Get, Thumbnails,
+            c.Embedder, c.Fingerprints, () => FingerprintKeys.Protector);
+        return Interlocked.CompareExchange(ref _processor, created, null) ?? created;
+    }
+
+    /// <summary>The models of the analysis, loaded once (shared by the pipeline and the benchmark).</summary>
+    public async Task<AnalysisComponents> GetAnalysisComponentsAsync(CancellationToken ct)
+    {
         await _sessionsGate.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            if (_processor is not null)
+            if (_components is not null)
             {
-                return _processor;
+                return _components;
             }
 
             var setup = DescribeAnalysis();
@@ -355,9 +368,8 @@ public sealed class PhotoFlowHost : IAsyncDisposable
                 SFaceModelId => new SFaceEmbedder(await Open(SFaceModelId, SFaceEmbedder.File).ConfigureAwait(false)),
                 _ => null,
             };
-            _processor = new CullingPhotoProcessor(Previews, new CullingAnalyzer(operations, objects, faces), new DecisionEngine(), Profiles.Get, Thumbnails, embedder,
-                fingerprints, () => FingerprintKeys.Protector);
-            return _processor;
+            _components = new AnalysisComponents(operations, objects, faces, embedder, fingerprints);
+            return _components;
         }
         finally
         {

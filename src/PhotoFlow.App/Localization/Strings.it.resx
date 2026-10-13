@@ -642,4 +642,21 @@
   <data name="Profiles.NameRequired" xml:space="preserve"><value>Il profilo ha bisogno di un nome.</value></data>
   <data name="Profiles.Reverted" xml:space="preserve"><value>Modifiche annullate.</value></data>
   <data name="Profiles.LoadErrors" xml:space="preserve"><value>File di profilo non letti: {0}</value></data>
+  <data name="Settings.Benchmark.Never" xml:space="preserve"><value>Benchmark · non ancora eseguito</value></data>
+  <data name="Settings.Benchmark.Title" xml:space="preserve"><value>Benchmark · {0} foto · {1} · {2}</value></data>
+  <data name="Settings.Benchmark.Running" xml:space="preserve"><value>Misura in corso… {0} / {1}</value></data>
+  <data name="Settings.Benchmark.Failed" xml:space="preserve"><value>Benchmark non completato: {0}</value></data>
+  <data name="Settings.Benchmark.Stage" xml:space="preserve"><value>Fase</value></data>
+  <data name="Settings.Benchmark.Ms" xml:space="preserve"><value>ms/foto</value></data>
+  <data name="Settings.Benchmark.Ram" xml:space="preserve"><value>RAM picco</value></data>
+  <data name="Settings.Benchmark.Vram" xml:space="preserve"><value>VRAM picco</value></data>
+  <data name="Settings.Benchmark.NoModel" xml:space="preserve"><value>modello assente</value></data>
+  <data name="Settings.Benchmark.Stage.Preview" xml:space="preserve"><value>Anteprima (decodifica)</value></data>
+  <data name="Settings.Benchmark.Stage.Culling" xml:space="preserve"><value>Culling (segnali + soggetti)</value></data>
+  <data name="Settings.Benchmark.Stage.Faces" xml:space="preserve"><value>Volti (rilevamento + impronte)</value></data>
+  <data name="Settings.Benchmark.Stage.Embedding" xml:space="preserve"><value>CLIP (raffiche e profilo)</value></data>
+  <data name="Settings.Benchmark.Stage.Tags" xml:space="preserve"><value>Tag A + B</value></data>
+  <data name="Settings.Benchmark.Stage.Captions" xml:space="preserve"><value>Didascalie C</value></data>
+  <data name="Settings.Benchmark.Estimates" xml:space="preserve"><value>Import di 1.000 scatti: {0} di analisi · archivio di {1} foto: {2} in bassa priorità ({3} ms/foto con {4} foto in parallelo; copia esclusa).</value></data>
+  <data name="Settings.Benchmark.Note" xml:space="preserve"><value>Circa 50 foto delle tue librerie, in sola lettura: nulla viene scritto. La VRAM è letta dal driver NVIDIA (tutti i processi); senza, si mostra solo la RAM di PhotoFlow.</value></data>
 </root>

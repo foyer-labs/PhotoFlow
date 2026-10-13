@@ -34,6 +34,9 @@ public sealed record AppSettings
 
     /// <summary>exiftool chosen by the user instead of the bundled one (board 5i); applied at the next start.</summary>
     public string? ExifToolPath { get; init; }
+
+    /// <summary>Last in-app benchmark (board 5f), shown in the settings and used for the estimates.</summary>
+    public BenchmarkResult? Benchmark { get; init; }
 }
 
 public enum ThemePreference

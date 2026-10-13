@@ -11,6 +11,7 @@ using PhotoFlow.App.Commands;
 using PhotoFlow.App.Localization;
 using PhotoFlow.App.Services;
 using PhotoFlow.Analysis.Quality;
+using PhotoFlow.Core.Imaging;
 using PhotoFlow.Core.Inference;
 using PhotoFlow.Core.Pipeline;
 using PhotoFlow.Faces.Protection;
@@ -243,6 +244,81 @@ public sealed partial class SettingsViewModel : PageViewModel
 
     public IReadOnlyList<string> TemplateVariables { get; } = ["{yyyy}", "{MM}", "{yyyy-MM-dd}", "{evento}", "{seq:0000}", "{camera}", "{nomeoriginale}", "{ext}"];
 
+    // Benchmark (5f)
+
+    public ObservableCollection<BenchmarkRow> BenchmarkRows { get; } = [];
+
+    [ObservableProperty]
+    private string _benchmarkTitle = string.Empty;
+
+    [ObservableProperty]
+    private string _benchmarkEstimates = string.Empty;
+
+    [ObservableProperty]
+    private string? _benchmarkProgress;
+
+    public bool HasBenchmark => BenchmarkRows.Count > 0;
+
+    [RelayCommand]
+    private async Task RunBenchmarkAsync()
+    {
+        IsBusy = true;
+        try
+        {
+            var progress = new Progress<(int Done, int Total)>(p => BenchmarkProgress = Strings.Format("Settings.Benchmark.Running", p.Done, p.Total));
+            var result = await Task.Run(() => new BenchmarkRunner(_host).RunAsync(BenchmarkRunner.DefaultPhotos, progress, CancellationToken.None));
+            await _host.UpdateSettingsAsync(s => s with { Benchmark = result }, CancellationToken.None);
+            await ShowBenchmarkAsync(result);
+        }
+        catch (Exception e) when (e is InvalidOperationException or IOException or UnauthorizedAccessException or ImageDecodeException)
+        {
+            Message = Strings.Format("Settings.Benchmark.Failed", e.Message);
+        }
+        finally
+        {
+            BenchmarkProgress = null;
+            IsBusy = false;
+        }
+    }
+
+    private async Task ShowBenchmarkAsync(BenchmarkResult? result)
+    {
+        BenchmarkRows.Clear();
+        if (result is null)
+        {
+            BenchmarkTitle = Strings.Get("Settings.Benchmark.Never");
+            BenchmarkEstimates = string.Empty;
+            OnPropertyChanged(nameof(HasBenchmark));
+            return;
+        }
+
+        foreach (var stage in result.Stages)
+        {
+            BenchmarkRows.Add(new BenchmarkRow(
+                Strings.Get("Settings.Benchmark.Stage." + stage.Key),
+                stage.MsPerPhoto is { } ms ? ms.ToString("N0", CultureInfo.CurrentCulture) : Strings.Get("Settings.Benchmark.NoModel"),
+                stage.MsPerPhoto is null ? "—" : Formats.Bytes(stage.PeakRamBytes),
+                stage.PeakVramBytes is { } vram ? Formats.Bytes(vram) : "—"));
+        }
+
+        BenchmarkRows.Add(new BenchmarkRow(Strings.Get("Settings.Benchmark.Stage.Tags"), Strings.Get("Common.ComesWithPhase3"), "—", "—"));
+        BenchmarkRows.Add(new BenchmarkRow(Strings.Get("Settings.Benchmark.Stage.Captions"), Strings.Get("Common.ComesWithPhase5"), "—", "—"));
+        BenchmarkTitle = Strings.Format("Settings.Benchmark.Title", result.Photos, result.At.ToLocalTime().ToString("d MMM yyyy", CultureInfo.CurrentCulture), result.Backend);
+        var archive = 0;
+        foreach (var library in await _host.Catalog.Libraries.ListAsync(CancellationToken.None))
+        {
+            archive += await _host.Catalog.Libraries.CountAssetsAsync(library.Id, CancellationToken.None);
+        }
+
+        BenchmarkEstimates = Strings.Format("Settings.Benchmark.Estimates",
+            Formats.Duration(result.EstimateImport(1000)),
+            archive.ToString("N0", CultureInfo.CurrentCulture),
+            Formats.Duration(result.EstimateArchive(archive)),
+            result.ParallelMsPerPhoto.ToString("N0", CultureInfo.CurrentCulture),
+            result.Workers);
+        OnPropertyChanged(nameof(HasBenchmark));
+    }
+
     // Culling (5j)
 
     public bool PrudentMode => _host.Settings.PrudentMode;
@@ -376,6 +452,7 @@ public sealed partial class SettingsViewModel : PageViewModel
 
             await RefreshCatalogAsync();
             await RefreshCullingAsync();
+            await ShowBenchmarkAsync(_host.Settings.Benchmark);
             OnPropertyChanged(nameof(EncryptionState));
             await CheckExifToolAsync();
         }
@@ -670,3 +747,6 @@ public sealed partial class SettingsViewModel : PageViewModel
         }
     }
 }
+
+/// <summary>A row of the benchmark table (board 5f).</summary>
+public sealed record BenchmarkRow(string Stage, string Time, string Ram, string Vram);

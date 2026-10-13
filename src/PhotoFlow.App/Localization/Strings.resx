@@ -642,4 +642,21 @@
   <data name="Profiles.NameRequired" xml:space="preserve"><value>The profile needs a name.</value></data>
   <data name="Profiles.Reverted" xml:space="preserve"><value>Changes undone.</value></data>
   <data name="Profiles.LoadErrors" xml:space="preserve"><value>Profile files not read: {0}</value></data>
+  <data name="Settings.Benchmark.Never" xml:space="preserve"><value>Benchmark · not run yet</value></data>
+  <data name="Settings.Benchmark.Title" xml:space="preserve"><value>Benchmark · {0} photos · {1} · {2}</value></data>
+  <data name="Settings.Benchmark.Running" xml:space="preserve"><value>Measuring… {0} / {1}</value></data>
+  <data name="Settings.Benchmark.Failed" xml:space="preserve"><value>Benchmark not completed: {0}</value></data>
+  <data name="Settings.Benchmark.Stage" xml:space="preserve"><value>Stage</value></data>
+  <data name="Settings.Benchmark.Ms" xml:space="preserve"><value>ms/photo</value></data>
+  <data name="Settings.Benchmark.Ram" xml:space="preserve"><value>RAM peak</value></data>
+  <data name="Settings.Benchmark.Vram" xml:space="preserve"><value>VRAM peak</value></data>
+  <data name="Settings.Benchmark.NoModel" xml:space="preserve"><value>model missing</value></data>
+  <data name="Settings.Benchmark.Stage.Preview" xml:space="preserve"><value>Preview (decode)</value></data>
+  <data name="Settings.Benchmark.Stage.Culling" xml:space="preserve"><value>Culling (signals + subjects)</value></data>
+  <data name="Settings.Benchmark.Stage.Faces" xml:space="preserve"><value>Faces (detection + fingerprints)</value></data>
+  <data name="Settings.Benchmark.Stage.Embedding" xml:space="preserve"><value>CLIP (bursts and profile)</value></data>
+  <data name="Settings.Benchmark.Stage.Tags" xml:space="preserve"><value>Tags A + B</value></data>
+  <data name="Settings.Benchmark.Stage.Captions" xml:space="preserve"><value>Captions C</value></data>
+  <data name="Settings.Benchmark.Estimates" xml:space="preserve"><value>Import of 1,000 shots: {0} of analysis · archive of {1} photos: {2} at low priority ({3} ms/photo with {4} photos in parallel; copy excluded).</value></data>
+  <data name="Settings.Benchmark.Note" xml:space="preserve"><value>About 50 photos of your libraries, read only: nothing is written. VRAM is read from the NVIDIA driver (all processes); without it only the RAM of PhotoFlow is shown.</value></data>
 </root>
