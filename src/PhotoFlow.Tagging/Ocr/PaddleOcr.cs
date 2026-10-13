@@ -30,6 +30,12 @@ public sealed class PaddleOcr : ITextReader
     public const int RecognizerHeight = 48;
     public const int RecognizerMaxWidth = 320;
 
+    /// <summary>
+    /// The recognizer runs on the CPU: its small inputs of always different widths are about 9 times slower on the
+    /// GPU (3 ms against 27 ms per text, phase 4 measures); the detector stays on the best backend.
+    /// </summary>
+    public const ExecutionTarget RecognizerTarget = ExecutionTarget.Cpu;
+
     private readonly IInferenceSession _detector;
     private readonly IInferenceSession _recognizer;
     private readonly IImageOperations _imageOperations;
@@ -53,9 +59,8 @@ public sealed class PaddleOcr : ITextReader
     public async Task<IReadOnlyList<TextReading>> ReadAsync(RgbImage image, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(image);
-        var (input, width, height) = DetectorInput(image, _imageOperations);
+        var (input, width, height, resized) = DetectorInput(image, _imageOperations);
         var probabilities = (await _detector.RunAsync([input], ct).ConfigureAwait(false))[0].AsFloat32().ToArray();
-        var resized = _imageOperations.Resize(image, width, height, ResampleMode.Bilinear);
         var readings = new List<TextReading>();
         foreach (var box in Boxes(probabilities, width, height))
         {
@@ -70,7 +75,7 @@ public sealed class PaddleOcr : ITextReader
     }
 
     /// <summary>RapidOCR DetPreProcess (limit "min" 736, mean/std 0.5), sizes rounded to multiples of 32.</summary>
-    public static (NamedTensor Tensor, int Width, int Height) DetectorInput(RgbImage image, IImageOperations imageOperations)
+    public static (NamedTensor Tensor, int Width, int Height, RgbImage Resized) DetectorInput(RgbImage image, IImageOperations imageOperations)
     {
         ArgumentNullException.ThrowIfNull(image);
         ArgumentNullException.ThrowIfNull(imageOperations);
@@ -78,7 +83,7 @@ public sealed class PaddleOcr : ITextReader
         var width = Math.Max(32, (int)Math.Round((int)(image.Width * ratio) / 32.0, MidpointRounding.ToEven) * 32);
         var height = Math.Max(32, (int)Math.Round((int)(image.Height * ratio) / 32.0, MidpointRounding.ToEven) * 32);
         var resized = imageOperations.Resize(image, width, height, ResampleMode.Bilinear);
-        return (Normalize(resized, width, height, width), width, height);
+        return (Normalize(resized, width, height, width), width, height, resized);
     }
 
     /// <summary>The recognizer input [1,3,48,W]: height 48, width in proportion (at most 320), padded with zeros.</summary>

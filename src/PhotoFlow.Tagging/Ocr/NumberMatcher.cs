@@ -9,8 +9,9 @@ namespace PhotoFlow.Tagging.Ocr;
 /// The race number of a vehicle from its OCR readings (spec §8, decision F4-3). Readings give digit groups of 1-3
 /// digits; with an entry list only its numbers count (sponsors and plates are ignored); a number is certain when it is
 /// read clearly and beats the next number of the list by a margin; digits often confused (6/9, 1/7) and partial readings
-/// (a prefix or suffix of numbers of the list) give candidates to review. Without a list, only a clear reading counts.
-/// No number is ever written unless certain.
+/// (a prefix or suffix of numbers of the list) give candidates to review. Without a list, only a clear reading of a
+/// number standing alone counts (a model name such as "959 Panigale" is not a race number); numbers inside other text
+/// stay as candidates. No number is ever written unless certain.
 /// </summary>
 public static partial class NumberMatcher
 {
@@ -31,11 +32,17 @@ public static partial class NumberMatcher
     {
         ArgumentNullException.ThrowIfNull(readings);
         var read = new Dictionary<string, double>(StringComparer.Ordinal);
+        var alone = new Dictionary<string, double>(StringComparer.Ordinal);
         foreach (var (text, confidence) in readings)
         {
             foreach (Match match in Digits().Matches(text))
             {
                 Keep(read, match.Value, confidence);
+            }
+
+            if (Alone().Match(text) is { Success: true } number)
+            {
+                Keep(alone, number.Groups[1].Value, confidence);
             }
         }
 
@@ -46,10 +53,15 @@ public static partial class NumberMatcher
 
         if (list is null)
         {
-            var best = read.MaxBy(r => r.Value);
+            if (alone.Count == 0)
+            {
+                return new Result(NumberState.NoNumber, null, Ranked(read));
+            }
+
+            var best = alone.MaxBy(r => r.Value);
             return best.Value >= NoListConfidence
                 ? new Result(NumberState.Certain, best.Key, [new NumberCandidate(best.Key, best.Value)])
-                : new Result(NumberState.ToReview, null, Ranked(read));
+                : new Result(NumberState.ToReview, null, Ranked(alone));
         }
 
         // Numbers of the list read as such, or through a common confusion (with a penalty).
@@ -131,4 +143,8 @@ public static partial class NumberMatcher
     /// <summary>Groups of 1-3 digits not part of longer digit runs (plates and years are longer).</summary>
     [GeneratedRegex(@"(?<!\d)\d{1,3}(?!\d)")]
     private static partial Regex Digits();
+
+    /// <summary>A reading that is only a number of 1-3 digits (a leading # or "N." allowed).</summary>
+    [GeneratedRegex(@"^\s*(?:#|[Nn][°o.]?\s*)?(\d{1,3})\s*$")]
+    private static partial Regex Alone();
 }

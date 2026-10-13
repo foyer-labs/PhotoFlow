@@ -51,7 +51,7 @@ public sealed class OcrParityTests
         {
             var stem = entry["stem"]!.GetValue<string>();
             var image = new RgbImage(entry["width"]!.GetValue<int>(), entry["height"]!.GetValue<int>(), File.ReadAllBytes(Path.Combine(folder, stem + ".rgb")));
-            var (input, width, height) = PaddleOcr.DetectorInput(image, operations);
+            var (input, width, height, _) = PaddleOcr.DetectorInput(image, operations);
             Assert.Equal((entry["det_width"]!.GetValue<int>(), entry["det_height"]!.GetValue<int>()), (width, height));
             maxInput = Math.Max(maxInput, MaxDifference(input.AsFloat32().Span, ReadFloats(folder, stem + ".det_input")));
             var expectedProbabilities = ReadFloats(folder, stem + ".det_prob");

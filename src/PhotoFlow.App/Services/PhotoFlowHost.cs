@@ -393,7 +393,8 @@ public sealed class PhotoFlowHost : IAsyncDisposable
             }
 
             ITextReader? textReader = Models.IsInstalled(OcrModelId)
-                ? new PaddleOcr(await Open(OcrModelId, PaddleOcr.DetectorFile).ConfigureAwait(false), await Open(OcrModelId, PaddleOcr.RecognizerFile).ConfigureAwait(false), operations)
+                ? new PaddleOcr(await Open(OcrModelId, PaddleOcr.DetectorFile).ConfigureAwait(false),
+                    await Open(OcrModelId, PaddleOcr.RecognizerFile, PaddleOcr.RecognizerTarget).ConfigureAwait(false), operations)
                 : null;
             _components = new AnalysisComponents(operations, objects, faces, embedder, fingerprints, tagger, textReader);
             return _components;
@@ -403,9 +404,9 @@ public sealed class PhotoFlowHost : IAsyncDisposable
             _sessionsGate.Release();
         }
 
-        async Task<IInferenceSession> Open(string id, string file)
+        async Task<IInferenceSession> Open(string id, string file, ExecutionTarget target = ExecutionTarget.Auto)
         {
-            var session = await Inference.CreateSessionAsync(Models.Resolve(id, file), ExecutionTarget.Auto, ct).ConfigureAwait(false);
+            var session = await Inference.CreateSessionAsync(Models.Resolve(id, file), target, ct).ConfigureAwait(false);
             _sessions.Add(session);
             return session;
         }

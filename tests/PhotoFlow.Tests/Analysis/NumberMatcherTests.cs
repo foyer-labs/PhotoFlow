@@ -69,6 +69,12 @@ public sealed class NumberMatcherTests
         Assert.Equal((NumberState.Certain, "348"), (clear.State, clear.Number));
         Assert.Equal(NumberState.ToReview, NumberMatcher.Choose([("348", 0.6)], null).State);
         Assert.Equal(NumberState.NoNumber, NumberMatcher.Choose([("PIRELLI", 0.99)], null).State);
+
+        // A number inside other text (a model name, a plate, a stand) is not a race number without a list.
+        var model = NumberMatcher.Choose([("959 Panigale", 0.99)], null);
+        Assert.Equal(NumberState.NoNumber, model.State);
+        Assert.Equal("959", Assert.Single(model.Candidates).Number);
+        Assert.Equal((NumberState.Certain, "7"), (NumberMatcher.Choose([("#7", 0.9), ("959 Panigale", 0.99)], null) is var r ? (r.State, r.Number) : default));
     }
 
     [Fact]
