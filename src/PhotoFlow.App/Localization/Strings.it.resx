@@ -869,4 +869,5 @@
   <data name="Settings.Catalog.Imported" xml:space="preserve"><value>Catalogo pronto: sostituisce quello attuale al prossimo avvio.</value></data>
   <data name="Settings.Catalog.ImportedNoFingerprints" xml:space="preserve"><value>Catalogo pronto (senza impronte: si ricalcolano): sostituisce quello attuale al prossimo avvio.</value></data>
   <data name="Libraries.ImportCatalog" xml:space="preserve"><value>Importa catalogo .pfcatalog</value></data>
+  <data name="People.Fingerprints.Missing" xml:space="preserve"><value>Questo catalogo è arrivato senza impronte dei volti (esportato senza password): nomi e assegnazioni ci sono; ricalcola le impronte per riconoscere le persone nelle nuove foto.</value></data>
 </root>

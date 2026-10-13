@@ -869,4 +869,5 @@
   <data name="Settings.Catalog.Imported" xml:space="preserve"><value>Catalog ready: it replaces the current one at the next start.</value></data>
   <data name="Settings.Catalog.ImportedNoFingerprints" xml:space="preserve"><value>Catalog ready (without fingerprints: they are computed again): it replaces the current one at the next start.</value></data>
   <data name="Libraries.ImportCatalog" xml:space="preserve"><value>Import a .pfcatalog catalog</value></data>
+  <data name="People.Fingerprints.Missing" xml:space="preserve"><value>This catalog came without face fingerprints (exported without a password): names and assignments are here; recompute the fingerprints to recognize the people in new photos.</value></data>
 </root>

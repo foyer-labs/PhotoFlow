@@ -134,6 +134,67 @@ internal sealed class AnalysisStore(SqliteCatalog catalog) : IAnalysisStore
         }, ct);
     }
 
+    public Task<IReadOnlyList<long>> ReplaceFacesAsync(long assetId, IReadOnlyList<Face> faces, IReadOnlyCollection<long> keep,
+        IReadOnlyDictionary<int, long> replaces, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(faces);
+        ArgumentNullException.ThrowIfNull(keep);
+        ArgumentNullException.ThrowIfNull(replaces);
+        return catalog.RunAsync<IReadOnlyList<long>>(async c =>
+        {
+            using var transaction = c.BeginTransaction();
+            var ids = new List<long>(faces.Count);
+            foreach (var face in faces)
+            {
+                ids.Add(await c.ExecuteScalarAsync<long>(new CommandDefinition(
+                    """
+                    INSERT INTO Faces (AssetId, X1, Y1, X2, Y2, Landmarks, Confidence, LeftEye, RightEye, EncryptedEmbedding, PersonId, AssignmentOrigin, Similarity, ModelVersion, Keypoints, EmbeddingModel)
+                    VALUES (@AssetId, @X1, @Y1, @X2, @Y2, @Landmarks, @Confidence, @LeftEye, @RightEye, @EncryptedEmbedding, @PersonId, @AssignmentOrigin, @Similarity, @ModelVersion, @Keypoints, @EmbeddingModel)
+                    RETURNING Id;
+                    """,
+                    new
+                    {
+                        AssetId = assetId,
+                        face.Box.X1,
+                        face.Box.Y1,
+                        face.Box.X2,
+                        face.Box.Y2,
+                        Landmarks = face.Landmarks is null ? null : MemoryMarshal.AsBytes(face.Landmarks.ToArray().AsSpan()).ToArray(),
+                        face.Confidence,
+                        LeftEye = face.LeftEye.ToString(),
+                        RightEye = face.RightEye.ToString(),
+                        face.EncryptedEmbedding,
+                        face.PersonId,
+                        AssignmentOrigin = Db.Name(face.AssignmentOrigin),
+                        face.Similarity,
+                        face.ModelVersion,
+                        Keypoints = face.Keypoints is null ? null : MemoryMarshal.AsBytes(face.Keypoints.ToArray().AsSpan()).ToArray(),
+                        face.EmbeddingModel,
+                    },
+                    transaction, cancellationToken: ct)).ConfigureAwait(false));
+            }
+
+            foreach (var (index, oldId) in replaces)
+            {
+                await c.ExecuteAsync(new CommandDefinition("UPDATE Persons SET CoverFaceId = @newId WHERE CoverFaceId = @oldId;",
+                    new { newId = ids[index], oldId }, transaction, cancellationToken: ct)).ConfigureAwait(false);
+            }
+
+            var remaining = ids.Concat(keep).ToList();
+            var removed = (await c.QueryAsync<long>(new CommandDefinition("SELECT Id FROM Faces WHERE AssetId = @assetId AND Id NOT IN @remaining;",
+                new { assetId, remaining }, transaction, cancellationToken: ct)).ConfigureAwait(false)).ToList();
+            foreach (var chunk in removed.Chunk(500))
+            {
+                await c.ExecuteAsync(new CommandDefinition("DELETE FROM PersonPrototypes WHERE FaceId IN @chunk;", new { chunk }, transaction, cancellationToken: ct)).ConfigureAwait(false);
+                await c.ExecuteAsync(new CommandDefinition("UPDATE Persons SET CoverFaceId = NULL WHERE CoverFaceId IN @chunk;", new { chunk }, transaction, cancellationToken: ct)).ConfigureAwait(false);
+                await c.ExecuteAsync(new CommandDefinition("DELETE FROM Faces WHERE Id IN @chunk;", new { chunk }, transaction, cancellationToken: ct)).ConfigureAwait(false);
+            }
+
+            transaction.Commit();
+            return ids;
+        }, ct);
+    }
+
     public async Task<IReadOnlyList<Face>> GetFacesAsync(long assetId, CancellationToken ct) =>
         (await catalog.RunAsync(c => c.QueryAsync<FaceRow>(new CommandDefinition(
             """

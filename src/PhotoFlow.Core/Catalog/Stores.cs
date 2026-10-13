@@ -191,6 +191,15 @@ public interface IAnalysisStore
     /// <summary>Replaces the automatically detected faces of the asset; faces with a manual assignment are kept.</summary>
     Task ReplaceAutomaticFacesAsync(long assetId, IReadOnlyList<Face> faces, CancellationToken ct);
 
+    /// <summary>
+    /// Replaces all the faces of a photo in one transaction (new face model, spec §5): <paramref name="faces"/> are
+    /// inserted as given (with the person they take over), <paramref name="keep"/> stay, every other face goes; covers
+    /// follow <paramref name="replaces"/> (index of a new face → the old face it takes over); prototypes of removed faces
+    /// go (to rebuild). Returns the ids of the new faces, in order.
+    /// </summary>
+    Task<IReadOnlyList<long>> ReplaceFacesAsync(long assetId, IReadOnlyList<Face> faces, IReadOnlyCollection<long> keep,
+        IReadOnlyDictionary<int, long> replaces, CancellationToken ct);
+
     Task<IReadOnlyList<Face>> GetFacesAsync(long assetId, CancellationToken ct);
 
     /// <summary>Stores the image embedding of the asset for a model version, replacing an earlier one of the same version.</summary>
@@ -238,6 +247,9 @@ public interface IPeopleStore
 
     /// <summary>Faces with a fingerprint, no person and no manual decision, captured in <paramref name="year"/> (null: unknown date).</summary>
     Task<IReadOnlyList<FaceFingerprint>> ListUnassignedFingerprintsAsync(int? year, CancellationToken ct);
+
+    /// <summary>Faces that can have a fingerprint (with keypoints) and those that have one.</summary>
+    Task<(int WithKeypoints, int WithFingerprint)> CountFingerprintsAsync(CancellationToken ct);
 
     /// <summary>Every face with a fingerprint (export of the catalog: encrypted again with another key).</summary>
     Task<IReadOnlyList<FaceFingerprint>> ListAllFingerprintsAsync(CancellationToken ct);

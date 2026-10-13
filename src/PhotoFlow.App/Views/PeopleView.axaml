@@ -41,6 +41,14 @@
         </StackPanel>
       </Border>
 
+      <!-- After importing a catalog exported without fingerprints -->
+      <Border Grid.Row="2" Classes="card" Margin="20,0,20,8" IsVisible="{Binding NeedsFingerprints}">
+        <StackPanel Spacing="8">
+          <TextBlock Classes="body secondary" TextWrapping="Wrap" Text="{l:Tr People.Fingerprints.Missing}" />
+          <Button Classes="secondary" HorizontalAlignment="Left" Command="{Binding RecomputeCommand}" IsEnabled="{Binding !IsBusy}" Content="{l:Tr People.Key.Recompute}" />
+        </StackPanel>
+      </Border>
+
       <!-- 4c2: grouping in progress -->
       <Border Grid.Row="3" Classes="card" Margin="20,0,20,8" IsVisible="{Binding IsGrouping}">
         <StackPanel Spacing="4">
