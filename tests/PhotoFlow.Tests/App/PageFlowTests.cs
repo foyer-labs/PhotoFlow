@@ -50,6 +50,8 @@ public sealed class PageFlowTests : IDisposable
 
         // 3d-3f: import procedure on a folder.
         var folder = SourceFolder();
+        var entryList = await host.Catalog.Motorsport.CreateListAsync("Monza", null, CancellationToken.None);
+        await host.Catalog.Motorsport.ReplaceEntriesAsync(entryList, [new Entry(0, entryList, "27", ["Marco Ferri"], "Lario Corse", null, null)], CancellationToken.None);
         home.ImportFolder(folder);
         var wizard = Assert.IsType<ImportWizardViewModel>(shell.CurrentPage);
         await Settle(wizard.ActivateAsync());
@@ -58,6 +60,11 @@ public sealed class PageFlowTests : IDisposable
         Save(window, "3d-import-source");
         window.KeyPressQwerty(PhysicalKey.Enter, RawInputModifiers.None);
         Assert.True(wizard.IsStep2);
+        Assert.False(wizard.ReadsNumbers);
+        wizard.SelectedProfile = wizard.Profiles.Single(p => p.Profile.Id == "motorsport");
+        Assert.True(wizard.ReadsNumbers);
+        Assert.Equal([null, entryList], wizard.EntryLists.Select(l => l.Id));
+        wizard.SelectedEntryList = wizard.EntryLists[1];
         Save(window, "3e-import-analysis");
         window.KeyPressQwerty(PhysicalKey.Enter, RawInputModifiers.None);
         Assert.True(wizard.IsStep3);
@@ -68,6 +75,7 @@ public sealed class PageFlowTests : IDisposable
         // 3g: the job runs to the end.
         var jobs = Assert.IsType<JobsViewModel>(shell.CurrentPage);
         var job = (await host.Catalog.Jobs.ListRecentAsync(1, CancellationToken.None)).Single();
+        Assert.Equal(entryList, await host.Catalog.Motorsport.GetJobListAsync(job.Id, CancellationToken.None));
         await WaitAsync(() => !host.Jobs.IsRunning(job.Id));
         await Settle(jobs.ActivateAsync());
         Assert.Equal(JobState.Completed, (await host.Catalog.Jobs.GetAsync(job.Id, CancellationToken.None))!.State);
@@ -108,6 +116,13 @@ public sealed class PageFlowTests : IDisposable
         await Settle(shell.CurrentPage.ActivateAsync());
         Assert.Single(home.Libraries);
         Save(window, "3a-home");
+
+        // Quick actions open their sections.
+        home.OpenSectionCommand.Execute(SectionCatalog.Duplicates);
+        Assert.IsType<DuplicatesViewModel>(shell.CurrentPage);
+        shell.ShowSection(SectionCatalog.Home);
+        home.OpenSectionCommand.Execute(SectionCatalog.People);
+        Assert.IsType<PeopleViewModel>(shell.CurrentPage);
         window.Close();
     }
 

@@ -17,10 +17,14 @@ using PhotoFlow.Core.Sources;
 using PhotoFlow.Sources.Ingest;
 using PhotoFlow.Sources.Jobs;
 using PhotoFlow.Sources.Scanning;
+using PhotoFlow.Tagging.Ocr;
 
 namespace PhotoFlow.App.ViewModels;
 
 /// <summary>A scene profile tile of step 2 ("Eventi · AF → volti").</summary>
+/// <summary>An entry list offered by the import (null: no list).</summary>
+public sealed record EntryListChoice(long? Id, string Name);
+
 public sealed record ProfileChoice(SceneProfile Profile)
 {
     public string Name => NameOf(Profile);
@@ -165,7 +169,7 @@ public sealed partial class ImportWizardViewModel : PageViewModel
     private ImportSelection _selection = ImportSelection.OnlyNew;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(SummaryProfile))]
+    [NotifyPropertyChangedFor(nameof(SummaryProfile), nameof(ReadsNumbers))]
     private ProfileChoice _selectedProfile;
 
     [ObservableProperty]
@@ -194,8 +198,66 @@ public sealed partial class ImportWizardViewModel : PageViewModel
 
     /// <summary>Automatic profile per group; the selected profile is the fallback below the confidence threshold.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(SummaryProfile))]
+    [NotifyPropertyChangedFor(nameof(SummaryProfile), nameof(ReadsNumbers))]
     private bool _automaticProfile;
+
+    /// <summary>The race numbers are read (spec §8): the profile asks for the OCR, or a group may get Motorsport.</summary>
+    public bool ReadsNumbers => SelectedProfile.Profile.Ocr || AutomaticProfile;
+
+    /// <summary>Entry lists of the catalog; the first item (null) is "no list".</summary>
+    public ObservableCollection<EntryListChoice> EntryLists { get; } = [];
+
+    /// <summary>The entry list of the job: numbers outside it are ignored; also chosen later in the Numbers view.</summary>
+    [ObservableProperty]
+    private EntryListChoice? _selectedEntryList;
+
+    /// <summary>Raised when the view should open the file picker of an entry list.</summary>
+    public event EventHandler? ImportEntryListRequested;
+
+    [RelayCommand]
+    private void ImportEntryList() => ImportEntryListRequested?.Invoke(this, EventArgs.Empty);
+
+    /// <summary>An entry list from a CSV or Excel file, saved in the catalog and chosen for this import.</summary>
+    public async Task ImportEntryListAsync(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        try
+        {
+            var entries = await EntryListImporter.ReadAsync(path, CancellationToken.None);
+            if (entries.Count == 0)
+            {
+                EntryListMessage = Strings.Format("Numbers.List.ImportEmpty", Path.GetFileName(path));
+                return;
+            }
+
+            var id = await _host.Catalog.Motorsport.CreateListAsync(Path.GetFileNameWithoutExtension(path), path, CancellationToken.None);
+            await _host.Catalog.Motorsport.ReplaceEntriesAsync(id, entries, CancellationToken.None);
+            var choice = new EntryListChoice(id, Strings.Format("Import.EntryList.Item", Path.GetFileNameWithoutExtension(path), entries.Count.ToString(CultureInfo.CurrentCulture)));
+            EntryLists.Insert(1, choice);
+            SelectedEntryList = choice;
+            EntryListMessage = null;
+        }
+        catch (Exception e) when (e is IOException or InvalidDataException or UnauthorizedAccessException or System.Xml.XmlException)
+        {
+            EntryListMessage = Strings.Format("Numbers.List.ImportFailed", Path.GetFileName(path), e.Message);
+        }
+    }
+
+    [ObservableProperty]
+    private string? _entryListMessage;
+
+    private async Task LoadEntryListsAsync()
+    {
+        EntryLists.Clear();
+        EntryLists.Add(new EntryListChoice(null, Strings.Get("Import.EntryList.None")));
+        foreach (var list in (await _host.Catalog.Motorsport.ListListsAsync(CancellationToken.None)).OrderByDescending(l => l.CreatedAt))
+        {
+            var count = (await _host.Catalog.Motorsport.GetEntriesAsync(list.Id, CancellationToken.None)).Count;
+            EntryLists.Add(new EntryListChoice(list.Id, Strings.Format("Import.EntryList.Item", list.Name, count.ToString(CultureInfo.CurrentCulture))));
+        }
+
+        SelectedEntryList ??= EntryLists[0];
+    }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(PolicyEmbedded), nameof(PolicySidecar), nameof(PolicyCatalog))]
@@ -358,6 +420,8 @@ public sealed partial class ImportWizardViewModel : PageViewModel
             return;
         }
 
+        await LoadEntryListsAsync();
+
         IsLoading = true;
         try
         {
@@ -460,6 +524,11 @@ public sealed partial class ImportWizardViewModel : PageViewModel
         if (AutomaticProfile)
         {
             await _host.Catalog.Jobs.SetAutomaticProfileAsync(jobId, true, SelectedProfile.Profile.Id, CancellationToken.None);
+        }
+
+        if (ReadsNumbers && SelectedEntryList?.Id is { } listId)
+        {
+            await _host.Catalog.Motorsport.SetJobListAsync(jobId, listId, CancellationToken.None);
         }
 
         await _host.UpdateSettingsAsync(s => s with

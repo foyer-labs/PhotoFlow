@@ -27,4 +27,33 @@ public sealed partial class ImportWizardView : UserControl
         };
         AttachedToVisualTree += (_, _) => EventName.Focus();
     }
+
+    protected override void OnDataContextChanged(EventArgs e)
+    {
+        base.OnDataContextChanged(e);
+        if (DataContext is ImportWizardViewModel viewModel)
+        {
+            viewModel.ImportEntryListRequested -= OnImportEntryList;
+            viewModel.ImportEntryListRequested += OnImportEntryList;
+        }
+    }
+
+    private async void OnImportEntryList(object? sender, EventArgs e)
+    {
+        if (sender is not ImportWizardViewModel viewModel || TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage)
+        {
+            return;
+        }
+
+        var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = Strings.Get("Numbers.List.Import"),
+            AllowMultiple = false,
+            FileTypeFilter = [new FilePickerFileType(Strings.Get("Numbers.List.FileType")) { Patterns = ["*.csv", "*.txt", "*.xlsx"] }],
+        });
+        if (files.Count > 0 && files[0].TryGetLocalPath() is { } path)
+        {
+            await viewModel.ImportEntryListAsync(path);
+        }
+    }
 }

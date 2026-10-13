@@ -33,8 +33,6 @@
   <data name="Common.Browse" xml:space="preserve"><value>Browse…</value></data>
   <data name="Common.Cancel" xml:space="preserve"><value>Cancel</value></data>
   <data name="Common.Next" xml:space="preserve"><value>Next</value></data>
-  <data name="Common.ComesWithPhase2" xml:space="preserve"><value>Comes with phase 2</value></data>
-  <data name="Common.ComesWithPhase3" xml:space="preserve"><value>Comes with phase 3</value></data>
   <data name="Common.ComesWithPhase5" xml:space="preserve"><value>Comes with phase 5</value></data>
   <data name="Page.ComesWithPhase" xml:space="preserve"><value>This section comes with phase {0}.</value></data>
   <data name="Duration.UnderMinute" xml:space="preserve"><value>&lt; 1 min</value></data>
@@ -57,7 +55,7 @@
   <data name="FirstRun.DownloadGpuPack" xml:space="preserve"><value>Download GPU pack</value></data>
   <data name="FirstRun.GpuPackRestart" xml:space="preserve"><value>GPU pack installed: restart PhotoFlow to use the GPU.</value></data>
   <data name="FirstRun.Models" xml:space="preserve"><value>Models</value></data>
-  <data name="FirstRun.ModelsIntro" xml:space="preserve"><value>Phase 1: subject detection and faces. One face model is for non-commercial use only (buffalo_l): accept its license before the download, or choose YuNet.</value></data>
+  <data name="FirstRun.ModelsIntro" xml:space="preserve"><value>Basic models: subject detection and faces. One face model is for non-commercial use only (buffalo_l): accept its license before the download, or choose YuNet.</value></data>
   <data name="FirstRun.BuffaloNote" xml:space="preserve"><value>Detects closed eyes.</value></data>
   <data name="FirstRun.YuNetNote" xml:space="preserve"><value>Permissive license; closed eyes are not detected (eyes always unknown).</value></data>
   <data name="FirstRun.AcceptBuffalo" xml:space="preserve"><value>I accept the InsightFace license: non-commercial research use only</value></data>
@@ -93,9 +91,6 @@
   <data name="Home.Libraries" xml:space="preserve"><value>LIBRARIES</value></data>
   <data name="Home.QuickActions" xml:space="preserve"><value>QUICK ACTIONS</value></data>
   <data name="Home.QuickAction.ImportFolder" xml:space="preserve"><value>Import folder</value></data>
-  <data name="Home.QuickAction.SearchLater" xml:space="preserve"><value>Search comes with phase 3</value></data>
-  <data name="Home.QuickAction.PeopleLater" xml:space="preserve"><value>People comes with phase 2</value></data>
-  <data name="Home.QuickAction.DuplicatesLater" xml:space="preserve"><value>Duplicates comes with phase 3</value></data>
   <data name="Home.Recovery.Title" xml:space="preserve"><value>PhotoFlow closed unexpectedly</value></data>
   <data name="Home.Recovery.Body" xml:space="preserve"><value>These jobs can resume from the last saved point. No file was lost; at most the photos in progress are processed again.</value></data>
   <data name="Home.Recovery.Resume" xml:space="preserve"><value>Resume {0} jobs</value></data>
@@ -136,7 +131,7 @@
   <data name="Import.Faces.Off" xml:space="preserve"><value>Off</value></data>
   <data name="Import.Faces.DetectOnly" xml:space="preserve"><value>Detection only</value></data>
   <data name="Import.Faces.Recognize" xml:space="preserve"><value>Recognition</value></data>
-  <data name="Import.Faces.Note" xml:space="preserve"><value>Detection is needed for closed eyes; recognition of people comes with phase 2.</value></data>
+  <data name="Import.Faces.Note" xml:space="preserve"><value>Detection is used for closed eyes; recognition also groups the people (People section).</value></data>
   <data name="Import.Tags" xml:space="preserve"><value>Automatic tags</value></data>
   <data name="Import.Tags.A" xml:space="preserve"><value>A · Personal vocabulary (CLIP)</value></data>
   <data name="Import.Tags.B" xml:space="preserve"><value>B · Generic tags (RAM++)</value></data>
@@ -308,7 +303,6 @@
   <data name="Settings.Tab.Catalog" xml:space="preserve"><value>Catalog</value></data>
   <data name="Settings.Tab.General" xml:space="preserve"><value>General</value></data>
   <data name="Settings.Tab.Culling" xml:space="preserve"><value>Culling</value></data>
-  <data name="Settings.Phase2" xml:space="preserve"><value>Comes with phase 2</value></data>
   <data name="Settings.Phase5" xml:space="preserve"><value>Comes with phase 5</value></data>
   <data name="Settings.Hardware.Execution" xml:space="preserve"><value>Model execution</value></data>
   <data name="Settings.Hardware.Cuda" xml:space="preserve"><value>CUDA · NVIDIA GPU in use</value></data>
@@ -319,7 +313,6 @@
   <data name="Settings.Hardware.Limits" xml:space="preserve"><value>Parallel work</value></data>
   <data name="Settings.Hardware.Workers" xml:space="preserve"><value>Analysis of an import: {0} photos at a time. Archive analysis in background: {1} at a time, and it waits while an import runs.</value></data>
   <data name="Settings.Hardware.Benchmark" xml:space="preserve"><value>Run benchmark</value></data>
-  <data name="Settings.Hardware.BenchmarkPhase" xml:space="preserve"><value>Comes with phase 2, with all the analysis stages</value></data>
   <data name="Settings.Hardware.Note" xml:space="preserve"><value>Models are loaded on first use and stay in memory for the session. The network is used only for downloads.</value></data>
   <data name="Models.Function.ObjectDetection" xml:space="preserve"><value>Subjects</value></data>
   <data name="Models.Function.Faces" xml:space="preserve"><value>Faces</value></data>
@@ -837,4 +830,8 @@
   <data name="Numbers.Hint" xml:space="preserve"><value>0-9 type · Enter confirms (the typed number or the first candidate) · ↑ ↓ numbers of the list · ← → photo · PgUp PgDn list · Ctrl Z undo. Your numbers are never replaced by a new analysis.</value></data>
   <data name="Numbers.Candidates" xml:space="preserve"><value>Candidates for the photo</value></data>
   <data name="Numbers.CandidatesNote" xml:space="preserve"><value>Colour and model help to tell them apart: they come from the entry list.</value></data>
+  <data name="Import.EntryList" xml:space="preserve"><value>Entry list</value></data>
+  <data name="Import.EntryList.None" xml:space="preserve"><value>No list (clear readings only)</value></data>
+  <data name="Import.EntryList.Item" xml:space="preserve"><value>{0} · {1} entries</value></data>
+  <data name="Import.EntryList.Note" xml:space="preserve"><value>Only the numbers of the list are recognized; sponsors and plates are ignored. It can be changed later in the Numbers view.</value></data>
 </root>
