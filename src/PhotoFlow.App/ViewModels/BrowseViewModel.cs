@@ -782,6 +782,19 @@ public sealed partial class BrowseViewModel : PageViewModel
         await LoadDetailAsync(item);
     }
 
+    /// <summary>Navigation to the regeneration (set by the shell).</summary>
+    public IShellNavigator? Navigator { get; set; }
+
+    /// <summary>Regeneration of the photos found (spec §5: the perimeter can be a search result).</summary>
+    [RelayCommand]
+    private void RegenerateResults()
+    {
+        if (Navigator is not null && _hits.Count > 0)
+        {
+            Navigator.ShowPage(new RegenerationViewModel(_host, Navigator, assetIds: [.. _hits.Select(h => h.AssetId)]));
+        }
+    }
+
     /// <summary>D: edit the caption of the photo.</summary>
     [RelayCommand]
     private void StartCaption()

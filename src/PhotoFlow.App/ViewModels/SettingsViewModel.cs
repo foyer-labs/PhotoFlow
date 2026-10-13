@@ -56,6 +56,18 @@ public sealed partial class ModelRowViewModel(ModelInfo model, bool available) :
     [ObservableProperty]
     private string? _verification;
 
+    /// <summary>The model the analysis uses now for its function.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanUse))]
+    private bool _isInUse;
+
+    /// <summary>Another installed model of a function with alternatives (detection, faces) can replace the one in use.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanUse))]
+    private bool _hasAlternative;
+
+    public bool CanUse => IsInstalled && HasAlternative && !IsInUse;
+
     public string Status => !IsAvailable
         ? Strings.Format("Settings.ComesWithPhase", Model.Phase.ToString(CultureInfo.InvariantCulture))
         : Verification ?? Strings.Get(IsInstalled ? "Models.Status.Installed" : "Models.Status.NotDownloaded");
@@ -464,6 +476,8 @@ public sealed partial class SettingsViewModel : PageViewModel
                 row.LicenseAccepted = _host.Settings.AcceptedModelLicenses.Contains(row.Model.Id);
             }
 
+            UpdateModelsInUse();
+
             var installedBytes = Models.Where(m => m.IsInstalled).Sum(m => m.Model.DownloadBytes);
             ModelsFolderText = Strings.Format("Settings.Models.Folder", Formats.Bytes(installedBytes), _host.Paths.ModelsDirectory);
 
@@ -663,6 +677,49 @@ public sealed partial class SettingsViewModel : PageViewModel
 
     [ObservableProperty]
     private string? _xmpSyncText;
+
+    /// <summary>Navigation to the regeneration after a change of model (set by the shell).</summary>
+    public IShellNavigator? Navigator { get; set; }
+
+    private void UpdateModelsInUse()
+    {
+        var setup = _host.DescribeAnalysis();
+        var inUse = new HashSet<string?>(StringComparer.Ordinal) { setup.ObjectDetector, setup.FaceDetector, setup.FaceRecognizer };
+        foreach (var row in Models)
+        {
+            row.IsInUse = inUse.Contains(row.Model.Id);
+            row.HasAlternative = row.Model.Function is ModelFunction.ObjectDetection
+                || (row.Model.Function == ModelFunction.Faces && row.Model.Id != PhotoFlowHost.SFaceModelId
+                    && (row.Model.Id != "insightface-buffalo-l" || _host.Settings.AcceptedModelLicenses.Contains(row.Model.Id)));
+        }
+    }
+
+    /// <summary>
+    /// "Usa questo modello" (board 5g): the model replaces the one in use; then the regeneration, with a trial on a
+    /// sample and the preview of the differences before anything changes (manual tags and decisions never touched).
+    /// </summary>
+    [RelayCommand]
+    private async Task UseModelAsync(ModelRowViewModel? row)
+    {
+        if (row is null || !row.CanUse)
+        {
+            return;
+        }
+
+        var loaded = await _host.ChooseModelAsync(row.Model.Function, row.Model.Id, CancellationToken.None);
+        UpdateModelsInUse();
+        var parts = row.Model.Function == ModelFunction.Faces ? ReanalysisParts.Faces | ReanalysisParts.Culling : ReanalysisParts.Culling | ReanalysisParts.Faces;
+        var note = Strings.Format(loaded ? "Regeneration.NewModel" : "Regeneration.NewModelAtRestart", row.Name);
+        if (Navigator is not null && loaded)
+        {
+            Navigator.ShowPage(new RegenerationViewModel(_host, Navigator, libraryId: (await _host.Catalog.Libraries.ListAsync(CancellationToken.None)).FirstOrDefault()?.Id,
+                parts: parts, note: note));
+        }
+        else
+        {
+            row.Verification = note;
+        }
+    }
 
     // --- Export / import of the catalog (spec §9, board 5h) ---
 

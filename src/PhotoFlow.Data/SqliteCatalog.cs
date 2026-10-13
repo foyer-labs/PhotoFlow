@@ -41,6 +41,7 @@ public sealed class SqliteCatalog : ICatalog
         Duplicates = new DuplicateStore(this);
         Motorsport = new MotorsportStore(this);
         Captions = new CaptionStore(this);
+        Reanalysis = new ReanalysisStore(this);
     }
 
     public ILibraryStore Libraries { get; }
@@ -72,6 +73,8 @@ public sealed class SqliteCatalog : ICatalog
     public IMotorsportStore Motorsport { get; }
 
     public ICaptionStore Captions { get; }
+
+    public IReanalysisStore Reanalysis { get; }
 
     public static async Task<SqliteCatalog> OpenAsync(CatalogOpenOptions options, CancellationToken ct)
     {

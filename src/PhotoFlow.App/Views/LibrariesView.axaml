@@ -69,12 +69,15 @@
                   </ComboBox.ItemTemplate>
                 </ComboBox>
               </Grid>
-              <Button Classes="primary" HorizontalAlignment="Left" Command="{Binding AnalyzeCommand}">
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                  <TextBlock Text="{l:Tr Libraries.Analysis.Start}" />
-                  <Border Classes="key" BorderBrush="{DynamicResource PF.Brush.PrimaryActionText}"><TextBlock Text="Ctrl ↵" Foreground="{DynamicResource PF.Brush.PrimaryActionText}" /></Border>
-                </StackPanel>
-              </Button>
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Classes="primary" HorizontalAlignment="Left" Command="{Binding AnalyzeCommand}">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="{l:Tr Libraries.Analysis.Start}" />
+                    <Border Classes="key" BorderBrush="{DynamicResource PF.Brush.PrimaryActionText}"><TextBlock Text="Ctrl ↵" Foreground="{DynamicResource PF.Brush.PrimaryActionText}" /></Border>
+                  </StackPanel>
+                </Button>
+                <Button Classes="secondary" Command="{Binding RegenerateCommand}" Content="{l:Tr Libraries.Regenerate}" />
+              </StackPanel>
             </StackPanel>
           </Border>
 

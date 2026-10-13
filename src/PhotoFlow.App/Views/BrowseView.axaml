@@ -89,6 +89,7 @@
           <TextBlock Classes="label tertiary" VerticalAlignment="Center" Margin="8,0,0,0" Text="{l:Tr Browse.Filter.Outcome}" />
           <ComboBox ItemsSource="{Binding OutcomeOptions}" SelectedItem="{Binding OutcomeOption}" />
           <Button Classes="ghost" Command="{Binding ResetCommand}" Content="{l:Tr Browse.Reset}" />
+          <Button Classes="ghost" Command="{Binding RegenerateResultsCommand}" Content="{l:Tr Browse.Regenerate}" />
         </StackPanel>
       </ScrollViewer>
 

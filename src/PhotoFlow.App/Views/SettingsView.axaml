@@ -123,6 +123,10 @@
                       <Button Classes="ghost" IsVisible="{Binding IsInstalled}"
                               Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).VerifyModelCommand}" CommandParameter="{Binding}"
                               Content="{l:Tr Settings.Models.Verify}" />
+                      <TextBlock Classes="micro" HorizontalAlignment="Right" IsVisible="{Binding IsInUse}" Text="{l:Tr Settings.Models.InUse}" />
+                      <Button Classes="secondary" IsVisible="{Binding CanUse}"
+                              Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).UseModelCommand}" CommandParameter="{Binding}"
+                              Content="{l:Tr Settings.Models.Use}" />
                     </StackPanel>
                   </Grid>
                 </Border>

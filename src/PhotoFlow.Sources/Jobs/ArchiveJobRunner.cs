@@ -466,7 +466,7 @@ internal sealed class SourceLostException : Exception
 }
 
 /// <summary>Runs every job type with its runner (the job manager starts any job by id).</summary>
-public sealed class JobRunnerRouter(ICatalog catalog, IJobRunner import, IJobRunner archive) : IJobRunner
+public sealed class JobRunnerRouter(ICatalog catalog, IJobRunner import, IJobRunner archive, IJobRunner? reanalyze = null) : IJobRunner
 {
     public async Task<JobRunSummary> RunAsync(long jobId, IProgress<JobProgress>? progress, CancellationToken ct)
     {
@@ -475,6 +475,7 @@ public sealed class JobRunnerRouter(ICatalog catalog, IJobRunner import, IJobRun
         {
             JobType.Import => import,
             JobType.AnalyzeInPlace => archive,
+            JobType.Reanalyze when reanalyze is not null => reanalyze,
             _ => throw new NotSupportedException($"Job type {job.Type} arrives in a later phase."),
         };
         return await runner.RunAsync(jobId, progress, ct).ConfigureAwait(false);

@@ -59,6 +59,16 @@ public sealed partial class LibrariesViewModel : PageViewModel
     [RelayCommand]
     private void RequestImportCatalog() => CatalogPickRequested?.Invoke(this, EventArgs.Empty);
 
+    /// <summary>Regeneration of the selected library (spec §5).</summary>
+    [RelayCommand]
+    private void Regenerate()
+    {
+        if (Selected is { } library)
+        {
+            _navigator.ShowPage(new RegenerationViewModel(_host, _navigator, libraryId: library.Library.Id));
+        }
+    }
+
     /// <summary>The import continues in Settings › Catalog (remapping of the folders, password of the fingerprints).</summary>
     public void ImportCatalog(string path)
     {

@@ -129,6 +129,17 @@ internal sealed class AssetStore(SqliteCatalog catalog) : IAssetStore
             """,
             new { libraryId, limit }, cancellationToken: ct)), ct).ConfigureAwait(false)).ToList();
 
+    public async Task<IReadOnlyList<(long AssetId, string RelativePath)>> ListInLibraryAsync(long libraryId, string? folder, CancellationToken ct) =>
+        (await catalog.RunAsync(c => c.QueryAsync<(long, string)>(new CommandDefinition(
+            """
+            SELECT a.Id, MIN(l.RelativePath) FROM Assets a JOIN AssetLocations l ON l.AssetId = a.Id
+            WHERE l.LibraryId = @libraryId AND a.State = 'Active' AND (@prefix IS NULL OR l.RelativePath LIKE @prefix ESCAPE '\')
+            GROUP BY a.Id ORDER BY MIN(l.RelativePath);
+            """,
+            new { libraryId, prefix = folder is null ? null : Escape(folder.TrimEnd('/', '\\')) + "%" }, cancellationToken: ct)), ct).ConfigureAwait(false)).ToList();
+
+    private static string Escape(string value) => value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("%", "\\%", StringComparison.Ordinal).Replace("_", "\\_", StringComparison.Ordinal);
+
     public Task SetFullHashAsync(long assetId, string fullHash, CancellationToken ct) =>
         catalog.RunAsync(c => c.ExecuteAsync(new CommandDefinition(
             "UPDATE Assets SET FullHash = @fullHash WHERE Id = @assetId AND FullHash IS NULL;", new { assetId, fullHash }, cancellationToken: ct)), ct);

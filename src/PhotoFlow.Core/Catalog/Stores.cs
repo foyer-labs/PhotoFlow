@@ -33,6 +33,8 @@ public interface ICatalog : IAsyncDisposable
 
     ICaptionStore Captions { get; }
 
+    IReanalysisStore Reanalysis { get; }
+
     /// <summary>Search over the photos of the catalog (spec §3: only through this interface).</summary>
     Search.ISearchIndex Search { get; }
 
@@ -95,6 +97,9 @@ public interface IAssetStore
 
     /// <summary>Assets of a library still without the full hash (computed in background, spec §10).</summary>
     Task<IReadOnlyList<(long AssetId, string RelativePath)>> ListWithoutFullHashAsync(long libraryId, int limit, CancellationToken ct);
+
+    /// <summary>The active photos of a library, optionally under a folder (relative path prefix).</summary>
+    Task<IReadOnlyList<(long AssetId, string RelativePath)>> ListInLibraryAsync(long libraryId, string? folder, CancellationToken ct);
 
     Task SetFullHashAsync(long assetId, string fullHash, CancellationToken ct);
 }
@@ -375,6 +380,19 @@ public interface IDuplicateStore
 }
 
 /// <summary>Entry lists, OCR readings and race numbers (spec §8, §9).</summary>
+/// <summary>The results of a regeneration waiting for the user's confirmation (spec §5).</summary>
+public interface IReanalysisStore
+{
+    Task StageAsync(long jobId, long assetId, Pipeline.ReanalysisParts part, string payloadJson, CancellationToken ct);
+
+    Task<IReadOnlyList<(long AssetId, Pipeline.ReanalysisParts Part, string PayloadJson)>> ListAsync(long jobId, CancellationToken ct);
+
+    Task<int> CountAsync(long jobId, CancellationToken ct);
+
+    /// <summary>Removes the staged results of a job (applied or discarded).</summary>
+    Task ClearAsync(long jobId, CancellationToken ct);
+}
+
 /// <summary>Captions (spec §8, levels C/D): one per photo and language; the user's are never replaced (I5).</summary>
 public interface ICaptionStore
 {

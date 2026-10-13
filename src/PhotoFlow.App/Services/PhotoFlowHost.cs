@@ -91,7 +91,8 @@ public sealed class PhotoFlowHost : IAsyncDisposable
         Jobs = new JobManager(() => new JobRunnerRouter(
             Catalog,
             new ImportJobRunner(Catalog, new IngestService(new CopyEngine(FileSystem)), ExifReader, FileSystem, new LazyProcessor(this), Deferred, BatchStages()),
-            new ArchiveJobRunner(Catalog, ExifReader, FileSystem, new LowPriorityProcessor(this), BatchStages())));
+            new ArchiveJobRunner(Catalog, ExifReader, FileSystem, new LowPriorityProcessor(this), BatchStages()),
+            new ReanalysisJobRunner(Catalog, FileSystem, new LowPriorityProcessor(this), CurrentVersionsAsync)));
         Cards = new PollingCardDetector();
         Maintenance = new MaintenanceService(paths, new InternalFileCleaner(paths), protectedBackup: () => Restore?.Pending);
         Restore = new CatalogRestoreService(paths);
@@ -132,6 +133,70 @@ public sealed class PhotoFlowHost : IAsyncDisposable
 
     /// <summary>Imports the XMP changes made by other programs (spec §4).</summary>
     public ExternalXmpSync CreateXmpSync() => new(Catalog, MetadataReader);
+
+    /// <summary>The versions the current models record (a regeneration recomputes what older models made).</summary>
+    public async Task<ModelVersions> CurrentVersionsAsync(CancellationToken ct)
+    {
+        var c = await GetAnalysisComponentsAsync(ct).ConfigureAwait(false);
+        var culling = new CullingAnalyzer(c.Operations, c.Objects, c.Faces);
+        return new ModelVersions(culling.Id, culling.ModelVersion, c.Embedder?.ModelVersion, c.Fingerprints?.ModelVersion, c.Tagger?.ModelVersion,
+            c.Captioner?.ModelVersion, c.TextReader?.ModelVersion);
+    }
+
+    /// <summary>A regeneration (job Reanalyze, spec §5): the new results wait for the preview and the confirmation.</summary>
+    public async Task<long> StartReanalysisAsync(ReanalysisSettings settings, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        var jobId = await ReanalysisJobRunner.CreateAsync(Catalog, settings with { Workers = Math.Max(1, PipelineDefaults.DefaultAnalysisWorkers / 2) }, ct).ConfigureAwait(false);
+        _ = Jobs.StartAsync(jobId, JobPriority.Low);
+        return jobId;
+    }
+
+    public Task<ReanalysisPreview> PreviewReanalysisAsync(long jobId, CancellationToken ct) => Reanalysis.PreviewAsync(Catalog, jobId, ct);
+
+    public Task<ReanalysisApplied> ApplyReanalysisAsync(long jobId, CancellationToken ct) =>
+        Reanalysis.ApplyAsync(Catalog, jobId, () => FingerprintKeys.Protector, CreatePublisher(), Settings.PrudentMode, ct);
+
+    public Task DiscardReanalysisAsync(long jobId, CancellationToken ct) => Reanalysis.DiscardAsync(Catalog, jobId, ct);
+
+    /// <summary>
+    /// Another model for a function (spec §5, board 5g): saved, and the models are loaded again at once when no job
+    /// is running (otherwise at the next start). Returns true when the new model is already in use.
+    /// </summary>
+    public async Task<bool> ChooseModelAsync(ModelFunction function, string modelId, CancellationToken ct)
+    {
+        await UpdateSettingsAsync(s => s with { ModelChoices = new Dictionary<string, string>(s.ModelChoices) { [function.ToString()] = modelId } }, ct).ConfigureAwait(false);
+        return await ReloadModelsAsync(ct).ConfigureAwait(false);
+    }
+
+    /// <summary>Releases the loaded models so the next analysis loads the chosen ones; false while a job runs.</summary>
+    public async Task<bool> ReloadModelsAsync(CancellationToken ct)
+    {
+        if (Jobs.AnyRunning)
+        {
+            return false;
+        }
+
+        await _sessionsGate.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            foreach (var session in _sessions)
+            {
+                session.Dispose();
+            }
+
+            _sessions.Clear();
+            _components = null;
+            _processor = null;
+            _sceneClassifier = null;
+            _textEmbedder = null;
+            return true;
+        }
+        finally
+        {
+            _sessionsGate.Release();
+        }
+    }
 
     /// <summary>A .pfcatalog chosen elsewhere (empty Libraries) to import in the settings.</summary>
     public string? PendingCatalogImport { get; set; }
@@ -355,9 +420,13 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     public AnalysisSetup DescribeAnalysis()
     {
         var gpu = Inference.Detected.AvailableBackends.Contains(ExecutionBackend.Cuda);
-        var detector = gpu && Models.IsInstalled("dfine-m-obj2coco") ? "dfine-m-obj2coco"
+        var chosenDetector = Settings.ModelChoices.GetValueOrDefault(nameof(ModelFunction.ObjectDetection));
+        var detector = chosenDetector is not null && Models.IsInstalled(chosenDetector) ? chosenDetector
+            : gpu && Models.IsInstalled("dfine-m-obj2coco") ? "dfine-m-obj2coco"
             : Models.IsInstalled("dfine-s-obj2coco") ? "dfine-s-obj2coco" : null;
-        var buffalo = Models.IsInstalled("insightface-buffalo-l") && Settings.AcceptedModelLicenses.Contains("insightface-buffalo-l");
+        var chosenFaces = Settings.ModelChoices.GetValueOrDefault(nameof(ModelFunction.Faces));
+        var buffalo = Models.IsInstalled("insightface-buffalo-l") && Settings.AcceptedModelLicenses.Contains("insightface-buffalo-l")
+            && !(chosenFaces == "opencv-yunet-2023mar" && Models.IsInstalled(chosenFaces));
         var faces = buffalo ? "insightface-buffalo-l" : Models.IsInstalled("opencv-yunet-2023mar") ? "opencv-yunet-2023mar" : null;
         var recognizer = buffalo ? "insightface-buffalo-l" : faces is not null && Models.IsInstalled(SFaceModelId) ? SFaceModelId : null;
         return new AnalysisSetup(detector, faces, buffalo, gpu ? ExecutionBackend.Cuda : ExecutionBackend.Cpu,

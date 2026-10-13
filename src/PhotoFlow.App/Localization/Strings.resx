@@ -870,4 +870,53 @@
   <data name="Settings.Catalog.ImportedNoFingerprints" xml:space="preserve"><value>Catalog ready (without fingerprints: they are computed again): it replaces the current one at the next start.</value></data>
   <data name="Libraries.ImportCatalog" xml:space="preserve"><value>Import a .pfcatalog catalog</value></data>
   <data name="People.Fingerprints.Missing" xml:space="preserve"><value>This catalog came without face fingerprints (exported without a password): names and assignments are here; recompute the fingerprints to recognize the people in new photos.</value></data>
+  <data name="Browse.Regenerate" xml:space="preserve"><value>Regenerate the results…</value></data>
+  <data name="Libraries.Regenerate" xml:space="preserve"><value>Regenerate…</value></data>
+  <data name="Settings.Models.InUse" xml:space="preserve"><value>In use</value></data>
+  <data name="Settings.Models.Use" xml:space="preserve"><value>Use this model</value></data>
+  <data name="Regeneration.Title" xml:space="preserve"><value>Regeneration</value></data>
+  <data name="Regeneration.Intro" xml:space="preserve"><value>Computes again what older models made, with the current ones. Nothing changes until you look at the differences and apply them.</value></data>
+  <data name="Regeneration.NewModel" xml:space="preserve"><value>New model in use: {0}. Try it on a sample and look at the differences before regenerating everything.</value></data>
+  <data name="Regeneration.NewModelAtRestart" xml:space="preserve"><value>{0} will be used from the next start (a job is running).</value></data>
+  <data name="Regeneration.Scope" xml:space="preserve"><value>Perimeter</value></data>
+  <data name="Regeneration.Folder" xml:space="preserve"><value>Folder (optional, e.g. 2026/Monza)</value></data>
+  <data name="Regeneration.Scope.Photos" xml:space="preserve"><value>{0} chosen photos</value></data>
+  <data name="Regeneration.Scope.Job" xml:space="preserve"><value>The photos of job #{0}</value></data>
+  <data name="Regeneration.What" xml:space="preserve"><value>What</value></data>
+  <data name="Regeneration.Part.Culling" xml:space="preserve"><value>Culling scores</value></data>
+  <data name="Regeneration.Part.Embedding" xml:space="preserve"><value>Embeddings (search, similar)</value></data>
+  <data name="Regeneration.Part.Faces" xml:space="preserve"><value>Faces</value></data>
+  <data name="Regeneration.Part.Tags" xml:space="preserve"><value>Tags</value></data>
+  <data name="Regeneration.Part.Captions" xml:space="preserve"><value>Captions</value></data>
+  <data name="Regeneration.Part.Ocr" xml:space="preserve"><value>Race numbers (OCR)</value></data>
+  <data name="Regeneration.OlderOnly" xml:space="preserve"><value>Only results of older models</value></data>
+  <data name="Regeneration.OlderOnlyNote" xml:space="preserve"><value>Recommended: what the current models already made is not computed again.</value></data>
+  <data name="Regeneration.ForceAll" xml:space="preserve"><value>Force everything</value></data>
+  <data name="Regeneration.ExcludeReviewed" xml:space="preserve"><value>Leave out the photos already reviewed</value></data>
+  <data name="Regeneration.Protections" xml:space="preserve"><value>Your decisions, manual and removed tags, your captions and the people you assigned are never changed. With a new face model the assignments move to the new faces.</value></data>
+  <data name="Regeneration.Sample" xml:space="preserve"><value>Try on a sample (50)</value></data>
+  <data name="Regeneration.Run" xml:space="preserve"><value>Regenerate</value></data>
+  <data name="Regeneration.Command.Sample" xml:space="preserve"><value>sample</value></data>
+  <data name="Regeneration.Command.Run" xml:space="preserve"><value>regenerate</value></data>
+  <data name="Regeneration.Command.Apply" xml:space="preserve"><value>apply</value></data>
+  <data name="Regeneration.Starting" xml:space="preserve"><value>Starting…</value></data>
+  <data name="Regeneration.Progress" xml:space="preserve"><value>{0} of {1} photos</value></data>
+  <data name="Regeneration.Stopped" xml:space="preserve"><value>The regeneration stopped: resume it from Jobs.</value></data>
+  <data name="Regeneration.NothingChosen" xml:space="preserve"><value>Choose what to regenerate and where.</value></data>
+  <data name="Regeneration.NothingToDo" xml:space="preserve"><value>Nothing to regenerate: everything comes from the current models.</value></data>
+  <data name="Regeneration.Preview" xml:space="preserve"><value>Differences</value></data>
+  <data name="Regeneration.Preview.Photos" xml:space="preserve"><value>{0} photos with new results.</value></data>
+  <data name="Regeneration.Preview.PhotosSample" xml:space="preserve"><value>Sample: {0} photos with new results.</value></data>
+  <data name="Regeneration.Preview.Outcomes" xml:space="preserve"><value>{0} automatic proposals change ({1} with your decision, which stays).</value></data>
+  <data name="Regeneration.Preview.Tags" xml:space="preserve"><value>Tags: {0} added, {1} removed; {2} you removed or added stay as they are.</value></data>
+  <data name="Regeneration.Preview.Faces" xml:space="preserve"><value>Faces: {0} assignments move to the new faces, {1} new faces, {2} automatic faces not found again, {3} of yours kept.</value></data>
+  <data name="Regeneration.Preview.Captions" xml:space="preserve"><value>Captions: {0} change, {1} of yours stay.</value></data>
+  <data name="Regeneration.Preview.Embeddings" xml:space="preserve"><value>Embeddings: {0} computed again.</value></data>
+  <data name="Regeneration.Preview.Ocr" xml:space="preserve"><value>Race numbers: {0} photos read differently.</value></data>
+  <data name="Regeneration.Examples" xml:space="preserve"><value>Examples</value></data>
+  <data name="Regeneration.PreviewNote" xml:space="preserve"><value>Until you apply, the catalog keeps the previous results.</value></data>
+  <data name="Regeneration.Apply" xml:space="preserve"><value>Apply</value></data>
+  <data name="Regeneration.Discard" xml:space="preserve"><value>Discard</value></data>
+  <data name="Regeneration.Applied" xml:space="preserve"><value>Applied to {0} photos; {1} people assignments moved; {2} XMP written again.</value></data>
+  <data name="Regeneration.Discarded" xml:space="preserve"><value>Discarded: the catalog is as before.</value></data>
 </root>
