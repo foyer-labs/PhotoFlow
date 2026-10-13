@@ -962,4 +962,14 @@
   <data name="Settings.Catalog.Result.moved" xml:space="preserve"><value>Catalog moved to {0}. The previous file is still in {1}.</value></data>
   <data name="Settings.Catalog.Result.opened" xml:space="preserve"><value>Now using the catalog {0}. The previous one is still in {1}.</value></data>
   <data name="Settings.Catalog.Result.failed" xml:space="preserve"><value>The change of catalog did not succeed ({0}); still using {1}.</value></data>
+  <data name="Browse.Facets.Title" xml:space="preserve"><value>Filters</value></data>
+  <data name="Browse.Facets.Tags" xml:space="preserve"><value>Tags</value></data>
+  <data name="Browse.Facets.Events" xml:space="preserve"><value>Events</value></data>
+  <data name="Browse.Facets.People" xml:space="preserve"><value>People</value></data>
+  <data name="Browse.Facets.Filter" xml:space="preserve"><value>Filter tags…</value></data>
+  <data name="Browse.Facets.ModeTip" xml:space="preserve"><value>What a click on a tag does. AND: a new group (the photos must have it too; the numbers are the photos left). OR: added to the last group (one of them is enough; the numbers are the photos added). Ctrl+click does the other.</value></data>
+  <data name="Browse.Facets.Hint" xml:space="preserve"><value>Click: in the mode chosen above. Ctrl+click: in the other one. Events are alternatives (OR), people must all be there (AND).</value></data>
+  <data name="Browse.Facets.More" xml:space="preserve"><value>{0} more tags: use the filter.</value></data>
+  <data name="Browse.Facets.Unknown" xml:space="preserve"><value>(tag)</value></data>
+  <data name="Browse.Command.Facets" xml:space="preserve"><value>Filters</value></data>
 </root>

@@ -103,6 +103,16 @@ public sealed partial class BrowseView : UserControl
         CaptionBox.CaretIndex = CaptionBox.Text?.Length ?? 0;
     });
 
+    /// <summary>A tag of the facets: the mode of the switch, the other one with Ctrl.</summary>
+    private async void OnFacetTagPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (sender is Control { Tag: FacetItemViewModel item } && DataContext is BrowseViewModel browse && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        {
+            e.Handled = true;
+            await browse.Facets.ClickTagAsync(item, e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta));
+        }
+    }
+
     private void OnCellPressed(object? sender, PointerPressedEventArgs e)
     {
         if (sender is Control { Tag: BrowseItemViewModel item } && _viewModel is not null)

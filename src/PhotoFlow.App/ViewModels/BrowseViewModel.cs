@@ -154,6 +154,7 @@ public sealed partial class BrowseViewModel : PageViewModel
         new("Browse.Stars", new KeyGesture(Key.D5), "Browse.Command.Stars", Parameter: "5"),
         new("Browse.Stars", new KeyGesture(Key.D0), "Browse.Command.Stars", Parameter: "0"),
         new("Browse.Preview", new KeyGesture(Key.Space), "Browse.Command.Preview", StatusGroupKey: "Browse.Command.Preview"),
+        new("Browse.Facets", new KeyGesture(Key.F), "Browse.Command.Facets", StatusGroupKey: "Browse.Command.Facets"),
         new("Browse.Escape", new KeyGesture(Key.Escape), "Common.Cancel"),
     ]);
 
@@ -165,11 +166,15 @@ public sealed partial class BrowseViewModel : PageViewModel
     public BrowseViewModel(PhotoFlowHost host)
     {
         _host = host;
+        Facets = new BrowseFacetsViewModel(host, SearchAsync);
         var any = Strings.Get("Browse.Filter.Any");
         YearOptions = [new OptionItem<int?>(null, any), .. Enumerable.Range(1990, DateTime.Today.Year - 1989).Reverse().Select(y => new OptionItem<int?>(y, y.ToString(CultureInfo.InvariantCulture)))];
         RatingOptions = [new OptionItem<int?>(null, any), .. Enumerable.Range(1, 5).Select(r => new OptionItem<int?>(r, Strings.Format("Browse.Filter.RatingValue", r)))];
         OutcomeOptions = [new OptionItem<CullingOutcome?>(null, any), .. Enum.GetValues<CullingOutcome>().Select(o => new OptionItem<CullingOutcome?>(o, Strings.Get("Outcome." + o)))];
     }
+
+    /// <summary>The facets panel (tags in groups AND/OR, events, people, with counts).</summary>
+    public BrowseFacetsViewModel Facets { get; }
 
     public override string Title => Strings.Get("Nav.Browse");
 
@@ -186,6 +191,7 @@ public sealed partial class BrowseViewModel : PageViewModel
         "Browse.Similar" => FindSimilarCommand,
         "Browse.Stars" => SetStarsCommand,
         "Browse.Preview" => TogglePreviewCommand,
+        "Browse.Facets" => Facets.ToggleCommand,
         "Browse.Escape" => EscapeCommand,
         _ => base.ResolveCommand(id),
     };
@@ -364,6 +370,7 @@ public sealed partial class BrowseViewModel : PageViewModel
     public override async Task ActivateAsync()
     {
         await LoadSuggestionsAsync();
+        await Facets.LoadAsync(CancellationToken.None);
         CameraOptions.Clear();
         CameraOptions.Add(new OptionItem<string?>(null, Strings.Get("Browse.Filter.Any")));
         foreach (var camera in await _host.Catalog.Assets.ListCamerasAsync(CancellationToken.None))
@@ -467,6 +474,7 @@ public sealed partial class BrowseViewModel : PageViewModel
     private async Task ResetAsync()
     {
         Tokens.Clear();
+        Facets.Reset();
         (FreeText, QueryText, YearFrom, YearTo, Camera, MinRating, Outcome, SimilarTo) = (null, null, null, null, null, null, null, null);
         await SearchAsync();
     }
@@ -474,7 +482,7 @@ public sealed partial class BrowseViewModel : PageViewModel
     [RelayCommand]
     private Task ApplyFiltersAsync() => SearchAsync();
 
-    private SearchQuery BuildQuery(float[]? textEmbedding) => new(
+    private SearchQuery BuildQuery(float[]? textEmbedding) => Facets.Apply(new SearchQuery(
         Tokens.Where(t => t.Kind == SuggestionKind.Person).Select(t => t.Id).ToList(),
         Tokens.Where(t => t.Kind != SuggestionKind.Person).Select(t => t.Id).ToList(),
         FreeText,
@@ -486,16 +494,17 @@ public sealed partial class BrowseViewModel : PageViewModel
         MinRating,
         Outcome,
         _host.EmbeddingModelVersion,
-        int.MaxValue);
+        int.MaxValue));
 
     public async Task SearchAsync()
     {
         IsSearching = true;
+        SearchQuery query;
         try
         {
             var clock = Stopwatch.StartNew();
             var embedding = HasFreeText ? await _host.EmbedQueryAsync(FreeText!, CancellationToken.None) : null;
-            var query = BuildQuery(embedding);
+            query = BuildQuery(embedding);
             var results = await Task.Run(() => _host.Catalog.Search.SearchAsync(query, CancellationToken.None));
             clock.Stop();
             _hits = [.. results.Hits];
@@ -524,6 +533,9 @@ public sealed partial class BrowseViewModel : PageViewModel
         {
             IsSearching = false;
         }
+
+        // The facets count on the whole result, after the grid is shown.
+        await Facets.RefreshAsync(query, CancellationToken.None);
     }
 
     /// <summary>The next page of results (the grid shows at most <see cref="PageSize"/> more at a time).</summary>

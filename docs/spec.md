@@ -765,7 +765,7 @@ Palette (con colori semantici per gli esiti: scarto, da rivedere, migliore, simi
 | 3 | Job | Avanzamento per fase, stima tempo, pausa/ripresa, priorità, log | Più job in parallelo |
 | 4 | Revisione | Griglia per raffiche, filtri per esito, confronto 2-4 affiancati con zoom sincronizzato, cambio profilo per gruppo, vista "Numeri", conferma e scrittura XMP | Schermata principale: velocità da tastiera |
 | 5 | Persone | Gruppi ordinati per dimensione; rinomina, unisci, separa, ignora; pagina persona | Volti ritagliati, selezione multipla |
-| 6 | Consultazione | Ricerca libera + filtri (tag, persona, data, evento, EXIF, rating, esito), griglia, pannello dettagli con tag modificabili e volti evidenziati, "Apri in Photoshop", "Apri con app predefinita", "Mostra in Esplora risorse" | Ricerca in linguaggio naturale nello stesso campo |
+| 6 | Consultazione | Ricerca libera + filtri (tag, persona, data, evento, EXIF, rating, esito), pannello delle faccette con conteggi (tag in gruppi AND/OR, eventi, persone), griglia, pannello dettagli con tag modificabili e volti evidenziati, "Apri in Photoshop", "Apri con app predefinita", "Mostra in Esplora risorse" | Ricerca in linguaggio naturale nello stesso campo |
 | 7 | Duplicati | Gruppi esatti e quasi-duplicati, scelta di quale tenere | Confronto affiancato |
 | 8 | Librerie | Radici, politica XMP, sola lettura, nuova scansione, rimappatura percorsi |  |
 | 9 | Vocabolario | Revisione traduzioni del nucleo, lista nera, tag CLIP personalizzati, mappatura categorie | Revisione rapida a righe |
@@ -773,6 +773,21 @@ Palette (con colori semantici per gli esiti: scarto, da rivedere, migliore, simi
 | 11 | Impostazioni | Hardware e benchmark, modelli (per funzione, con licenza e spazio), catalogo (posizione, backup, esporta/importa, cifratura impronte), lingua, template percorsi, exiftool, modalità prudente/normale | Sezioni a schede |
 
 Modalità aggiuntiva della schermata 4: **etichettatura** (sezione 14), con un tasto per foto, verdetto nascosto ("alla cieca"), sessioni da \~100 foto e pannello metriche.
+
+**Consultazione: pannello delle faccette** (13 ott 2026, su richiesta dell'utente; usa il componente "Filtri a faccette" del sistema visivo, che la tavola 4d non mostrava).
+
+Un pannello a sinistra della griglia, richiudibile con il tasto F, ha tre sezioni. Ogni sezione mostra i valori con il numero di foto e si aggiorna a ogni selezione. Il pannello si somma alla ricerca libera e agli altri filtri: data, fotocamera, stelle, esito e gettoni del campo di ricerca.
+
+- **Tag.** Etichetta italiana se disponibile, altrimenti l'inglese; eventi e tag in lista nera esclusi; casella per filtrare l'elenco.
+  - *Gruppi combinabili.* La selezione è fatta di gruppi: dentro un gruppo i tag sono in OR, tra i gruppi in AND. Esempio: (auto OR moto) AND pista.
+  - *Clic.* Un interruttore AND/OR dice cosa fa il clic: in AND il tag apre un nuovo gruppo, in OR si aggiunge all'ultimo gruppo. Ctrl+clic fa l'altra azione.
+  - *Conteggi.* Mostrano sempre l'effetto del clic. In AND: quante foto del risultato hanno il tag, cioè quante ne restano. In OR: quante foto si aggiungono al risultato ("+N").
+  - *Quali tag compaiono.* In AND solo i tag presenti nel risultato. In OR anche quelli che aggiungono foto; un tag del risultato che non aggiunge nulla resta in elenco con "+0", così con Ctrl+clic si può ancora restringere.
+  - *Rimozione.* I tag scelti compaiono come gettoni raggruppati sopra l'elenco; ✕ toglie un tag, e un gruppo rimasto vuoto sparisce.
+- **Eventi.** Sono alternativi tra loro, quindi in OR. Il conteggio di un evento è il numero di foto che ha tra quelle che passano gli altri filtri.
+- **Persone.** Sono in AND, come i gettoni (P14). Il conteggio è il numero di foto del risultato in cui la persona compare.
+
+I conteggi si calcolano in SQL sull'intero risultato, non solo sulla parte mostrata nella griglia. Due indici coprenti (migrazione 0018) li fanno leggere solo dall'indice. Su 60.000 foto sintetiche un aggiornamento del pannello richiede 0,42 s (0,44 s in OR): prima degli indici erano 5,4 s. Restano entro il limite di 1 s della ricerca (§10).
 
 ### Scorciatoie della revisione
 

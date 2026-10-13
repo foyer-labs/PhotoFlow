@@ -129,6 +129,11 @@ public sealed class SearchTests : IDisposable
             slowest = Max(slowest, await Timed(name, query));
         }
 
+        // The facets panel refreshed as Consultazione does it: tags, events and people over the whole result (AND), then
+        // with a group in OR ("+N", one more count).
+        slowest = Max(slowest, await TimedFacets("Facets of everything (tags, events, people)", SearchQuery.Empty, null));
+        slowest = Max(slowest, await TimedFacets("Facets in OR over a group of one tag", SearchQuery.Empty with { TagGroups = [[tag]] }, SearchQuery.Empty));
+
         // Changes made by the user (a person renamed, tags added and removed): the next search updates only those photos.
         await catalog.People.RenameAsync(3, "Sara Bianchi", Ct);
         for (var id = 1; id <= 200; id++)
@@ -152,6 +157,21 @@ public sealed class SearchTests : IDisposable
             var result = await catalog.Search.SearchAsync(query with { EmbeddingModelVersion = Clip }, Ct);
             clock.Stop();
             report.AppendLine(CultureInfo.InvariantCulture, $"| {name} | {clock.Elapsed.TotalMilliseconds:0} ms | {result.Total:N0} |");
+            return clock.Elapsed;
+        }
+
+        async Task<TimeSpan> TimedFacets(string name, SearchQuery query, SearchQuery? orBase)
+        {
+            // As the panel does it: tags and people together, plus the "+N" in OR.
+            var clock = Stopwatch.StartNew();
+            var counts = await catalog.Search.CountFacetsAsync(query, Ct);
+            if (orBase is not null)
+            {
+                await catalog.Search.CountTagsAsync(orBase, query, Ct);
+            }
+
+            clock.Stop();
+            report.AppendLine(CultureInfo.InvariantCulture, $"| {name} | {clock.Elapsed.TotalMilliseconds:0} ms | {counts.Tags.Count:N0} tags, {counts.Persons.Count:N0} people |");
             return clock.Elapsed;
         }
 

@@ -962,4 +962,14 @@
   <data name="Settings.Catalog.Result.moved" xml:space="preserve"><value>Catalogo spostato in {0}. Il file precedente è ancora in {1}.</value></data>
   <data name="Settings.Catalog.Result.opened" xml:space="preserve"><value>Ora si usa il catalogo {0}. Quello precedente è ancora in {1}.</value></data>
   <data name="Settings.Catalog.Result.failed" xml:space="preserve"><value>Il cambio di catalogo non è riuscito ({0}); si usa ancora {1}.</value></data>
+  <data name="Browse.Facets.Title" xml:space="preserve"><value>Filtri</value></data>
+  <data name="Browse.Facets.Tags" xml:space="preserve"><value>Tag</value></data>
+  <data name="Browse.Facets.Events" xml:space="preserve"><value>Eventi</value></data>
+  <data name="Browse.Facets.People" xml:space="preserve"><value>Persone</value></data>
+  <data name="Browse.Facets.Filter" xml:space="preserve"><value>Filtra i tag…</value></data>
+  <data name="Browse.Facets.ModeTip" xml:space="preserve"><value>Cosa fa il clic su un tag. AND: un nuovo gruppo (le foto devono avere anche questo; i numeri sono le foto che restano). OR: si aggiunge all'ultimo gruppo (ne basta uno; i numeri sono le foto che si aggiungono). Ctrl+clic fa l'altra cosa.</value></data>
+  <data name="Browse.Facets.Hint" xml:space="preserve"><value>Clic: nella modalità scelta sopra. Ctrl+clic: nell'altra. Gli eventi sono alternativi (OR), le persone devono esserci tutte (AND).</value></data>
+  <data name="Browse.Facets.More" xml:space="preserve"><value>Altri {0} tag: usa il filtro.</value></data>
+  <data name="Browse.Facets.Unknown" xml:space="preserve"><value>(tag)</value></data>
+  <data name="Browse.Command.Facets" xml:space="preserve"><value>Filtri</value></data>
 </root>
