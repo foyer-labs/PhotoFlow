@@ -692,6 +692,7 @@ Pacchetto self-contained con Velopack, modelli scaricati al primo uso; durante l
 | --- | --- |
 | Runtime .NET | Incluso (self-contained) |
 | Installer e aggiornamenti | Velopack; feed come file statici su qualsiasi server HTTP |
+| Release su GitHub | Versioni dell'app con tag `vX.Y.Z` (alle versioni di riferimento). I file dei modelli esportati da noi stanno in release `models-<modello>-<n>` dello stesso repository, marcate come pre-release e mai «Latest», con il titolo "Model file · …" (decisione dell'utente del 13 ott 2026) |
 | Varianti | Windows: CUDA (NVIDIA) + CPU, pacchetto GPU scaricato al primo uso; Mac: CoreML; Linux: CPU/CUDA |
 | Firma del codice | Nessuna per ora (avviso SmartScreen al primo avvio) |
 | exiftool | Windows: eseguibile incluso; Mac/Linux: script Perl incluso; percorso personalizzabile. Scaricato in fase di build con versione fissata e SHA-256 (nessun binario nel repository, F1-5) |
