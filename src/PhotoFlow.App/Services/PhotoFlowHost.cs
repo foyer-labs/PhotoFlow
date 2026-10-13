@@ -72,6 +72,8 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     public const long VlmGpuMemoryBytes = 11_776L * 1024 * 1024;
 
     private readonly SemaphoreSlim _sessionsGate = new(1, 1);
+    private readonly Lock _settingsLock = new();
+    private readonly SemaphoreSlim _settingsGate = new(1, 1);
     private readonly List<IInferenceSession> _sessions = [];
     private readonly List<IInferenceSession> _analysisSessions = [];
 
@@ -416,8 +418,21 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     public async Task UpdateSettingsAsync(Func<AppSettings, AppSettings> change, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(change);
-        Settings = change(Settings);
-        await SettingsStore.SaveAsync(Settings, ct).ConfigureAwait(false);
+        lock (_settingsLock)
+        {
+            Settings = change(Settings);
+        }
+
+        // One write at a time, always of the latest settings: an older save finishing last cannot undo a newer change.
+        await _settingsGate.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            await SettingsStore.SaveAsync(Settings, ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            _settingsGate.Release();
+        }
     }
 
     /// <summary>
@@ -546,6 +561,8 @@ public sealed class PhotoFlowHost : IAsyncDisposable
         await Catalog.DisposeAsync().ConfigureAwait(false);
         await ExifTool.DisposeAsync().ConfigureAwait(false);
         Http.Dispose();
+        await _settingsGate.WaitAsync().ConfigureAwait(false); // a settings save still running ends first
+        _settingsGate.Dispose();
         _sessionsGate.Dispose();
         _gpuTurns.Dispose();
         _shutdown.Dispose();

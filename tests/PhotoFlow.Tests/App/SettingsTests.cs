@@ -23,6 +23,27 @@ public sealed class SettingsTests : IDisposable
 {
     private readonly TempFolder _temp = new("pf-settings");
 
+    [Fact]
+    public async Task Concurrent_settings_saves_leave_the_latest_settings_on_disk()
+    {
+        var paths = new DefaultAppPaths(_temp.Sub("concurrent"));
+        await using (var host = await PhotoFlowHost.StartAsync(paths, CancellationToken.None))
+        {
+            // Unawaited saves, as the settings view does: the file must end with every change, never an older snapshot.
+            var saves = new List<Task>();
+            for (var i = 0; i < 20; i++)
+            {
+                saves.Add(host.UpdateSettingsAsync(s => s with { Language = "en" }, CancellationToken.None));
+                saves.Add(host.UpdateSettingsAsync(s => s with { Theme = ThemePreference.Light }, CancellationToken.None));
+                saves.Add(host.UpdateSettingsAsync(s => s with { PrudentMode = !s.PrudentMode }, CancellationToken.None));
+            }
+
+            await Task.WhenAll(saves);
+        }
+
+        Assert.Equal(("en", ThemePreference.Light), SettingsStore.LoadStartupPreferences(paths));
+    }
+
     [AvaloniaFact]
     public async Task Tabs_template_backup_and_preferences_through_the_view()
     {
