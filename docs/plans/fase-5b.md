@@ -1,6 +1,6 @@
 # Piano della fase 5b — Didascalie VLM (livello D) con Qwen2.5-VL-7B
 
-Stato: **in attesa di approvazione** (13 ott 2026). Branch: `phase/5b-vlm`. Nasce dalla revisione della decisione F5-2 (livello D rinviato), che l'utente ha deciso di non confermare.
+Stato: **approvato dall'utente** il 13 ott 2026, in esecuzione. Branch: `phase/5b-vlm`. Nasce dalla revisione della decisione F5-2 (livello D rinviato), che l'utente ha deciso di non confermare.
 
 Riferimenti: spec §5 (livelli di tagging, modelli), §8 (didascalie), §17 P16 (VLM solo con GPU ≥ 8 GB); CLAUDE.md §3 (inferenza tramite `IInferenceProvider`).
 

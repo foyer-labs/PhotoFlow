@@ -228,7 +228,7 @@ Tutti i modelli girano in ONNX Runtime; ogni funzione ha un modello attivo selez
 | Embedding (raffiche, ricerca, duplicati, zero-shot) | CLIP ViT-B/32 fp32 (F2-1) | — | 606 MB (immagine 352 MB + testo 254 MB) | Disponibile (Xenova, fissato per commit + SHA-256); la conversione quantizzata è esclusa (coseno 0,87-0,97 con l'originale) |
 | Tagger | RAM++ fp32 (F3-1) | — | 1,86 GB | Export `CannotFindObject/RAM_ONNX` fissato per commit + SHA-256 (mirror `imagent/ram-plus-onnx`); stessi tag dell'originale su 52/52 foto; la int8 è esclusa |
 | Didascalie | Florence-2 base-ft fp32 (F5-1) | Florence-2 large (da adattare) | 1,09 GB | Encoder del testo, decoder e tokenizer `onnx-community` fissati per commit; encoder visivo esportato da noi (`tools/lab/export_florence_vision.py`) perché quello della conversione non corrisponde all'originale (coseno 0,94); adattatori nostri su `IInferenceProvider`, parità esatta delle didascalie con PyTorch su CPU e CUDA |
-| VLM (livello D) | Rinviato (F5-2) | — | 3-5 GB circa | Qwen2.5-VL-3B ha licenza non commerciale ("qwen-research"); il 7B (Apache-2.0) richiede un nostro export e ONNX Runtime GenAI, fuori da `IInferenceProvider` |
+| VLM (livello D) | Qwen2.5-VL-7B-Instruct int4 (fase 5b, U1) | — | ~6 GB convertito (16,6 GB di pesi originali) | Pesi originali scaricati dall'utente e convertiti dall'app con il Model Builder di ONNX Runtime GenAI (U2, U3); esecuzione con ONNX Runtime GenAI in un processo separato (U4, eccezione a CLAUDE.md §3); il 3B è escluso (licenza "qwen-research", non commerciale) |
 | OCR | PP-OCRv4 det + PP-OCRv3 rec inglese (F4-1) | PP-OCRv5 latina (rilevatore da 88 MB) | 14 MB | Modelli RapidOCR fissati per commit + SHA-256 (`SWHL/RapidOCR`), adattatori nostri su `IInferenceProvider`; parità esatta con RapidOCR Python; riconoscitore su CPU (F4-4) |
 | Estetica | Predittore LAION su embedding CLIP | — | < 5 MB | Riscrivibile in poche righe |
 
@@ -515,7 +515,7 @@ Fase 5 (13 ott 2026, F5-1, F5-2):
 - **Come si genera.** Livello C con Florence-2 base-ft, compito "didascalia dettagliata". La ricerca a fascio è identica a transformers: 3 fasci, nessun trigramma ripetuto, chiusura anticipata. Costo: 0,9 s per foto su GPU (2,5 s su CPU); nell'analisi con 4 lavori in parallelo +644 ms per foto. È facoltativo e si sceglie nell'import.
 - **Conservazione (I5).** Le didascalie si salvano in `Captions` con la versione del modello. Quella scritta o cancellata dall'utente (D in Consultazione, o la descrizione cambiata in un altro programma) non viene mai sostituita.
 - **Ricerca e XMP.** Il testo delle didascalie è cercabile. `dc:description` si scrive solo con la preferenza attiva (spenta per default).
-- **Livello D.** Rinviato (F5-2): resta visibile e disattivato con il motivo.
+- **Livello D.** Rinviato (F5-2), poi riaperto dall'utente il 13 ott 2026: fase 5b (`docs/plans/fase-5b.md`). Qwen2.5-VL-7B scrive una didascalia in italiano (una o due frasi, oggettive), solo con GPU ≥ 8 GB (P16). Il livello C (inglese) resta. In Consultazione e in `dc:description` l'italiano è x-default, l'inglese la lingua alternativa.
 
 ### OCR motorsport
 
@@ -1189,7 +1189,7 @@ Decisioni emerse in Design (confermate), funzioni rinviate a dopo la stabilizzaz
 | Vista Numeri: foto intera con i riquadri delle vetture (ambra = numero incerto, grigio = altra vettura riconosciuta), "Conferma e scrivi XMP" nella vista, numero di eventi in cui è usato un elenco (tavola 2c); oggi ritagli con le letture e conferma dalla Revisione | Tappa 4.5 |
 | Elenco iscritti: modifica in tabella (oggi come testo, una vettura per riga) | Tappa 4.5 |
 | Ricampionamento più veloce per l'OCR (oggi il ridimensionamento antialias del fotogramma costa ~65 ms a 1600 px) | Tappa 4.6 |
-| Didascalie VLM (livello D): Qwen2.5-VL-7B con un nostro export, quando sarà percorribile dentro `IInferenceProvider` con test di parità | F5-2 |
+| Didascalie VLM dentro `IInferenceProvider` con test di parità esatta (oggi ONNX Runtime GenAI in un processo separato, eccezione U4) | Fase 5b |
 | Didascalie più veloci: cache dell'encoder sulla GPU (IO binding) invece di ricopiarla a ogni passo del decoder; Florence-2 large come alternativa | Tappa 5.1 |
 | Rigenerazione: scambio dell'indice embedding quando ci sarà un secondo modello di embedding | Tappa 5.4 |
 | Registro della sincronizzazione XMP consultabile nell'interfaccia (oggi nel catalogo e nel riepilogo delle Impostazioni) | Tappa 5.6 |
