@@ -36,6 +36,18 @@ public sealed class JobManager(Func<IJobRunner> runnerFactory, TimeProvider? tim
         }
     }
 
+    /// <summary>True while any job runs (the models cannot be changed meanwhile).</summary>
+    public bool AnyRunning
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _running.Count > 0;
+            }
+        }
+    }
+
     /// <summary>True while a normal-priority job (an import) runs: low-priority jobs wait (spec §10, archives).</summary>
     public bool HasNormalPriorityRunning
     {

@@ -49,3 +49,33 @@ public sealed record FaceRegions(int ImageWidth, int ImageHeight, IReadOnlyList<
 
 /// <summary>A named face, MWG convention: centre and size normalized to the image (0..1).</summary>
 public sealed record FaceRegion(string Name, double CenterX, double CenterY, double Width, double Height);
+
+/// <summary>The XMP fields PhotoFlow manages, as found in a file (spec §4: read to import changes made by other programs).</summary>
+public sealed record XmpSnapshot(
+    int? Rating,
+    string? Label,
+    IReadOnlyList<string> FlatKeywords,
+    IReadOnlyList<string> HierarchicalKeywords,
+    string? Description,
+    IReadOnlyList<XmpRegion> Regions)
+{
+    public static XmpSnapshot Empty { get; } = new(null, null, [], [], null, []);
+}
+
+/// <summary>An MWG region of the file (normalized centre and size), with the name and type given by its program.</summary>
+public sealed record XmpRegion(string? Name, string? Type, double CenterX, double CenterY, double Width, double Height);
+
+/// <summary>Identity of the file that holds the XMP (sidecar or image): changed by any program that writes it.</summary>
+public sealed record XmpFileStamp(string Path, long Size, DateTimeOffset Modified, string Hash)
+{
+    public bool SameFileState(XmpFileStamp? other) => other is not null && other.Path == Path && other.Size == Size && other.Modified == Modified;
+}
+
+/// <summary>Reads the XMP of a photo where PhotoFlow writes it (RAW and sidecar-only libraries: <c>name.xmp</c>).</summary>
+public interface IMetadataReader
+{
+    /// <summary>The file that holds the XMP and its state (size, date, content hash), or null when there is none.</summary>
+    Task<XmpFileStamp?> StampAsync(MetadataTarget target, WritePolicy policy, CancellationToken ct);
+
+    Task<XmpSnapshot> ReadAsync(MetadataTarget target, WritePolicy policy, CancellationToken ct);
+}

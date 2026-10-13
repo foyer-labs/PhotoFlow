@@ -27,6 +27,7 @@ using PhotoFlow.Sources.Jobs;
 using PhotoFlow.Sources.Scanning;
 using PhotoFlow.Core.Tagging;
 using PhotoFlow.Tagging.Clip;
+using PhotoFlow.Tagging.Captions;
 using PhotoFlow.Tagging.Ocr;
 using PhotoFlow.Tagging.RamPlus;
 using PhotoFlow.Tagging.Vocabulary;
@@ -36,7 +37,7 @@ namespace PhotoFlow.App.Services;
 /// <summary>Which models the analysis uses, for the status bar and the first run (3b).</summary>
 /// <summary>The loaded models of the analysis (null when not installed).</summary>
 public sealed record AnalysisComponents(IImageOperations Operations, IObjectDetector? Objects, IFaceDetector? Faces, IImageEmbedder? Embedder, IFaceEmbedder? Fingerprints,
-    IImageTagger? Tagger = null, ITextReader? TextReader = null);
+    IImageTagger? Tagger = null, ITextReader? TextReader = null, IImageCaptioner? Captioner = null);
 
 public sealed record AnalysisSetup(string? ObjectDetector, string? FaceDetector, bool EyesAvailable, ExecutionBackend Backend, string? Embedder = null, string? FaceRecognizer = null);
 
@@ -52,12 +53,13 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     /// <summary>Model adapters this version can run: only these models can be downloaded or chosen (board 5g).</summary>
     public static readonly IReadOnlySet<string> ImplementedAdapters = new HashSet<string>(StringComparer.Ordinal)
     {
-        "dfine-hf-v1", "insightface-buffalo-v1", "yunet-v1", "clip-hf-v1", "sface-v1", "ramplus-v1", "ppocr-v1",
+        "dfine-hf-v1", "insightface-buffalo-v1", "yunet-v1", "clip-hf-v1", "sface-v1", "ramplus-v1", "ppocr-v1", "florence2-v1",
     };
 
     public const string ClipModelId = "clip-vit-b32";
     public const string RamPlusModelId = "ramplus-fp32";
     public const string OcrModelId = "ppocr-en";
+    public const string CaptionModelId = "florence2-base-ft";
     public const string SFaceModelId = "opencv-sface-2021dec";
 
     private readonly SemaphoreSlim _sessionsGate = new(1, 1);
@@ -65,6 +67,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     private CullingPhotoProcessor? _processor;
     private AnalysisComponents? _components;
     private Task _maintenance = Task.CompletedTask;
+    private readonly CancellationTokenSource _shutdown = new();
 
     private PhotoFlowHost(IAppPaths paths, IFileSystem fileSystem, SettingsStore settingsStore, AppSettings settings, SqliteCatalog catalog, ExifToolSession exifTool)
     {
@@ -76,6 +79,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
         ExifTool = exifTool;
         ExifReader = new ExifToolExifReader(exifTool);
         MetadataWriter = new ExifToolMetadataWriter(exifTool, fileSystem);
+        MetadataReader = new ExifToolMetadataReader(exifTool, fileSystem);
         Thumbnails = new ThumbnailCache(fileSystem, paths.ThumbnailsDirectory);
         Previews = new PreviewProvider(fileSystem, ImageHandlerRegistry.CreateDefault(fileSystem, new ExifToolPreviewSource(exifTool), new MagickRawDecoder()));
         Inference = new OnnxRuntimeInferenceProvider(new InferenceOptions(Path.Combine(paths.GpuRuntimeDirectory, GpuPackFolder)));
@@ -87,7 +91,8 @@ public sealed class PhotoFlowHost : IAsyncDisposable
         Jobs = new JobManager(() => new JobRunnerRouter(
             Catalog,
             new ImportJobRunner(Catalog, new IngestService(new CopyEngine(FileSystem)), ExifReader, FileSystem, new LazyProcessor(this), Deferred, BatchStages()),
-            new ArchiveJobRunner(Catalog, ExifReader, FileSystem, new LowPriorityProcessor(this), BatchStages())));
+            new ArchiveJobRunner(Catalog, ExifReader, FileSystem, new LowPriorityProcessor(this), BatchStages()),
+            new ReanalysisJobRunner(Catalog, FileSystem, new LowPriorityProcessor(this), CurrentVersionsAsync)));
         Cards = new PollingCardDetector();
         Maintenance = new MaintenanceService(paths, new InternalFileCleaner(paths), protectedBackup: () => Restore?.Pending);
         Restore = new CatalogRestoreService(paths);
@@ -120,6 +125,114 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     public IExifReader ExifReader { get; }
 
     public IMetadataWriter MetadataWriter { get; }
+
+    public IMetadataReader MetadataReader { get; }
+
+    /// <summary>The XMP writer with the current preferences (captions in <c>dc:description</c>) and the sync of external changes.</summary>
+    public XmpPublisher CreatePublisher() => new(Catalog, MetadataWriter, Settings.Xmp.WriteCaptions, MetadataReader);
+
+    /// <summary>Imports the XMP changes made by other programs (spec §4).</summary>
+    public ExternalXmpSync CreateXmpSync() => new(Catalog, MetadataReader);
+
+    /// <summary>The versions the current models record (a regeneration recomputes what older models made).</summary>
+    public async Task<ModelVersions> CurrentVersionsAsync(CancellationToken ct)
+    {
+        var c = await GetAnalysisComponentsAsync(ct).ConfigureAwait(false);
+        var culling = new CullingAnalyzer(c.Operations, c.Objects, c.Faces);
+        return new ModelVersions(culling.Id, culling.ModelVersion, c.Embedder?.ModelVersion, c.Fingerprints?.ModelVersion, c.Tagger?.ModelVersion,
+            c.Captioner?.ModelVersion, c.TextReader?.ModelVersion);
+    }
+
+    /// <summary>A regeneration (job Reanalyze, spec §5): the new results wait for the preview and the confirmation.</summary>
+    public async Task<long> StartReanalysisAsync(ReanalysisSettings settings, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        var jobId = await ReanalysisJobRunner.CreateAsync(Catalog, settings with { Workers = Math.Max(1, PipelineDefaults.DefaultAnalysisWorkers / 2) }, ct).ConfigureAwait(false);
+        _ = Jobs.StartAsync(jobId, JobPriority.Low);
+        return jobId;
+    }
+
+    public Task<ReanalysisPreview> PreviewReanalysisAsync(long jobId, CancellationToken ct) => Reanalysis.PreviewAsync(Catalog, jobId, ct);
+
+    public Task<ReanalysisApplied> ApplyReanalysisAsync(long jobId, CancellationToken ct) =>
+        Reanalysis.ApplyAsync(Catalog, jobId, () => FingerprintKeys.Protector, CreatePublisher(), Settings.PrudentMode, ct);
+
+    public Task DiscardReanalysisAsync(long jobId, CancellationToken ct) => Reanalysis.DiscardAsync(Catalog, jobId, ct);
+
+    /// <summary>
+    /// Another model for a function (spec §5, board 5g): saved, and the models are loaded again at once when no job
+    /// is running (otherwise at the next start). Returns true when the new model is already in use.
+    /// </summary>
+    public async Task<bool> ChooseModelAsync(ModelFunction function, string modelId, CancellationToken ct)
+    {
+        await UpdateSettingsAsync(s => s with { ModelChoices = new Dictionary<string, string>(s.ModelChoices) { [function.ToString()] = modelId } }, ct).ConfigureAwait(false);
+        return await ReloadModelsAsync(ct).ConfigureAwait(false);
+    }
+
+    /// <summary>Releases the loaded models so the next analysis loads the chosen ones; false while a job runs.</summary>
+    public async Task<bool> ReloadModelsAsync(CancellationToken ct)
+    {
+        if (Jobs.AnyRunning)
+        {
+            return false;
+        }
+
+        await _sessionsGate.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            foreach (var session in _sessions)
+            {
+                session.Dispose();
+            }
+
+            _sessions.Clear();
+            _components = null;
+            _processor = null;
+            _sceneClassifier = null;
+            _textEmbedder = null;
+            return true;
+        }
+        finally
+        {
+            _sessionsGate.Release();
+        }
+    }
+
+    /// <summary>A .pfcatalog chosen elsewhere (empty Libraries) to import in the settings.</summary>
+    public string? PendingCatalogImport { get; set; }
+
+    /// <summary>The whole catalog in one file (spec §9).</summary>
+    public Task<CatalogExportSummary> ExportCatalogAsync(string path, CatalogExportOptions options, CancellationToken ct) =>
+        CatalogPackage.ExportAsync(Catalog, Paths, FingerprintKeys.Protector, path, options, ct);
+
+    /// <summary>Prepares an exported catalog with the libraries remapped; it replaces this one at the next start.</summary>
+    public async Task<string> ImportCatalogAsync(string path, IReadOnlyDictionary<long, string> roots, string? password, CancellationToken ct)
+    {
+        var prepared = await CatalogPackage.PrepareImportAsync(path, Paths, roots, password, FingerprintKeys.Protector, ct).ConfigureAwait(false);
+        Restore.Request(prepared);
+        return prepared;
+    }
+
+    /// <summary>The last sync of the XMP changes made by other programs (at start, in the background, or asked).</summary>
+    public XmpSyncReport? LastXmpSync { get; private set; }
+
+    /// <summary>Imports the changes other programs made to the XMP written by PhotoFlow (all, or some photos).</summary>
+    public async Task<XmpSyncReport?> SyncExternalXmpAsync(IProgress<int>? progress, CancellationToken ct)
+    {
+        try
+        {
+            LastXmpSync = await CreateXmpSync().SyncAsync(null, progress, ct).ConfigureAwait(false);
+            return LastXmpSync;
+        }
+        catch (OperationCanceledException)
+        {
+            return null;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException or System.Data.Common.DbException)
+        {
+            return null;
+        }
+    }
 
     public ThumbnailCache Thumbnails { get; }
 
@@ -202,8 +315,12 @@ public sealed class PhotoFlowHost : IAsyncDisposable
         host.InterruptedJobs = await ImportJobRunner.RecoverInterruptedAsync(catalog, ct).ConfigureAwait(false);
         await catalog.Tags.SeedVocabularyAsync(RamPlusVocabulary.Entries, TagSource.RamPlus, ct).ConfigureAwait(false);
         host.Cards.Start();
-        host._maintenance = Task.Run(() => host.Maintenance.RunAtStartupAsync(
-            catalog, Path.Combine(paths.GpuRuntimeDirectory, "downloads"), host.GpuRuntime.IsInstalled, CancellationToken.None), CancellationToken.None);
+        host._maintenance = Task.Run(async () =>
+        {
+            await host.Maintenance.RunAtStartupAsync(catalog, Path.Combine(paths.GpuRuntimeDirectory, "downloads"), host.GpuRuntime.IsInstalled, CancellationToken.None)
+                .ConfigureAwait(false);
+            await host.SyncExternalXmpAsync(null, host._shutdown.Token).ConfigureAwait(false);
+        }, CancellationToken.None);
         return host;
     }
 
@@ -303,9 +420,13 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     public AnalysisSetup DescribeAnalysis()
     {
         var gpu = Inference.Detected.AvailableBackends.Contains(ExecutionBackend.Cuda);
-        var detector = gpu && Models.IsInstalled("dfine-m-obj2coco") ? "dfine-m-obj2coco"
+        var chosenDetector = Settings.ModelChoices.GetValueOrDefault(nameof(ModelFunction.ObjectDetection));
+        var detector = chosenDetector is not null && Models.IsInstalled(chosenDetector) ? chosenDetector
+            : gpu && Models.IsInstalled("dfine-m-obj2coco") ? "dfine-m-obj2coco"
             : Models.IsInstalled("dfine-s-obj2coco") ? "dfine-s-obj2coco" : null;
-        var buffalo = Models.IsInstalled("insightface-buffalo-l") && Settings.AcceptedModelLicenses.Contains("insightface-buffalo-l");
+        var chosenFaces = Settings.ModelChoices.GetValueOrDefault(nameof(ModelFunction.Faces));
+        var buffalo = Models.IsInstalled("insightface-buffalo-l") && Settings.AcceptedModelLicenses.Contains("insightface-buffalo-l")
+            && !(chosenFaces == "opencv-yunet-2023mar" && Models.IsInstalled(chosenFaces));
         var faces = buffalo ? "insightface-buffalo-l" : Models.IsInstalled("opencv-yunet-2023mar") ? "opencv-yunet-2023mar" : null;
         var recognizer = buffalo ? "insightface-buffalo-l" : faces is not null && Models.IsInstalled(SFaceModelId) ? SFaceModelId : null;
         return new AnalysisSetup(detector, faces, buffalo, gpu ? ExecutionBackend.Cuda : ExecutionBackend.Cpu,
@@ -314,6 +435,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        await _shutdown.CancelAsync().ConfigureAwait(false);
         Cards.Dispose();
         await Jobs.DisposeAsync().ConfigureAwait(false);
         try
@@ -335,13 +457,14 @@ public sealed class PhotoFlowHost : IAsyncDisposable
         await ExifTool.DisposeAsync().ConfigureAwait(false);
         Http.Dispose();
         _sessionsGate.Dispose();
+        _shutdown.Dispose();
     }
 
     private async Task<IPhotoProcessor> GetProcessorAsync(CancellationToken ct)
     {
         var c = await GetAnalysisComponentsAsync(ct).ConfigureAwait(false);
         var created = new CullingPhotoProcessor(Previews, new CullingAnalyzer(c.Operations, c.Objects, c.Faces), new DecisionEngine(), Profiles.Get, Thumbnails,
-            c.Embedder, c.Fingerprints, () => FingerprintKeys.Protector, c.Tagger, c.TextReader);
+            c.Embedder, c.Fingerprints, () => FingerprintKeys.Protector, c.Tagger, c.TextReader, c.Captioner);
         return Interlocked.CompareExchange(ref _processor, created, null) ?? created;
     }
 
@@ -396,7 +519,14 @@ public sealed class PhotoFlowHost : IAsyncDisposable
                 ? new PaddleOcr(await Open(OcrModelId, PaddleOcr.DetectorFile).ConfigureAwait(false),
                     await Open(OcrModelId, PaddleOcr.RecognizerFile, PaddleOcr.RecognizerTarget).ConfigureAwait(false), operations)
                 : null;
-            _components = new AnalysisComponents(operations, objects, faces, embedder, fingerprints, tagger, textReader);
+            IImageCaptioner? captioner = Models.IsInstalled(CaptionModelId)
+                ? new Florence2Captioner(await Open(CaptionModelId, Florence2Captioner.VisionFile).ConfigureAwait(false),
+                    await Open(CaptionModelId, Florence2Captioner.EmbedFile).ConfigureAwait(false),
+                    await Open(CaptionModelId, Florence2Captioner.EncoderFile).ConfigureAwait(false),
+                    await Open(CaptionModelId, Florence2Captioner.DecoderFile).ConfigureAwait(false),
+                    ByteLevelDecoder.Load(Models.Resolve(CaptionModelId, Florence2Captioner.TokenizerFile).FilePath), operations)
+                : null;
+            _components = new AnalysisComponents(operations, objects, faces, embedder, fingerprints, tagger, textReader, captioner);
             return _components;
         }
         finally

@@ -227,6 +227,10 @@ public sealed partial class PeopleViewModel : PageViewModel
     [ObservableProperty]
     private bool _isKeyLocked;
 
+    /// <summary>The catalog came without fingerprints (export without password, spec §9): they are to recompute.</summary>
+    [ObservableProperty]
+    private bool _needsFingerprints;
+
     [ObservableProperty]
     private string _password = string.Empty;
 
@@ -243,6 +247,8 @@ public sealed partial class PeopleViewModel : PageViewModel
     {
         var catalog = _host.Catalog;
         IsKeyLocked = _host.FingerprintKeys.State == FingerprintKeyState.Locked;
+        var (withKeypoints, withFingerprint) = await catalog.People.CountFingerprintsAsync(CancellationToken.None);
+        NeedsFingerprints = !IsKeyLocked && withKeypoints > 0 && withFingerprint == 0 && _host.DescribeAnalysis().FaceRecognizer is not null;
         var summaries = await catalog.People.ListPersonsAsync(CancellationToken.None);
         var lastJob = (await catalog.Jobs.ListRecentAsync(1, CancellationToken.None)).FirstOrDefault();
         var lastAssets = lastJob is null ? [] : (await catalog.Jobs.GetItemsAsync(lastJob.Id, CancellationToken.None)).Where(i => i.AssetId is not null).Select(i => i.AssetId!.Value).ToHashSet();
@@ -521,6 +527,7 @@ public sealed partial class PeopleViewModel : PageViewModel
             var (recomputed, missing) = await Task.Run(() => _host.RecomputeFingerprintsAsync(null, null, CancellationToken.None));
             Message = Strings.Format("People.Key.Recomputed", recomputed, missing);
             IsKeyLocked = false;
+            NeedsFingerprints = false;
         }
         catch (Exception e) when (e is InvalidOperationException or IOException)
         {

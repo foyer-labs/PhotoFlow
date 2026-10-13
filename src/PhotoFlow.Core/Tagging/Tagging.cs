@@ -43,6 +43,9 @@ public enum TagLevels
     /// <summary>B: RAM++.</summary>
     Tagger = 2,
 
+    /// <summary>C: Florence-2 captions (optional, spec §5).</summary>
+    Caption = 4,
+
     Default = ZeroShot | Tagger,
 }
 
@@ -59,3 +62,15 @@ public interface ITextReader
 
 /// <param name="Box">Normalized to the image read.</param>
 public sealed record TextReading(BoundingBox Box, string Text, double Confidence);
+
+/// <summary>Captions of level C/D (spec §8): one sentence or paragraph describing the image, in English for Florence-2.</summary>
+public interface IImageCaptioner
+{
+    /// <summary>Recorded with every caption it produces (CLAUDE.md §4).</summary>
+    string ModelVersion { get; }
+
+    /// <summary>Language of the captions (BCP 47, "en" for Florence-2).</summary>
+    string Language { get; }
+
+    Task<string> CaptionAsync(RgbImage image, CancellationToken ct);
+}

@@ -42,6 +42,18 @@ public sealed record AppSettings
 
     /// <summary>Last in-app benchmark (board 5f), shown in the settings and used for the estimates.</summary>
     public BenchmarkResult? Benchmark { get; init; }
+
+    public XmpSettings Xmp { get; init; } = new();
+
+    /// <summary>The model chosen by the user for a function, among the installed ones (spec §5); missing: the default.</summary>
+    public IReadOnlyDictionary<string, string> ModelChoices { get; init; } = new Dictionary<string, string>();
+}
+
+/// <summary>XMP preferences (spec §4, §8, board 5h).</summary>
+public sealed record XmpSettings
+{
+    /// <summary>Captions written in <c>dc:description</c> (spec §8: optional, off by default).</summary>
+    public bool WriteCaptions { get; init; }
 }
 
 public enum ThemePreference

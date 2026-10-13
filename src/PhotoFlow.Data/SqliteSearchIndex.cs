@@ -232,7 +232,8 @@ internal sealed class SqliteSearchIndex(SqliteCatalog catalog) : ISearchIndex
                IFNULL((SELECT group_concat(IFNULL((SELECT group_concat(j.value, ' ') FROM json_each(e.DriversJson) j), '') || ' ' || IFNULL(e.Team, '') || ' ' || IFNULL(e.Car, ''), ' ')
                        FROM VehicleNumbers v JOIN JobItems ji ON ji.AssetId = v.AssetId JOIN JobEntryLists jl ON jl.JobId = ji.JobId
                        JOIN Entries e ON e.ListId = jl.ListId AND e.Number = v.Number
-                       WHERE v.AssetId = a.Id AND v.State = 'Certain'), '')
+                       WHERE v.AssetId = a.Id AND v.State = 'Certain'), '') || ' ' ||
+               IFNULL((SELECT group_concat(cp.Text, ' ') FROM Captions cp WHERE cp.AssetId = a.Id), '')
         FROM Assets a
         WHERE a.State = 'Active' AND NOT EXISTS (SELECT 1 FROM AssetPairs p WHERE p.RawAssetId = a.Id) AND {0};
         """;

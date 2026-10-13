@@ -31,6 +31,10 @@ public interface ICatalog : IAsyncDisposable
 
     IMotorsportStore Motorsport { get; }
 
+    ICaptionStore Captions { get; }
+
+    IReanalysisStore Reanalysis { get; }
+
     /// <summary>Search over the photos of the catalog (spec §3: only through this interface).</summary>
     Search.ISearchIndex Search { get; }
 
@@ -57,6 +61,9 @@ public interface ILibraryStore
 
     /// <summary>XMP policy and read-only flag (D21: the caller confirms a switch to embedded XMP).</summary>
     Task UpdatePolicyAsync(long libraryId, Metadata.WritePolicy policy, bool isReadOnly, CancellationToken ct);
+
+    /// <summary>The library moved (catalog imported on another PC, spec §9): its photos are found under the new root.</summary>
+    Task UpdateRootAsync(long libraryId, string rootPath, CancellationToken ct);
 }
 
 public interface IAssetStore
@@ -90,6 +97,9 @@ public interface IAssetStore
 
     /// <summary>Assets of a library still without the full hash (computed in background, spec §10).</summary>
     Task<IReadOnlyList<(long AssetId, string RelativePath)>> ListWithoutFullHashAsync(long libraryId, int limit, CancellationToken ct);
+
+    /// <summary>The active photos of a library, optionally under a folder (relative path prefix).</summary>
+    Task<IReadOnlyList<(long AssetId, string RelativePath)>> ListInLibraryAsync(long libraryId, string? folder, CancellationToken ct);
 
     Task SetFullHashAsync(long assetId, string fullHash, CancellationToken ct);
 }
@@ -148,6 +158,16 @@ public interface IXmpSyncStore
     Task MarkWrittenAsync(long assetId, string signature, CancellationToken ct, IReadOnlyList<string>? flatKeywords = null, IReadOnlyList<string>? hierarchicalKeywords = null);
 
     Task<IReadOnlyList<long>> ListPendingAsync(CancellationToken ct);
+
+    /// <summary>The state and content of the XMP file after a write or a sync (base of the next sync).</summary>
+    Task RecordFileAsync(long assetId, string? fileStampJson, string snapshotJson, CancellationToken ct);
+
+    /// <summary>Assets with a recorded XMP state (the ones a sync looks at).</summary>
+    Task<IReadOnlyList<long>> ListRecordedAsync(CancellationToken ct);
+
+    Task AddLogAsync(IReadOnlyList<XmpSyncLogEntry> entries, CancellationToken ct);
+
+    Task<IReadOnlyList<XmpSyncLogEntry>> ListLogAsync(long? assetId, CancellationToken ct);
 }
 
 /// <summary>Persistent queue of copies to deferred destinations (NAS), retried until verified.</summary>
@@ -175,6 +195,15 @@ public interface IAnalysisStore
 
     /// <summary>Replaces the automatically detected faces of the asset; faces with a manual assignment are kept.</summary>
     Task ReplaceAutomaticFacesAsync(long assetId, IReadOnlyList<Face> faces, CancellationToken ct);
+
+    /// <summary>
+    /// Replaces all the faces of a photo in one transaction (new face model, spec §5): <paramref name="faces"/> are
+    /// inserted as given (with the person they take over), <paramref name="keep"/> stay, every other face goes; covers
+    /// follow <paramref name="replaces"/> (index of a new face → the old face it takes over); prototypes of removed faces
+    /// go (to rebuild). Returns the ids of the new faces, in order.
+    /// </summary>
+    Task<IReadOnlyList<long>> ReplaceFacesAsync(long assetId, IReadOnlyList<Face> faces, IReadOnlyCollection<long> keep,
+        IReadOnlyDictionary<int, long> replaces, CancellationToken ct);
 
     Task<IReadOnlyList<Face>> GetFacesAsync(long assetId, CancellationToken ct);
 
@@ -223,6 +252,12 @@ public interface IPeopleStore
 
     /// <summary>Faces with a fingerprint, no person and no manual decision, captured in <paramref name="year"/> (null: unknown date).</summary>
     Task<IReadOnlyList<FaceFingerprint>> ListUnassignedFingerprintsAsync(int? year, CancellationToken ct);
+
+    /// <summary>Faces that can have a fingerprint (with keypoints) and those that have one.</summary>
+    Task<(int WithKeypoints, int WithFingerprint)> CountFingerprintsAsync(CancellationToken ct);
+
+    /// <summary>Every face with a fingerprint (export of the catalog: encrypted again with another key).</summary>
+    Task<IReadOnlyList<FaceFingerprint>> ListAllFingerprintsAsync(CancellationToken ct);
 
     Task<IReadOnlyList<PersonPrototype>> ListPrototypesAsync(CancellationToken ct);
 
@@ -345,6 +380,34 @@ public interface IDuplicateStore
 }
 
 /// <summary>Entry lists, OCR readings and race numbers (spec §8, §9).</summary>
+/// <summary>The results of a regeneration waiting for the user's confirmation (spec §5).</summary>
+public interface IReanalysisStore
+{
+    Task StageAsync(long jobId, long assetId, Pipeline.ReanalysisParts part, string payloadJson, CancellationToken ct);
+
+    Task<IReadOnlyList<(long AssetId, Pipeline.ReanalysisParts Part, string PayloadJson)>> ListAsync(long jobId, CancellationToken ct);
+
+    Task<int> CountAsync(long jobId, CancellationToken ct);
+
+    /// <summary>Removes the staged results of a job (applied or discarded).</summary>
+    Task ClearAsync(long jobId, CancellationToken ct);
+}
+
+/// <summary>Captions (spec §8, levels C/D): one per photo and language; the user's are never replaced (I5).</summary>
+public interface ICaptionStore
+{
+    /// <summary>Saves an automatic caption; false (nothing written) when the user wrote or cleared the caption.</summary>
+    Task<bool> SetAutomaticAsync(long assetId, string language, string text, string modelVersion, CancellationToken ct);
+
+    /// <summary>The user's caption (an empty text clears it for good).</summary>
+    Task SetManualAsync(long assetId, string language, string text, CancellationToken ct);
+
+    /// <summary>The caption of a photo (the user's first, then the most recent).</summary>
+    Task<Caption?> GetAsync(long assetId, CancellationToken ct);
+
+    Task<IReadOnlyDictionary<long, Caption>> GetForAssetsAsync(IReadOnlyList<long> assetIds, CancellationToken ct);
+}
+
 public interface IMotorsportStore
 {
     Task<long> CreateListAsync(string name, string? sourceFile, CancellationToken ct);

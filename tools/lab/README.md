@@ -26,6 +26,8 @@ uv sync --extra ram     # + original RAM++ (PyTorch) for verify_ramplus.py
 | `parity_refs.py --images <dir>` | Parity references from the original PyTorch D-FINE (input tensor, raw outputs, official detections) + first ONNX check | `parity/dfine-{s,m}/` |
 | `benchmark.py --photos <dir>` | Per-stage timings on CUDA and CPU (preview, D-FINE S/M, faces, CLIP, RAM++) and estimate for 1,000 photos | `lab/benchmark/<timestamp>/` |
 | `verify_ramplus.py --images <dir>` | Community RAM++ int8 ONNX vs original PyTorch RAM++: probabilities and tag sets | `lab/ramplus/<timestamp>/` |
+| `florence_refs.py --photos <dir>` | Florence-2 caption references from the original PyTorch model (native transformers, run with `uv run --with "transformers==4.57.1"`): input tensor, generated token ids, caption | `parity/florence/` |
+| `export_florence_vision.py` | Export of the Florence-2 vision encoder from the original weights (the onnx-community one does not match), checked against PyTorch; run like `florence_refs.py` | `models/florence2-base-ft/vision_encoder_pf.onnx` |
 
 `exiftool` for the benchmark is downloaded once (13.59, SHA-256 verified) into `tools/`.
 

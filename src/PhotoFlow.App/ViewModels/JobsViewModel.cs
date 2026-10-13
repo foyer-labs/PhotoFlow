@@ -191,7 +191,14 @@ public sealed partial class JobsViewModel : PageViewModel, IDisposable
     {
         if (Selected is { } job)
         {
-            _navigator.OpenReview(job.Job.Id);
+            if (job.Job.Type == JobType.Reanalyze)
+            {
+                _navigator.ShowPage(new RegenerationViewModel(_host, _navigator, reanalysisJobId: job.Job.Id));
+            }
+            else
+            {
+                _navigator.OpenReview(job.Job.Id);
+            }
         }
     }
 

@@ -56,6 +56,18 @@ public sealed partial class ModelRowViewModel(ModelInfo model, bool available) :
     [ObservableProperty]
     private string? _verification;
 
+    /// <summary>The model the analysis uses now for its function.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanUse))]
+    private bool _isInUse;
+
+    /// <summary>Another installed model of a function with alternatives (detection, faces) can replace the one in use.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanUse))]
+    private bool _hasAlternative;
+
+    public bool CanUse => IsInstalled && HasAlternative && !IsInUse;
+
     public string Status => !IsAvailable
         ? Strings.Format("Settings.ComesWithPhase", Model.Phase.ToString(CultureInfo.InvariantCulture))
         : Verification ?? Strings.Get(IsInstalled ? "Models.Status.Installed" : "Models.Status.NotDownloaded");
@@ -72,6 +84,24 @@ public enum SettingsPick
     OfflinePackage,
     ExifTool,
     Editor,
+    ExportCatalog,
+    ImportCatalog,
+    ImportRoot,
+}
+
+/// <summary>A library of a catalog to import, with the folder where its photos are now (spec §9: remapping).</summary>
+public sealed partial class ImportLibraryRow(PackageLibrary library) : ObservableObject
+{
+    public PackageLibrary Library { get; } = library;
+
+    public string Title => $"{Library.Name} · {Library.Assets.ToString("N0", CultureInfo.CurrentCulture)}";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Found))]
+    private string _newRoot = library.RootPath;
+
+    /// <summary>"✓" when the folder exists here, "?" otherwise.</summary>
+    public string Found => Directory.Exists(NewRoot) ? "✓" : "?";
 }
 
 /// <summary>
@@ -302,7 +332,6 @@ public sealed partial class SettingsViewModel : PageViewModel
                 stage.PeakVramBytes is { } vram ? Formats.Bytes(vram) : "—"));
         }
 
-        BenchmarkRows.Add(new BenchmarkRow(Strings.Get("Settings.Benchmark.Stage.Captions"), Strings.Get("Common.ComesWithPhase5"), "—", "—"));
         BenchmarkTitle = Strings.Format("Settings.Benchmark.Title", result.Photos, result.At.ToLocalTime().ToString("d MMM yyyy", CultureInfo.CurrentCulture), result.Backend);
         var archive = 0;
         foreach (var library in await _host.Catalog.Libraries.ListAsync(CancellationToken.None))
@@ -447,11 +476,20 @@ public sealed partial class SettingsViewModel : PageViewModel
                 row.LicenseAccepted = _host.Settings.AcceptedModelLicenses.Contains(row.Model.Id);
             }
 
+            UpdateModelsInUse();
+
             var installedBytes = Models.Where(m => m.IsInstalled).Sum(m => m.Model.DownloadBytes);
             ModelsFolderText = Strings.Format("Settings.Models.Folder", Formats.Bytes(installedBytes), _host.Paths.ModelsDirectory);
 
             await RefreshCatalogAsync();
             await RefreshCullingAsync();
+            if (_host.PendingCatalogImport is { } package)
+            {
+                _host.PendingCatalogImport = null;
+                SelectedTab = CatalogTab;
+                await LoadPackageAsync(package);
+            }
+
             await ShowBenchmarkAsync(_host.Settings.Benchmark);
             OnPropertyChanged(nameof(EncryptionState));
             await CheckExifToolAsync();
@@ -636,6 +674,238 @@ public sealed partial class SettingsViewModel : PageViewModel
     // Editor for "Apri in Photoshop" (board 4d, Ctrl E)
 
     public string EditorText => _host.Settings.PhotoshopPath ?? Strings.Get("Settings.Editor.None");
+
+    [ObservableProperty]
+    private string? _xmpSyncText;
+
+    /// <summary>Navigation to the regeneration after a change of model (set by the shell).</summary>
+    public IShellNavigator? Navigator { get; set; }
+
+    private void UpdateModelsInUse()
+    {
+        var setup = _host.DescribeAnalysis();
+        var inUse = new HashSet<string?>(StringComparer.Ordinal) { setup.ObjectDetector, setup.FaceDetector, setup.FaceRecognizer };
+        foreach (var row in Models)
+        {
+            row.IsInUse = inUse.Contains(row.Model.Id);
+            row.HasAlternative = row.Model.Function is ModelFunction.ObjectDetection
+                || (row.Model.Function == ModelFunction.Faces && row.Model.Id != PhotoFlowHost.SFaceModelId
+                    && (row.Model.Id != "insightface-buffalo-l" || _host.Settings.AcceptedModelLicenses.Contains(row.Model.Id)));
+        }
+    }
+
+    /// <summary>
+    /// "Usa questo modello" (board 5g): the model replaces the one in use; then the regeneration, with a trial on a
+    /// sample and the preview of the differences before anything changes (manual tags and decisions never touched).
+    /// </summary>
+    [RelayCommand]
+    private async Task UseModelAsync(ModelRowViewModel? row)
+    {
+        if (row is null || !row.CanUse)
+        {
+            return;
+        }
+
+        var loaded = await _host.ChooseModelAsync(row.Model.Function, row.Model.Id, CancellationToken.None);
+        UpdateModelsInUse();
+        var parts = row.Model.Function == ModelFunction.Faces ? ReanalysisParts.Faces | ReanalysisParts.Culling : ReanalysisParts.Culling | ReanalysisParts.Faces;
+        var note = Strings.Format(loaded ? "Regeneration.NewModel" : "Regeneration.NewModelAtRestart", row.Name);
+        if (Navigator is not null && loaded)
+        {
+            Navigator.ShowPage(new RegenerationViewModel(_host, Navigator, libraryId: (await _host.Catalog.Libraries.ListAsync(CancellationToken.None)).FirstOrDefault()?.Id,
+                parts: parts, note: note));
+        }
+        else
+        {
+            row.Verification = note;
+        }
+    }
+
+    // --- Export / import of the catalog (spec §9, board 5h) ---
+
+    [ObservableProperty]
+    private bool _exportThumbnails = true;
+
+    [ObservableProperty]
+    private bool _exportFingerprints;
+
+    [ObservableProperty]
+    private string? _exportPassword;
+
+    [ObservableProperty]
+    private string? _exportConfirm;
+
+    [ObservableProperty]
+    private string? _packageText;
+
+    public ObservableCollection<ImportLibraryRow> ImportLibraries { get; } = [];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsImporting))]
+    private string? _importPath;
+
+    public bool IsImporting => ImportPath is not null;
+
+    [ObservableProperty]
+    private bool _importNeedsPassword;
+
+    [ObservableProperty]
+    private string? _importPassword;
+
+    private ImportLibraryRow? _rootRow;
+
+    [RelayCommand]
+    private void RequestExport()
+    {
+        if (ExportFingerprints && (string.IsNullOrEmpty(ExportPassword) || ExportPassword != ExportConfirm))
+        {
+            PackageText = Strings.Get(string.IsNullOrEmpty(ExportPassword) ? "Settings.Catalog.ExportPasswordMissing" : "Settings.Encryption.Mismatch");
+            return;
+        }
+
+        PickRequested?.Invoke(this, SettingsPick.ExportCatalog);
+    }
+
+    /// <summary>The file name proposed for an export.</summary>
+    public static string ExportFileName => $"PhotoFlow-{DateTime.Now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}{CatalogPackage.Extension}";
+
+    public async Task ExportCatalogAsync(string path)
+    {
+        IsBusy = true;
+        PackageText = Strings.Get("Settings.Catalog.Exporting");
+        try
+        {
+            var summary = await Task.Run(() => _host.ExportCatalogAsync(path, new CatalogExportOptions(ExportThumbnails, ExportFingerprints ? ExportPassword : null), CancellationToken.None));
+            PackageText = Strings.Format("Settings.Catalog.Exported", Path.GetFileName(path), summary.Assets.ToString("N0", CultureInfo.CurrentCulture),
+                summary.Fingerprints.ToString("N0", CultureInfo.CurrentCulture), Formats.Bytes(summary.Bytes));
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            PackageText = Strings.Format("Settings.Catalog.ExportFailed", e.Message);
+        }
+        finally
+        {
+            ExportPassword = ExportConfirm = null;
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
+    private void RequestImport() => PickRequested?.Invoke(this, SettingsPick.ImportCatalog);
+
+    /// <summary>Reads the description of a .pfcatalog: its libraries to remap, whether it holds fingerprints.</summary>
+    public async Task LoadPackageAsync(string path)
+    {
+        try
+        {
+            var manifest = await Task.Run(() => CatalogPackage.ReadManifest(path));
+            ImportLibraries.Clear();
+            foreach (var library in manifest.Libraries)
+            {
+                ImportLibraries.Add(new ImportLibraryRow(library));
+            }
+
+            ImportNeedsPassword = manifest.HasFingerprints;
+            ImportPath = path;
+            PackageText = Strings.Format("Settings.Catalog.ImportReady", Path.GetFileName(path), manifest.CreatedAt.ToLocalTime().ToString("d MMM yyyy", CultureInfo.CurrentCulture));
+        }
+        catch (CatalogPackageException e)
+        {
+            ImportPath = null;
+            PackageText = e.Message;
+        }
+    }
+
+    [RelayCommand]
+    private void ChooseRoot(ImportLibraryRow? row)
+    {
+        _rootRow = row;
+        if (row is not null)
+        {
+            PickRequested?.Invoke(this, SettingsPick.ImportRoot);
+        }
+    }
+
+    public void UseRoot(string folder)
+    {
+        if (_rootRow is not null)
+        {
+            _rootRow.NewRoot = folder;
+        }
+    }
+
+    [RelayCommand]
+    private void CancelImport()
+    {
+        ImportPath = null;
+        ImportLibraries.Clear();
+        PackageText = null;
+    }
+
+    /// <summary>Prepares the import: it replaces the current catalog at the next start (the current one is kept).</summary>
+    [RelayCommand]
+    private async Task ConfirmImportAsync()
+    {
+        if (ImportPath is not { } path)
+        {
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            var roots = ImportLibraries.Where(r => r.NewRoot != r.Library.RootPath).ToDictionary(r => r.Library.Id, r => r.NewRoot);
+            await Task.Run(() => _host.ImportCatalogAsync(path, roots, ImportNeedsPassword ? ImportPassword : null, CancellationToken.None));
+            ImportPath = null;
+            ImportLibraries.Clear();
+            PackageText = Strings.Get(ImportNeedsPassword && string.IsNullOrEmpty(ImportPassword) ? "Settings.Catalog.ImportedNoFingerprints" : "Settings.Catalog.Imported");
+            UpdatePendingRestore();
+        }
+        catch (Exception e) when (e is CatalogPackageException or IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            PackageText = e.Message;
+        }
+        finally
+        {
+            ImportPassword = null;
+            IsBusy = false;
+        }
+    }
+
+    /// <summary>"Sincronizza ora": imports the XMP changes made by other programs (spec §4).</summary>
+    [RelayCommand]
+    private async Task SyncXmpAsync()
+    {
+        XmpSyncText = Strings.Get("Settings.Xmp.Syncing");
+        var report = await Task.Run(() => _host.SyncExternalXmpAsync(null, CancellationToken.None));
+        XmpSyncText = report is null
+            ? Strings.Get("Settings.Xmp.SyncFailed")
+            : Strings.Format("Settings.Xmp.SyncResult", report.Read.ToString("N0", CultureInfo.CurrentCulture), report.Changed.ToString("N0", CultureInfo.CurrentCulture),
+                report.Log.Count(l => l.Winner == Core.Catalog.XmpSyncWinner.Catalog).ToString("N0", CultureInfo.CurrentCulture),
+                report.Log.Count(l => l.Field == "region").ToString("N0", CultureInfo.CurrentCulture));
+    }
+
+    /// <summary>Face regions named by other programs → people of the gallery (spec §4).</summary>
+    [RelayCommand]
+    private async Task ImportNamedRegionsAsync()
+    {
+        var (people, faces) = await Task.Run(() => _host.CreateXmpSync().ImportNamedRegionsAsync(CancellationToken.None));
+        XmpSyncText = Strings.Format("Settings.Xmp.PeopleImported", people.ToString(CultureInfo.CurrentCulture), faces.ToString(CultureInfo.CurrentCulture));
+    }
+
+    /// <summary>Captions in <c>dc:description</c> (spec §8, off by default); applies to the next XMP writes.</summary>
+    public bool WriteCaptions
+    {
+        get => _host.Settings.Xmp.WriteCaptions;
+        set
+        {
+            if (value != _host.Settings.Xmp.WriteCaptions)
+            {
+                _ = _host.UpdateSettingsAsync(s => s with { Xmp = s.Xmp with { WriteCaptions = value } }, CancellationToken.None);
+                OnPropertyChanged();
+            }
+        }
+    }
 
     [RelayCommand]
     private void RequestEditor() => PickRequested?.Invoke(this, SettingsPick.Editor);

@@ -229,6 +229,9 @@ public sealed record Decision(
 {
     /// <summary>The user's decision when present, otherwise the automatic proposal (invariant I5).</summary>
     public CullingOutcome? EffectiveOutcome => UserOutcome ?? AutomaticOutcome;
+
+    /// <summary>When the user last changed outcome, rating or label (conflicts with other programs: the most recent wins).</summary>
+    public DateTimeOffset? UserUpdatedAt { get; init; }
 }
 
 /// <summary>Culling outcomes of spec §6.</summary>
@@ -423,7 +426,16 @@ public sealed record FaceFingerprint(long FaceId, long AssetId, int? Year, byte[
 
 // --- Text ---
 
-public sealed record Caption(long Id, long AssetId, string Language, string Text, string ModelVersion);
+public enum CaptionOrigin
+{
+    Automatic,
+
+    /// <summary>Written by the user (or imported from another program): never replaced by an analysis (I5).</summary>
+    Manual,
+}
+
+/// <param name="ModelVersion">Model that wrote an automatic caption; null for the user's.</param>
+public sealed record Caption(long AssetId, string Language, string Text, string? ModelVersion, CaptionOrigin Origin, DateTimeOffset UpdatedAt);
 
 public sealed record OcrResult(long Id, long AssetId, BoundingBox Box, string Text, double Confidence, string ModelVersion);
 
@@ -438,8 +450,26 @@ public sealed record EntryListItem(
 
 // --- Sync and system ---
 
+public enum XmpSyncWinner
+{
+    /// <summary>The change made by the other program was imported.</summary>
+    External,
+
+    /// <summary>PhotoFlow's value was kept (more recent, or a manual tag that is never removed).</summary>
+    Catalog,
+}
+
+/// <summary>A change found in the XMP of a photo and what was done with it (spec §4: "con log").</summary>
+public sealed record XmpSyncLogEntry(long AssetId, DateTimeOffset At, string Field, string? Value, XmpSyncWinner Winner, string? Note);
+
 public sealed record XmpSyncState(long AssetId, DateTimeOffset? LastWrittenAt, string? XmpSignature, bool WritePending, string? LastError)
 {
+    /// <summary>State of the file holding the XMP after the last write or sync (JSON of <c>XmpFileStamp</c>).</summary>
+    public string? FileStampJson { get; init; }
+
+    /// <summary>What the file contained then (JSON of <c>XmpSnapshot</c>): the base to see what others changed.</summary>
+    public string? SnapshotJson { get; init; }
+
     /// <summary>Keywords written by PhotoFlow at the last write (flat, then hierarchical).</summary>
     public IReadOnlyList<string> WrittenFlat { get; init; } = [];
 

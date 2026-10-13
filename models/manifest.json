@@ -270,6 +270,61 @@
       ],
       "io": "det x [1,3,H,W] (multiples of 32, min side 736, (x/255-0.5)/0.5) -> probability map [1,1,H,W]; rec x [1,3,48,W<=320] -> softmax [1,T,97] (blank + 96 characters).",
       "notes": "Decision F4-1 (13 Oct 2026): C# adapters with antialiased resizing and simple DB post-processing; parity with tools/lab/ocr_refs.py on 25 real photos: identical inputs, maps, boxes and texts (OcrParityTests)."
+    },
+    {
+      "id": "florence2-base-ft",
+      "function": "Caption",
+      "name": "Florence-2 base-ft: our vision encoder export + onnx-community text encoder and decoder",
+      "version": "microsoft/Florence-2-base-ft weights; onnx-community@e88a44e; vision export pf-1",
+      "phase": 5,
+      "defaultFor": "any",
+      "adapter": "florence2-v1",
+      "license": {
+        "spdx": "MIT",
+        "source": "https://huggingface.co/microsoft/Florence-2-base-ft",
+        "commercialUse": true,
+        "requiresAcceptance": false,
+        "notes": "Florence-2 (MIT, Microsoft). Text encoder, decoder and tokenizer from the onnx-community conversion (MIT); the vision encoder is exported by tools/lab/export_florence_vision.py from florence-community/Florence-2-base-ft@0b03b6f (MIT) because the onnx-community one does not match the original model."
+      },
+      "files": [
+        {
+          "path": "vision_encoder_pf.onnx",
+          "url": "https://github.com/foyer-labs/PhotoFlow/releases/download/models-florence2-base-ft-1/vision_encoder_pf.onnx",
+          "sha256": "2c540dbac548e04622710c8dad78e98151f67ace5e55f7512b710b1ceff23669",
+          "size": 366351788,
+          "mirrors": []
+        },
+        {
+          "path": "embed_tokens.onnx",
+          "url": "https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/e88a44eaf3791a35eae0c5a47b3dbcd36e67eb6f/onnx/embed_tokens.onnx",
+          "sha256": "90cae3deb6406938c676a35b5246db02b478c9cc8cf93508361be80c05babf95",
+          "size": 157560044,
+          "mirrors": []
+        },
+        {
+          "path": "encoder_model.onnx",
+          "url": "https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/e88a44eaf3791a35eae0c5a47b3dbcd36e67eb6f/onnx/encoder_model.onnx",
+          "sha256": "cb0bccc232c64290397f5e1235eb3e1fa6ccf8c5afed9216480ee4eed80737fc",
+          "size": 173380723,
+          "mirrors": []
+        },
+        {
+          "path": "decoder_model_merged.onnx",
+          "url": "https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/e88a44eaf3791a35eae0c5a47b3dbcd36e67eb6f/onnx/decoder_model_merged.onnx",
+          "sha256": "5207affad8815294233b8679ee9ecb614906f819a1890d95a01b9ca68c392a79",
+          "size": 388421753,
+          "mirrors": []
+        },
+        {
+          "path": "tokenizer.json",
+          "url": "https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/e88a44eaf3791a35eae0c5a47b3dbcd36e67eb6f/tokenizer.json",
+          "sha256": "d69dcdb2323e124ac4f800cb9863ddccea0d7bb11e16125e8df3bd60f2f8aeac",
+          "size": 2297961,
+          "mirrors": []
+        }
+      ],
+      "io": "vision pixel_values [1,3,768,768] (bicubic, ImageNet mean/std) -> image_features [1,577,768]; embed_tokens input_ids -> [B,L,768]; encoder (attention_mask, inputs_embeds [1,577+13,768]) -> last_hidden_state; decoder_model_merged with past_key_values.* and use_cache_branch -> logits [B,1,51289].",
+      "notes": "Decision F5-1 (13 Oct 2026): task <DETAILED_CAPTION>, beam search 3 as transformers' generate; parity with the original PyTorch model (tools/lab/florence_refs.py) on 24 real photos: identical token ids and captions on CPU and CUDA (CaptionParityTests). The vision encoder file is published as a GitHub release asset of this repository (models-florence2-base-ft-1)."
     }
   ]
 }

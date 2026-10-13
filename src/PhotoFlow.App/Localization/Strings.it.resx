@@ -33,7 +33,6 @@
   <data name="Common.Browse" xml:space="preserve"><value>Sfoglia…</value></data>
   <data name="Common.Cancel" xml:space="preserve"><value>Annulla</value></data>
   <data name="Common.Next" xml:space="preserve"><value>Avanti</value></data>
-  <data name="Common.ComesWithPhase5" xml:space="preserve"><value>Arriva con la fase 5</value></data>
   <data name="Page.ComesWithPhase" xml:space="preserve"><value>Questa sezione arriva con la fase {0}.</value></data>
   <data name="Duration.UnderMinute" xml:space="preserve"><value>&lt; 1 min</value></data>
   <data name="Duration.Minutes" xml:space="preserve"><value>~{0} min</value></data>
@@ -303,7 +302,6 @@
   <data name="Settings.Tab.Catalog" xml:space="preserve"><value>Catalogo</value></data>
   <data name="Settings.Tab.General" xml:space="preserve"><value>Generali</value></data>
   <data name="Settings.Tab.Culling" xml:space="preserve"><value>Culling</value></data>
-  <data name="Settings.Phase5" xml:space="preserve"><value>Arriva con la fase 5</value></data>
   <data name="Settings.Hardware.Execution" xml:space="preserve"><value>Esecuzione dei modelli</value></data>
   <data name="Settings.Hardware.Cuda" xml:space="preserve"><value>CUDA · GPU NVIDIA in uso</value></data>
   <data name="Settings.Hardware.CudaMissing" xml:space="preserve"><value>GPU NVIDIA rilevata · pacchetto GPU non installato: i modelli girano sulla CPU</value></data>
@@ -834,4 +832,91 @@
   <data name="Import.EntryList.None" xml:space="preserve"><value>Nessun elenco (solo letture nitide)</value></data>
   <data name="Import.EntryList.Item" xml:space="preserve"><value>{0} · {1} vetture</value></data>
   <data name="Import.EntryList.Note" xml:space="preserve"><value>Vengono riconosciuti solo i numeri in elenco; sponsor e targhe sono ignorati. Si può cambiare dopo nella vista Numeri.</value></data>
+  <data name="Import.Tags.CNoModel" xml:space="preserve"><value>Le didascalie richiedono il modello Florence-2 (Impostazioni › Modelli); circa un secondo per foto con la GPU, qualche secondo su CPU.</value></data>
+  <data name="Import.Tags.DUnavailable" xml:space="preserve"><value>Non disponibile: i VLM utilizzabili qui sono solo per uso non commerciale oppure richiedono un runtime separato senza test di parità (vedi la specifica, decisione F5-2).</value></data>
+  <data name="Settings.Xmp" xml:space="preserve"><value>XMP</value></data>
+  <data name="Settings.Xmp.WriteCaptions" xml:space="preserve"><value>Scrivi le didascalie in dc:description</value></data>
+  <data name="Settings.Xmp.WriteCaptionsNote" xml:space="preserve"><value>Le didascalie di Florence-2 sono in inglese. Anche quelle scritte da te vengono scritte.</value></data>
+  <data name="Browse.Command.Caption" xml:space="preserve"><value>didascalia</value></data>
+  <data name="Browse.Detail.Caption" xml:space="preserve"><value>Didascalia</value></data>
+  <data name="Browse.Caption.Edit" xml:space="preserve"><value>Modifica</value></data>
+  <data name="Browse.Caption.Yours" xml:space="preserve"><value>Scritta da te</value></data>
+  <data name="Browse.Caption.Automatic" xml:space="preserve"><value>Automatica · {0}</value></data>
+  <data name="Browse.Caption.Placeholder" xml:space="preserve"><value>Descrivi la foto; Invio salva, Esc annulla</value></data>
+  <data name="Settings.Xmp.SyncNote" xml:space="preserve"><value>Quando un altro programma (Bridge, Lightroom) cambia rating, etichetta, parole chiave o descrizione di una foto scritta da PhotoFlow, le modifiche vengono importate come tue all'avvio e prima di ogni scrittura. Su rating ed etichetta vince la modifica più recente.</value></data>
+  <data name="Settings.Xmp.SyncNow" xml:space="preserve"><value>Sincronizza ora</value></data>
+  <data name="Settings.Xmp.ImportPeople" xml:space="preserve"><value>Importa le persone nominate da altri programmi</value></data>
+  <data name="Settings.Xmp.Syncing" xml:space="preserve"><value>Lettura degli XMP cambiati da altri programmi…</value></data>
+  <data name="Settings.Xmp.SyncFailed" xml:space="preserve"><value>La sincronizzazione non è riuscita: vedi il log.</value></data>
+  <data name="Settings.Xmp.SyncResult" xml:space="preserve"><value>{0} file cambiati da altri programmi, {1} foto aggiornate; {2} valori tenuti da PhotoFlow (più recenti o tag manuali); {3} regioni volto nominate altrove.</value></data>
+  <data name="Settings.Xmp.PeopleImported" xml:space="preserve"><value>{0} persone create, {1} volti assegnati dalle regioni nominate da altri programmi.</value></data>
+  <data name="Settings.Catalog.ExportNote" xml:space="preserve"><value>Un file .pfcatalog con database, galleria persone, librerie e i tuoi profili; su un altro PC si importa rimappando le cartelle delle librerie.</value></data>
+  <data name="Settings.Catalog.ExportThumbnails" xml:space="preserve"><value>Includi le miniature (altrimenti si rifanno dalle foto)</value></data>
+  <data name="Settings.Catalog.ExportFingerprints" xml:space="preserve"><value>Includi le impronte dei volti (cifrate con una password di esportazione)</value></data>
+  <data name="Settings.Catalog.ExportFingerprintsNote" xml:space="preserve"><value>Senza, nomi e assegnazioni viaggiano e le impronte si ricalcolano sull'altro PC.</value></data>
+  <data name="Settings.Catalog.ExportPassword" xml:space="preserve"><value>Password di esportazione</value></data>
+  <data name="Settings.Catalog.ExportPasswordMissing" xml:space="preserve"><value>Scegli una password per le impronte, oppure non includerle.</value></data>
+  <data name="Settings.Catalog.Exporting" xml:space="preserve"><value>Esportazione del catalogo…</value></data>
+  <data name="Settings.Catalog.Exported" xml:space="preserve"><value>{0}: {1} foto, {2} impronte, {3}.</value></data>
+  <data name="Settings.Catalog.ExportFailed" xml:space="preserve"><value>L'esportazione non è riuscita: {0}</value></data>
+  <data name="Settings.Catalog.FileType" xml:space="preserve"><value>Catalogo PhotoFlow</value></data>
+  <data name="Settings.Catalog.ImportReady" xml:space="preserve"><value>{0}, esportato il {1}: controlla dove sono ora le foto di ogni libreria.</value></data>
+  <data name="Settings.Catalog.ImportRemap" xml:space="preserve"><value>Cartelle delle librerie su questo PC (✓ trovata, ? non trovata)</value></data>
+  <data name="Settings.Catalog.ChooseFolder" xml:space="preserve"><value>Scegli…</value></data>
+  <data name="Settings.Catalog.ImportPassword" xml:space="preserve"><value>Password dell'esportazione</value></data>
+  <data name="Settings.Catalog.ImportNote" xml:space="preserve"><value>Il catalogo importato sostituisce questo al prossimo avvio; questo resta accanto ai backup. Profili e miniature si aggiungono subito.</value></data>
+  <data name="Settings.Catalog.ImportConfirm" xml:space="preserve"><value>Importa</value></data>
+  <data name="Settings.Catalog.Imported" xml:space="preserve"><value>Catalogo pronto: sostituisce quello attuale al prossimo avvio.</value></data>
+  <data name="Settings.Catalog.ImportedNoFingerprints" xml:space="preserve"><value>Catalogo pronto (senza impronte: si ricalcolano): sostituisce quello attuale al prossimo avvio.</value></data>
+  <data name="Libraries.ImportCatalog" xml:space="preserve"><value>Importa catalogo .pfcatalog</value></data>
+  <data name="People.Fingerprints.Missing" xml:space="preserve"><value>Questo catalogo è arrivato senza impronte dei volti (esportato senza password): nomi e assegnazioni ci sono; ricalcola le impronte per riconoscere le persone nelle nuove foto.</value></data>
+  <data name="Browse.Regenerate" xml:space="preserve"><value>Rigenera i risultati…</value></data>
+  <data name="Libraries.Regenerate" xml:space="preserve"><value>Rigenera…</value></data>
+  <data name="Settings.Models.InUse" xml:space="preserve"><value>In uso</value></data>
+  <data name="Settings.Models.Use" xml:space="preserve"><value>Usa questo modello</value></data>
+  <data name="Regeneration.Title" xml:space="preserve"><value>Rigenerazione</value></data>
+  <data name="Regeneration.Intro" xml:space="preserve"><value>Ricalcola con i modelli attuali quello che hanno prodotto modelli più vecchi. Non cambia nulla finché non guardi le differenze e le applichi.</value></data>
+  <data name="Regeneration.NewModel" xml:space="preserve"><value>Nuovo modello in uso: {0}. Provalo su un campione e guarda le differenze prima di rigenerare tutto.</value></data>
+  <data name="Regeneration.NewModelAtRestart" xml:space="preserve"><value>{0} verrà usato dal prossimo avvio (c'è un lavoro in corso).</value></data>
+  <data name="Regeneration.Scope" xml:space="preserve"><value>Perimetro</value></data>
+  <data name="Regeneration.Folder" xml:space="preserve"><value>Cartella (facoltativa, es. 2026/Monza)</value></data>
+  <data name="Regeneration.Scope.Photos" xml:space="preserve"><value>{0} foto scelte</value></data>
+  <data name="Regeneration.Scope.Job" xml:space="preserve"><value>Le foto del lavoro n. {0}</value></data>
+  <data name="Regeneration.What" xml:space="preserve"><value>Cosa</value></data>
+  <data name="Regeneration.Part.Culling" xml:space="preserve"><value>Punteggi di culling</value></data>
+  <data name="Regeneration.Part.Embedding" xml:space="preserve"><value>Embedding (ricerca, simili)</value></data>
+  <data name="Regeneration.Part.Faces" xml:space="preserve"><value>Volti</value></data>
+  <data name="Regeneration.Part.Tags" xml:space="preserve"><value>Tag</value></data>
+  <data name="Regeneration.Part.Captions" xml:space="preserve"><value>Didascalie</value></data>
+  <data name="Regeneration.Part.Ocr" xml:space="preserve"><value>Numeri di gara (OCR)</value></data>
+  <data name="Regeneration.OlderOnly" xml:space="preserve"><value>Solo i risultati di modelli più vecchi</value></data>
+  <data name="Regeneration.OlderOnlyNote" xml:space="preserve"><value>Consigliato: quello che i modelli attuali hanno già prodotto non si ricalcola.</value></data>
+  <data name="Regeneration.ForceAll" xml:space="preserve"><value>Forza tutto</value></data>
+  <data name="Regeneration.ExcludeReviewed" xml:space="preserve"><value>Escludi le foto già revisionate</value></data>
+  <data name="Regeneration.Protections" xml:space="preserve"><value>Le tue decisioni, i tag manuali e rimossi, le tue didascalie e le persone che hai assegnato non cambiano mai. Con un nuovo modello dei volti le assegnazioni passano ai nuovi volti.</value></data>
+  <data name="Regeneration.Sample" xml:space="preserve"><value>Prova su campione (50)</value></data>
+  <data name="Regeneration.Run" xml:space="preserve"><value>Rigenera</value></data>
+  <data name="Regeneration.Command.Sample" xml:space="preserve"><value>campione</value></data>
+  <data name="Regeneration.Command.Run" xml:space="preserve"><value>rigenera</value></data>
+  <data name="Regeneration.Command.Apply" xml:space="preserve"><value>applica</value></data>
+  <data name="Regeneration.Starting" xml:space="preserve"><value>Avvio…</value></data>
+  <data name="Regeneration.Progress" xml:space="preserve"><value>{0} di {1} foto</value></data>
+  <data name="Regeneration.Stopped" xml:space="preserve"><value>La rigenerazione si è fermata: riprendila da Lavori.</value></data>
+  <data name="Regeneration.NothingChosen" xml:space="preserve"><value>Scegli cosa rigenerare e dove.</value></data>
+  <data name="Regeneration.NothingToDo" xml:space="preserve"><value>Niente da rigenerare: tutto viene dai modelli attuali.</value></data>
+  <data name="Regeneration.Preview" xml:space="preserve"><value>Differenze</value></data>
+  <data name="Regeneration.Preview.Photos" xml:space="preserve"><value>{0} foto con risultati nuovi.</value></data>
+  <data name="Regeneration.Preview.PhotosSample" xml:space="preserve"><value>Campione: {0} foto con risultati nuovi.</value></data>
+  <data name="Regeneration.Preview.Outcomes" xml:space="preserve"><value>{0} proposte automatiche cambiano ({1} con una tua decisione, che resta).</value></data>
+  <data name="Regeneration.Preview.Tags" xml:space="preserve"><value>Tag: {0} aggiunti, {1} tolti; {2} rimossi o aggiunti da te restano come sono.</value></data>
+  <data name="Regeneration.Preview.Faces" xml:space="preserve"><value>Volti: {0} assegnazioni passano ai nuovi volti, {1} volti nuovi, {2} volti automatici non ritrovati, {3} tuoi conservati.</value></data>
+  <data name="Regeneration.Preview.Captions" xml:space="preserve"><value>Didascalie: {0} cambiano, {1} tue restano.</value></data>
+  <data name="Regeneration.Preview.Embeddings" xml:space="preserve"><value>Embedding: {0} ricalcolati.</value></data>
+  <data name="Regeneration.Preview.Ocr" xml:space="preserve"><value>Numeri di gara: {0} foto lette diversamente.</value></data>
+  <data name="Regeneration.Examples" xml:space="preserve"><value>Esempi</value></data>
+  <data name="Regeneration.PreviewNote" xml:space="preserve"><value>Finché non applichi, il catalogo tiene i risultati precedenti.</value></data>
+  <data name="Regeneration.Apply" xml:space="preserve"><value>Applica</value></data>
+  <data name="Regeneration.Discard" xml:space="preserve"><value>Scarta</value></data>
+  <data name="Regeneration.Applied" xml:space="preserve"><value>Applicato a {0} foto; {1} assegnazioni di persone trasferite; {2} XMP riscritti.</value></data>
+  <data name="Regeneration.Discarded" xml:space="preserve"><value>Scartato: il catalogo è come prima.</value></data>
 </root>

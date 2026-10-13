@@ -7,6 +7,7 @@ public enum TensorElementType
     Float32,
     Int64,
     UInt8,
+    Bool,
 }
 
 /// <summary>
@@ -18,6 +19,7 @@ public sealed class NamedTensor
     private readonly ReadOnlyMemory<float> _float32;
     private readonly ReadOnlyMemory<long> _int64;
     private readonly ReadOnlyMemory<byte> _uint8;
+    private readonly ReadOnlyMemory<bool> _bool;
     private readonly int[] _shape;
 
     private NamedTensor(string name, TensorElementType elementType, int[] shape, int dataLength)
@@ -32,9 +34,10 @@ public sealed class NamedTensor
         long count = 1;
         foreach (var dim in shape)
         {
-            if (dim <= 0)
+            // A dimension of 0 is valid: e.g. the empty cache of a decoder at its first step.
+            if (dim < 0)
             {
-                throw new ArgumentException($"Tensor '{name}' has a non-positive dimension ({dim}).", nameof(shape));
+                throw new ArgumentException($"Tensor '{name}' has a negative dimension ({dim}).", nameof(shape));
             }
 
             count = checked(count * dim);
@@ -62,6 +65,9 @@ public sealed class NamedTensor
     private NamedTensor(string name, ReadOnlyMemory<byte> data, int[] shape)
         : this(name, TensorElementType.UInt8, shape, data.Length) => _uint8 = data;
 
+    private NamedTensor(string name, ReadOnlyMemory<bool> data, int[] shape)
+        : this(name, TensorElementType.Bool, shape, data.Length) => _bool = data;
+
     public string Name { get; }
 
     public TensorElementType ElementType { get; }
@@ -76,11 +82,15 @@ public sealed class NamedTensor
 
     public static NamedTensor UInt8(string name, ReadOnlyMemory<byte> data, params int[] shape) => new(name, data, shape);
 
+    public static NamedTensor Bool(string name, ReadOnlyMemory<bool> data, params int[] shape) => new(name, data, shape);
+
     public ReadOnlyMemory<float> AsFloat32() => ElementType == TensorElementType.Float32 ? _float32 : throw WrongType(TensorElementType.Float32);
 
     public ReadOnlyMemory<long> AsInt64() => ElementType == TensorElementType.Int64 ? _int64 : throw WrongType(TensorElementType.Int64);
 
     public ReadOnlyMemory<byte> AsUInt8() => ElementType == TensorElementType.UInt8 ? _uint8 : throw WrongType(TensorElementType.UInt8);
+
+    public ReadOnlyMemory<bool> AsBool() => ElementType == TensorElementType.Bool ? _bool : throw WrongType(TensorElementType.Bool);
 
     private InvalidOperationException WrongType(TensorElementType requested) =>
         new($"Tensor '{Name}' is {ElementType}, not {requested}.");

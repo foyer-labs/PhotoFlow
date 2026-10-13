@@ -19,12 +19,25 @@ public sealed partial class BrowseView : UserControl
         RowsList.SizeChanged += (_, e) => UpdateColumns(e.NewSize.Width);
         QueryBox.AddHandler(KeyDownEvent, OnQueryKeyDown, RoutingStrategies.Tunnel);
         QueryBox.SelectionChanged += OnSuggestionChosen;
+
+        // The keys go back to the page when the caption or tag field closes (Enter, Esc).
+        foreach (var field in new Control[] { CaptionBox, TagBox })
+        {
+            field.PropertyChanged += (_, e) =>
+            {
+                if (e.Property == IsVisibleProperty && e.NewValue is false)
+                {
+                    Focus();
+                }
+            };
+        }
         DataContextChanged += (_, _) =>
         {
             if (_viewModel is not null)
             {
                 _viewModel.FocusSearchRequested -= OnFocusSearch;
                 _viewModel.FocusTagRequested -= OnFocusTag;
+                _viewModel.FocusCaptionRequested -= OnFocusCaption;
             }
 
             _viewModel = DataContext as BrowseViewModel;
@@ -32,6 +45,7 @@ public sealed partial class BrowseView : UserControl
             {
                 _viewModel.FocusSearchRequested += OnFocusSearch;
                 _viewModel.FocusTagRequested += OnFocusTag;
+                _viewModel.FocusCaptionRequested += OnFocusCaption;
                 UpdateColumns(RowsList.Bounds.Width);
             }
         };
@@ -82,6 +96,12 @@ public sealed partial class BrowseView : UserControl
     private void OnFocusSearch(object? sender, EventArgs e) => Dispatcher.UIThread.Post(() => QueryBox.Focus());
 
     private void OnFocusTag(object? sender, EventArgs e) => Dispatcher.UIThread.Post(() => TagBox.Focus());
+
+    private void OnFocusCaption(object? sender, EventArgs e) => Dispatcher.UIThread.Post(() =>
+    {
+        CaptionBox.Focus();
+        CaptionBox.CaretIndex = CaptionBox.Text?.Length ?? 0;
+    });
 
     private void OnCellPressed(object? sender, PointerPressedEventArgs e)
     {

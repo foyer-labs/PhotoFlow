@@ -17,6 +17,7 @@
           <Border Classes="key" BorderBrush="{DynamicResource PF.Brush.PrimaryActionText}"><TextBlock Text="Ctrl N" Foreground="{DynamicResource PF.Brush.PrimaryActionText}" /></Border>
         </StackPanel>
       </Button>
+      <Button Classes="ghost" HorizontalAlignment="Center" Command="{Binding RequestImportCatalogCommand}" Content="{l:Tr Libraries.ImportCatalog}" />
     </StackPanel>
 
     <Grid ColumnDefinitions="300,*" IsVisible="{Binding !IsEmpty}">
@@ -68,12 +69,15 @@
                   </ComboBox.ItemTemplate>
                 </ComboBox>
               </Grid>
-              <Button Classes="primary" HorizontalAlignment="Left" Command="{Binding AnalyzeCommand}">
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                  <TextBlock Text="{l:Tr Libraries.Analysis.Start}" />
-                  <Border Classes="key" BorderBrush="{DynamicResource PF.Brush.PrimaryActionText}"><TextBlock Text="Ctrl ↵" Foreground="{DynamicResource PF.Brush.PrimaryActionText}" /></Border>
-                </StackPanel>
-              </Button>
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Classes="primary" HorizontalAlignment="Left" Command="{Binding AnalyzeCommand}">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="{l:Tr Libraries.Analysis.Start}" />
+                    <Border Classes="key" BorderBrush="{DynamicResource PF.Brush.PrimaryActionText}"><TextBlock Text="Ctrl ↵" Foreground="{DynamicResource PF.Brush.PrimaryActionText}" /></Border>
+                  </StackPanel>
+                </Button>
+                <Button Classes="secondary" Command="{Binding RegenerateCommand}" Content="{l:Tr Libraries.Regenerate}" />
+              </StackPanel>
             </StackPanel>
           </Border>
 

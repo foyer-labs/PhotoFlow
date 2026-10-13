@@ -21,6 +21,15 @@ public interface IInferenceSession : IDisposable
     IReadOnlyDictionary<string, string> Metadata { get; }
 
     Task<IReadOnlyList<NamedTensor>> RunAsync(IReadOnlyList<NamedTensor> inputs, CancellationToken ct);
+
+    /// <summary>Only the named outputs, in that order (a decoder step does not need its unchanged cache back).</summary>
+    Task<IReadOnlyList<NamedTensor>> RunAsync(IReadOnlyList<NamedTensor> inputs, IReadOnlyList<string> outputs, CancellationToken ct);
+
+    /// <summary>Names of the model inputs.</summary>
+    IReadOnlyList<string> InputNames { get; }
+
+    /// <summary>Names of the model outputs.</summary>
+    IReadOnlyList<string> OutputNames { get; }
 }
 
 public enum ExecutionTarget

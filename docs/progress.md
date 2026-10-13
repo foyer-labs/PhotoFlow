@@ -81,6 +81,9 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 | 2026-10-13 | Fase 3 unita in `main` (PR #5) dopo la CI verde |
 | 2026-10-13 | Fase 4 (tappe 4.0-4.6), decisioni prese in autonomia: F4-1 modelli RapidOCR (PP-OCRv4 det, PP-OCRv3 rec inglese) con adattatori nostri e parità esatta; F4-2 cambiata: `.xlsx` letto con la libreria standard invece di `DocumentFormat.OpenXml`; F4-3 regole della scelta del numero; F4-4 riconoscitore OCR su CPU (9 volte più veloce che su GPU per i suoi ingressi); F4-5 cifra confusa con penalità ridotta se anche il numero letto è in elenco, e senza elenco solo numeri letti da soli. Elenco iscritti scelto nell'import o nella vista Numeri (la fase dei numeri si ripete), nomi dell'elenco cercabili (migrazione 0014). Corretti in passing: azioni rapide della Home ancora disattivate dalle fasi 2-3 e testi che citavano le fasi. Misura: OCR 97 ms per foto. Scostamenti dalla tavola 2c nel backlog. spec §5, §8, §9, §15, §17 aggiornate |
 
+| 2026-10-13 | Fase 4 unita in `main` (PR #6) dopo la CI verde |
+| 2026-10-13 | Fase 5 (tappe 5.0-5.8), decisioni prese in autonomia:<br>• F5-1 didascalie Florence-2 base-ft con adattatori nostri; l'encoder visivo di `onnx-community` non corrisponde all'originale, lo esportiamo noi; parità esatta su CPU e CUDA.<br>• F5-2 livello D rinviato: licenze del 3B e runtime separato del 7B.<br>• F5-3 trasferimento delle assegnazioni dei volti per IoU ≥ 0,5.<br>• F5-4 `.pfcatalog` con impronte ricifrate da una password d'esportazione; importazione al prossimo avvio.<br>• F5-5 sincronizzazione XMP con stato e contenuto del file.<br>Inoltre: scelta dei modelli (rilevatore, volti) tra quelli installati; pulsante di ricalcolo delle impronte quando un catalogo arriva senza. Misure: cambio di modello dei volti su 230 foto senza persone perse; didascalie +644 ms per foto. spec §4, §5, §8, §9, §15, §17 aggiornate. **Da fare all'utente**: pubblicare la release `models-florence2-base-ft-1` con `vision_encoder_pf.onnx` (azione pubblica, non fatta in autonomia) |
+
 ## Problemi aperti
 
 | # | Tema | Sintesi |
@@ -99,4 +102,4 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 
 ## Prossimo passo
 
-Fase 4 completata (report in `docs/reports/fase-4.md`, verifiche manuali elencate lì): PR da unire dopo la CI verde, poi piano della fase 5 (in autonomia, come concordato).
+Fase 5 completata (report in `docs/reports/fase-5.md`): PR da unire dopo la CI verde. Con la fase 5 si chiudono le fasi della specifica (§13): restano le verifiche manuali, la pubblicazione della release del modello Florence-2 e il backlog (§17).

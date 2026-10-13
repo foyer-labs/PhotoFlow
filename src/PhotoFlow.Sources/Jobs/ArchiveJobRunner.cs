@@ -299,7 +299,7 @@ public sealed class ArchiveJobRunner : IJobRunner
                 {
                     result = await owner._processor.ProcessAsync(
                         new PhotoInput(analyzed.Item.SourcePath, asset?.FullHash ?? asset?.QuickHash, asset?.Exif),
-                        new ProcessingOptions(settings.ProfileId, settings.Faces, (settings.Tags ?? TagLevels.Default).HasFlag(TagLevels.Tagger)), ct).ConfigureAwait(false);
+                        new ProcessingOptions(settings.ProfileId, settings.Faces, (settings.Tags ?? TagLevels.Default).HasFlag(TagLevels.Tagger), (settings.Tags ?? TagLevels.Default).HasFlag(TagLevels.Caption)), ct).ConfigureAwait(false);
                 }
                 catch (Exception e) when (e is not OperationCanceledException)
                 {
@@ -313,6 +313,11 @@ public sealed class ArchiveJobRunner : IJobRunner
                 if (result.Embedding is { } embedding)
                 {
                     await catalog.Analysis.SaveEmbeddingAsync(analyzed.AssetId, embedding.ModelVersion, embedding.Vector, done).ConfigureAwait(false);
+                }
+
+                if (result.Caption is { } caption)
+                {
+                    await catalog.Captions.SetAutomaticAsync(analyzed.AssetId, caption.Language, caption.Text, caption.ModelVersion, done).ConfigureAwait(false);
                 }
 
                 if (result.Readings is { } readings)
@@ -461,7 +466,7 @@ internal sealed class SourceLostException : Exception
 }
 
 /// <summary>Runs every job type with its runner (the job manager starts any job by id).</summary>
-public sealed class JobRunnerRouter(ICatalog catalog, IJobRunner import, IJobRunner archive) : IJobRunner
+public sealed class JobRunnerRouter(ICatalog catalog, IJobRunner import, IJobRunner archive, IJobRunner? reanalyze = null) : IJobRunner
 {
     public async Task<JobRunSummary> RunAsync(long jobId, IProgress<JobProgress>? progress, CancellationToken ct)
     {
@@ -470,6 +475,7 @@ public sealed class JobRunnerRouter(ICatalog catalog, IJobRunner import, IJobRun
         {
             JobType.Import => import,
             JobType.AnalyzeInPlace => archive,
+            JobType.Reanalyze when reanalyze is not null => reanalyze,
             _ => throw new NotSupportedException($"Job type {job.Type} arrives in a later phase."),
         };
         return await runner.RunAsync(jobId, progress, ct).ConfigureAwait(false);

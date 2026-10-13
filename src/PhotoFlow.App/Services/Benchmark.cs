@@ -39,7 +39,7 @@ public sealed record BenchmarkResult(DateTimeOffset At, int Photos, string Backe
 public sealed class BenchmarkRunner(PhotoFlowHost host)
 {
     public const int DefaultPhotos = 50;
-    public static readonly string[] StageKeys = ["Preview", "Culling", "Faces", "Embedding", "Tags"];
+    public static readonly string[] StageKeys = ["Preview", "Culling", "Faces", "Embedding", "Tags", "Captions"];
 
     /// <exception cref="InvalidOperationException">No library with photos.</exception>
     public async Task<BenchmarkResult> RunAsync(int photos, IProgress<(int Done, int Total)>? progress, CancellationToken ct)
@@ -53,7 +53,7 @@ public sealed class BenchmarkRunner(PhotoFlowHost host)
         var components = await host.GetAnalysisComponentsAsync(ct).ConfigureAwait(false);
         var profile = host.Profiles.Get("events") with { Faces = FaceMode.Off };
         var signalsOnly = new CullingAnalyzer(components.Operations, components.Objects, null);
-        var total = (sample.Count * 6) + 1;
+        var total = (sample.Count * 7) + 1;
         var done = 0;
         void Step()
         {
@@ -72,6 +72,11 @@ public sealed class BenchmarkRunner(PhotoFlowHost host)
         if (components.Embedder is { } warmEmbedder)
         {
             await warmEmbedder.EmbedAsync(warm.Image, ct).ConfigureAwait(false);
+        }
+
+        if (components.Captioner is { } warmCaptioner)
+        {
+            await warmCaptioner.CaptionAsync(warm.Image, ct).ConfigureAwait(false);
         }
 
         Step();
@@ -133,6 +138,16 @@ public sealed class BenchmarkRunner(PhotoFlowHost host)
                 }
             }).ConfigureAwait(false)
             : Skipped("Tags"));
+        stages.Add(components.Captioner is { } captioner
+            ? await MeasureAsync("Captions", async () =>
+            {
+                foreach (var preview in previews)
+                {
+                    await captioner.CaptionAsync(preview.Image, ct).ConfigureAwait(false);
+                    Step();
+                }
+            }).ConfigureAwait(false)
+            : Skipped("Captions"));
         previews.Clear();
 
         // The whole analysis with the import's parallelism (no thumbnail, nothing saved).

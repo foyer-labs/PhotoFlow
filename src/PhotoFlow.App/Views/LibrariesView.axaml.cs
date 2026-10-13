@@ -23,12 +23,33 @@ public sealed partial class LibrariesView : UserControl
         if (_viewModel is not null)
         {
             _viewModel.FolderPickRequested -= OnFolderPickRequested;
+            _viewModel.CatalogPickRequested -= OnCatalogPickRequested;
         }
 
         _viewModel = DataContext as LibrariesViewModel;
         if (_viewModel is not null)
         {
             _viewModel.FolderPickRequested += OnFolderPickRequested;
+            _viewModel.CatalogPickRequested += OnCatalogPickRequested;
+        }
+    }
+
+    private async void OnCatalogPickRequested(object? sender, EventArgs e)
+    {
+        if (TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage || _viewModel is null)
+        {
+            return;
+        }
+
+        var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = Strings.Get("Libraries.ImportCatalog"),
+            AllowMultiple = false,
+            FileTypeFilter = [new FilePickerFileType(Strings.Get("Settings.Catalog.FileType")) { Patterns = ["*" + Services.CatalogPackage.Extension] }],
+        });
+        if (files.Count > 0 && files[0].TryGetLocalPath() is { } path)
+        {
+            _viewModel.ImportCatalog(path);
         }
     }
 

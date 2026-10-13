@@ -89,6 +89,7 @@
           <TextBlock Classes="label tertiary" VerticalAlignment="Center" Margin="8,0,0,0" Text="{l:Tr Browse.Filter.Outcome}" />
           <ComboBox ItemsSource="{Binding OutcomeOptions}" SelectedItem="{Binding OutcomeOption}" />
           <Button Classes="ghost" Command="{Binding ResetCommand}" Content="{l:Tr Browse.Reset}" />
+          <Button Classes="ghost" Command="{Binding RegenerateResultsCommand}" Content="{l:Tr Browse.Regenerate}" />
         </StackPanel>
       </ScrollViewer>
 
@@ -197,6 +198,23 @@
             <TextBlock Grid.Row="4" Classes="label tertiary" Text="{l:Tr Browse.Detail.People}" />
             <TextBlock Grid.Row="4" Grid.Column="1" Classes="label" TextWrapping="Wrap" Text="{Binding DetailPeople}" />
           </Grid>
+
+          <TextBlock Classes="overline" Text="{l:Tr Browse.Detail.Caption}" />
+          <StackPanel Spacing="4" IsVisible="{Binding !IsEditingCaption}">
+            <TextBlock Classes="label" TextWrapping="Wrap" Text="{Binding DetailCaption}" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <TextBlock Classes="micro tertiary" VerticalAlignment="Center" Text="{Binding DetailCaptionOrigin}" />
+              <Button Classes="ghost" Command="{Binding StartCaptionCommand}">
+                <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Text="{l:Tr Browse.Caption.Edit}" /><Border Classes="key"><TextBlock Text="D" /></Border></StackPanel>
+              </Button>
+            </StackPanel>
+          </StackPanel>
+          <TextBox x:Name="CaptionBox" Classes="field" IsVisible="{Binding IsEditingCaption}" Text="{Binding CaptionText}" TextWrapping="Wrap" PlaceholderText="{l:Tr Browse.Caption.Placeholder}">
+            <TextBox.KeyBindings>
+              <KeyBinding Gesture="Enter" Command="{Binding SaveCaptionCommand}" />
+              <KeyBinding Gesture="Escape" Command="{Binding CancelCaptionCommand}" />
+            </TextBox.KeyBindings>
+          </TextBox>
 
           <TextBlock Classes="overline" Text="{l:Tr Browse.Detail.Tags}" />
           <ItemsControl ItemsSource="{Binding DetailTags}">

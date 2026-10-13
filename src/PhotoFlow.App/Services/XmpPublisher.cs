@@ -18,7 +18,10 @@ public sealed record XmpWriteSummary(int Written, int Skipped, IReadOnlyList<(st
 /// the photo (phase 2, spec §7) become MWG face regions and the keywords <c>Name</c> and <c>Persone|Name</c>; the
 /// regions of other software are kept; unnamed groups and ignored people are not written.
 /// </summary>
-public sealed class XmpPublisher(ICatalog catalog, IMetadataWriter writer)
+/// <param name="writeCaptions">Captions in <c>dc:description</c> (spec §8, off by default); the user's are written too.</param>
+/// <param name="reader">With a reader, the changes other programs made are imported before writing, and the state of
+/// the file is recorded after (spec §4, <see cref="ExternalXmpSync"/>).</param>
+public sealed class XmpPublisher(ICatalog catalog, IMetadataWriter writer, bool writeCaptions = false, IMetadataReader? reader = null)
 {
     public const string RedLabel = "Red";
 
@@ -41,7 +44,19 @@ public sealed class XmpPublisher(ICatalog catalog, IMetadataWriter writer)
     public static string Signature(MetadataChanges changes) =>
         Convert.ToHexString(XxHash3.Hash(Encoding.UTF8.GetBytes(
             $"{changes.Rating}|{changes.Label}|{string.Join(',', changes.FlatKeywords)}|-{string.Join(',', changes.RemovedFlatKeywords ?? [])}|"
-            + string.Join(';', changes.Regions?.Regions.Select(r => FormattableString.Invariant($"{r.Name}:{r.CenterX:0.####},{r.CenterY:0.####}")) ?? []))));
+            + string.Join(';', changes.Regions?.Regions.Select(r => FormattableString.Invariant($"{r.Name}:{r.CenterX:0.####},{r.CenterY:0.####}")) ?? [])
+            + (changes.Description is { } description ? "|d:" + description : string.Empty))));
+
+    /// <summary>The caption of the photo in <c>dc:description</c> (an empty caption of the user clears it).</summary>
+    public static MetadataChanges? WithCaption(MetadataChanges? changes, Caption? caption)
+    {
+        if (caption is null)
+        {
+            return changes;
+        }
+
+        return (changes ?? new MetadataChanges(null, null, [], [], null)) with { Description = caption.Text };
+    }
 
     /// <summary>Adds the named people of the photo to the changes (or makes changes for them alone).</summary>
     public static MetadataChanges? WithPeople(MetadataChanges? changes, IReadOnlyList<(string Name, BoundingBox Box)> people, (int Width, int Height)? size, IReadOnlyCollection<string> managedNames)
@@ -122,6 +137,14 @@ public sealed class XmpPublisher(ICatalog catalog, IMetadataWriter writer)
         var libraries = (await catalog.Libraries.ListAsync(ct).ConfigureAwait(false)).ToDictionary(l => l.Id);
         var persons = (await catalog.People.ListPersonsAsync(ct).ConfigureAwait(false)).Select(p => p.Person).ToDictionary(p => p.Id);
         var managed = persons.Values.Where(p => p.Name is not null).Select(p => p.Name!).ToHashSet(StringComparer.Ordinal);
+
+        // What other programs changed is imported first, so it is not overwritten.
+        var external = reader is null ? null : new ExternalXmpSync(catalog, reader);
+        if (external is not null)
+        {
+            await external.SyncAsync(assetIds, null, ct).ConfigureAwait(false);
+        }
+
         foreach (var assetId in assetIds)
         {
             ct.ThrowIfCancellationRequested();
@@ -151,6 +174,16 @@ public sealed class XmpPublisher(ICatalog catalog, IMetadataWriter writer)
                 }
 
                 changes = WithRemovals(WithTags(changes, tags), sync);
+                if (writeCaptions)
+                {
+                    var caption = await catalog.Captions.GetAsync(assetId, ct).ConfigureAwait(false);
+                    if (caption is null && await catalog.Assets.GetTwinAsync(assetId, ct).ConfigureAwait(false) is { } captionTwin)
+                    {
+                        caption = await catalog.Captions.GetAsync(captionTwin, ct).ConfigureAwait(false);
+                    }
+
+                    changes = WithCaption(changes, caption);
+                }
             }
             if (asset is null || changes is null || (sync?.XmpSignature == Signature(changes) && !sync.WritePending))
             {
@@ -160,6 +193,7 @@ public sealed class XmpPublisher(ICatalog catalog, IMetadataWriter writer)
                 continue;
             }
 
+            var recorded = false;
             foreach (var location in await catalog.Assets.GetLocationsAsync(assetId, ct).ConfigureAwait(false))
             {
                 if (!libraries.TryGetValue(location.LibraryId, out var library))
@@ -180,6 +214,11 @@ public sealed class XmpPublisher(ICatalog catalog, IMetadataWriter writer)
                 {
                     written++;
                     await catalog.XmpSync.MarkWrittenAsync(assetId, Signature(changes), ct, changes.FlatKeywords, changes.HierarchicalKeywords).ConfigureAwait(false);
+                    if (external is not null && !recorded && policy != WritePolicy.CatalogOnly)
+                    {
+                        await external.RecordAsync(assetId, new MetadataTarget(path, asset.Handler == "raw"), policy, ct).ConfigureAwait(false);
+                        recorded = true;
+                    }
                 }
             }
 

@@ -206,6 +206,15 @@ Scrittura in fase 1 (12 ott 2026), solo dopo la conferma in Revisione e con la p
 | Tag manuali del catalogo | Mai rimossi |
 | Keyword e volti già presenti | Mantenuti; regioni volto nominate da altri software importabili nella galleria persone |
 
+Fase 5 (13 ott 2026, F5-5). Dopo ogni scrittura PhotoFlow ricorda due cose del file che contiene l'XMP: lo stato (sidecar o immagine: dimensione, data, xxHash3 del contenuto) e i valori letti (rating, etichetta, keyword, gerarchia, descrizione, regioni).
+
+- **Quando si controlla.** In background all'avvio, prima di ogni scrittura di PhotoFlow e a richiesta (Impostazioni › Generali › XMP). Un file con lo stesso stato non viene riletto.
+- **Keyword.** Una keyword aggiunta altrove diventa un tag manuale. Una keyword tolta altrove sopprime il tag, se era automatico; un tag manuale resta e torna nel file alla scrittura successiva.
+- **Rating ed etichetta.** Vince la modifica più recente: la data del file contro l'ultima modifica dell'utente nel catalogo (`Decisions.UserUpdatedAtMs`).
+- **Descrizione.** Diventa la didascalia dell'utente.
+- **Regioni volto.** Quelle nominate da altri programmi si importano su richiesta: il volto che si sovrappone (IoU ≥ 0,3) prende quella persona, creata se il nome è nuovo; le assegnazioni dell'utente non cambiano.
+- **Log.** Ogni importazione e ogni conflitto restano in `XmpSyncLog`.
+
 ## 5. Modelli, inferenza e rigenerazione
 
 Tutti i modelli girano in ONNX Runtime; ogni funzione ha un modello attivo selezionabile manualmente (modello e taglia), con default scelto in base all'hardware.
@@ -218,8 +227,8 @@ Tutti i modelli girano in ONNX Runtime; ogni funzione ha un modello attivo selez
 | Volti (rilevamento, landmark, impronte) | InsightFace buffalo\_l | buffalo\_s; YuNet/SFace (Apache 2.0) | 326 MB | Nativo |
 | Embedding (raffiche, ricerca, duplicati, zero-shot) | CLIP ViT-B/32 fp32 (F2-1) | — | 606 MB (immagine 352 MB + testo 254 MB) | Disponibile (Xenova, fissato per commit + SHA-256); la conversione quantizzata è esclusa (coseno 0,87-0,97 con l'originale) |
 | Tagger | RAM++ fp32 (F3-1) | — | 1,86 GB | Export `CannotFindObject/RAM_ONNX` fissato per commit + SHA-256 (mirror `imagent/ram-plus-onnx`); stessi tag dell'originale su 52/52 foto; la int8 è esclusa |
-| Didascalie | Florence-2 base | Florence-2 large | \~0,5 / \~1,5 GB | Florence2-Sharp (NuGet) |
-| VLM (livello D) | Qwen2.5-VL | — | 3-5 GB circa | ONNX Runtime GenAI (C#) |
+| Didascalie | Florence-2 base-ft fp32 (F5-1) | Florence-2 large (da adattare) | 1,09 GB | Encoder del testo, decoder e tokenizer `onnx-community` fissati per commit; encoder visivo esportato da noi (`tools/lab/export_florence_vision.py`) perché quello della conversione non corrisponde all'originale (coseno 0,94); adattatori nostri su `IInferenceProvider`, parità esatta delle didascalie con PyTorch su CPU e CUDA |
+| VLM (livello D) | Rinviato (F5-2) | — | 3-5 GB circa | Qwen2.5-VL-3B ha licenza non commerciale ("qwen-research"); il 7B (Apache-2.0) richiede un nostro export e ONNX Runtime GenAI, fuori da `IInferenceProvider` |
 | OCR | PP-OCRv4 det + PP-OCRv3 rec inglese (F4-1) | PP-OCRv5 latina (rilevatore da 88 MB) | 14 MB | Modelli RapidOCR fissati per commit + SHA-256 (`SWHL/RapidOCR`), adattatori nostri su `IInferenceProvider`; parità esatta con RapidOCR Python; riconoscitore su CPU (F4-4) |
 | Estetica | Predittore LAION su embedding CLIP | — | < 5 MB | Riscrivibile in poche righe |
 
@@ -268,6 +277,15 @@ Fase 3 (13 ott 2026): il livello A non richiede inferenza in più (usa gli embed
 | Nuovo modello volti | Nuove impronte su tutto; associazione ai vecchi volti per sovrapposizione dei riquadri; assegnazioni trasferite; clustering solo dei non associati |
 | Nuovo modello embedding | Vecchio indice attivo fino al completamento del nuovo, poi scambio in un'unica operazione |
 | Sicurezza | Anteprima delle differenze; risultati precedenti conservati fino a conferma; prova su campione prima dell'intero archivio |
+
+Fase 5 (13 ott 2026). La rigenerazione è un job `Reanalyze` a bassa priorità.
+
+- **Cosa ricalcola.** Con "solo modello più vecchio" ricalcola le parti con una versione diversa da quella dei modelli attuali: culling e volti, embedding mancanti, tag B attivi, didascalie automatiche, OCR. Con "forza tutto" ricalcola ogni parte scelta.
+- **Area di attesa.** I risultati vanno in `ReanalysisStaging`: l'anteprima conta le differenze (proposte, tag, volti, didascalie, numeri) con esempi. "Applica" li scrive con le protezioni di I5, "Scarta" li elimina. La prova su campione usa 50 foto a caso del perimetro.
+- **Cambio di modello dei volti (F5-3).** Avviene per sovrapposizione IoU ≥ 0,5, migliori coppie per prime. Volti dell'utente non ritrovati: restano. Persone: mai cancellate. Copertine e prototipi passano ai nuovi volti. I nuovi volti non associati vanno poi a riconoscimento e raggruppamento.
+- **Scelta dei modelli.** Rilevatore (D-FINE S/M) e volti (buffalo\_l o YuNet/SFace) si scelgono tra quelli installati (Impostazioni › Modelli, "Usa questo modello"). I modelli si ricaricano subito se nessun job è in corso, poi si apre la rigenerazione con la prova su campione.
+- **Scambio dell'indice embedding.** Oggi c'è un solo modello di embedding (CLIP B/32): lo scambio dell'indice non serve; resta nel backlog per un secondo modello.
+- **Misure (set locale, 230 foto, RTX 3090).** Da buffalo\_l a YuNet + SFace: 38 persone, nessuna persa, le 38 assegnazioni dell'utente conservate, 151 assegnazioni automatiche trasferite, 84 volti nuovi, 60 automatici non ritrovati; 144 s.
 
 ## 6. Culling e profili di scena
 
@@ -492,6 +510,13 @@ Fase 3: una riga per foto e tag (`AssetTags`) con fonte, confidenza, versione de
 
 Florence-2 produce solo inglese; Qwen2.5-VL può produrre italiano ma solo con GPU. Scrittura in `dc:description` opzionale.
 
+Fase 5 (13 ott 2026, F5-1, F5-2):
+
+- **Come si genera.** Livello C con Florence-2 base-ft, compito "didascalia dettagliata". La ricerca a fascio è identica a transformers: 3 fasci, nessun trigramma ripetuto, chiusura anticipata. Costo: 0,9 s per foto su GPU (2,5 s su CPU); nell'analisi con 4 lavori in parallelo +644 ms per foto. È facoltativo e si sceglie nell'import.
+- **Conservazione (I5).** Le didascalie si salvano in `Captions` con la versione del modello. Quella scritta o cancellata dall'utente (D in Consultazione, o la descrizione cambiata in un altro programma) non viene mai sostituita.
+- **Ricerca e XMP.** Il testo delle didascalie è cercabile. `dc:description` si scrive solo con la preferenza attiva (spenta per default).
+- **Livello D.** Rinviato (F5-2): resta visibile e disattivato con il motivo.
+
 ### OCR motorsport
 
 1. D-FINE rileva auto/moto.
@@ -541,6 +566,12 @@ Catalogo SQLite, foto identificate dall'hash del contenuto: tag, volti e decisio
 
 Esportazione/importazione: file unico (es. `.pfcatalog`) con database, galleria persone e configurazione delle librerie; rimappatura dei percorsi all'importazione.
 
+Fase 5 (13 ott 2026, F5-4). Il `.pfcatalog` è uno zip con `manifest.json`, una copia coerente del catalogo (API di backup di SQLite), i profili personalizzati e, a scelta, le miniature.
+
+- **Impronte.** Con una password d'esportazione viaggiano, ricifrate con una chiave casuale protetta dalla password (PBKDF2-SHA256 e AES-GCM, come la chiave locale). Senza password restano indietro: nomi e assegnazioni viaggiano, le impronte si ricalcolano dalla pagina Persone.
+- **Importazione.** Prepara il catalogo con le radici delle librerie rimappate (✓ cartella trovata, ? no) e le impronte cifrate con la chiave locale. Sostituisce quello attuale al prossimo avvio, come un ripristino; il catalogo sostituito resta in `backup/replaced-*`. Profili e miniature si aggiungono senza sostituire file esistenti.
+- **Misure.** Catalogo locale (230 foto): esportazione 1,1 s (1,9 MB), importazione preparata in 1,2 s.
+
 ### Tabelle
 
 | Area | Tabella | Campi principali |
@@ -565,13 +596,15 @@ Esportazione/importazione: file unico (es. `.pfcatalog`) con database, galleria 
 | Volti | `Faces` | Asset, riquadro, landmark, confidenza, occhi, impronta cifrata (facoltativa), persona, origine assegnazione, somiglianza |
 |  | `Persons` | Nome, ignorata, volto di copertina |
 |  | `PersonPrototypes` | Impronte rappresentative (cifrate) |
-| Testi | `Captions` | Asset, lingua, testo, modello |
+| Testi | `Captions` | Asset, lingua, testo, versione modello, origine (automatica/manuale) |
 |  | `OcrResults` | Asset, vettura e suo riquadro, riquadro del testo, testo, confidenza, versione modello |
 | Motorsport | `EntryLists` | Nome, file d'origine (riutilizzabile su più eventi) |
 |  | `Entries` | Elenco, numero, pilota/i, team, categoria, vettura |
 |  | `JobEntryLists` | Job, elenco usato |
 |  | `VehicleNumbers` | Asset, vettura, riquadro, numero, stato (certo/da rivedere/nessuno/fuori elenco), origine (automatica/raffica/manuale), candidati |
-| Sincronizzazione | `XmpSync` | Ultima scrittura, firma del file XMP, scrittura in sospeso |
+| Sincronizzazione | `XmpSync` | Ultima scrittura, firma delle modifiche, scrittura in sospeso, keyword scritte, stato e contenuto del file XMP |
+|  | `XmpSyncLog` | Asset, campo, valore, chi vince (altro programma/catalogo), nota |
+| Rigenerazione | `ReanalysisStaging` | Job, asset, parte, risultati in attesa di conferma (JSON) |
 | Sistema | `UndoLog`, `SchemaVersion` | Operazioni annullabili; versione schema |
 
 I risultati automatici conservano la versione del modello che li ha prodotti (rianalisi, anteprima differenze, ritorno indietro).
@@ -1045,7 +1078,7 @@ Il progetto è Apache 2.0; l'unico componente non commerciale (buffalo\_l) è op
 | Magick.NET (15.0.0) | Apache 2.0; libheif, libde265 (LGPL) e LibRaw **collegate staticamente** in Magick.Native: serve voce NOTICE, offerta dei sorgenti LGPL e revisione di conformità (R19) | Verificato 12 ott 2026 |
 | exiftool | Licenza di Perl (Artistic/GPL), ridistribuibile | Da conoscenza |
 | Velopack / vpk (1.2.161) | MIT; canali per variante, feed statico, ritorno indietro con `AllowVersionDowngrade` | Verificato 12 ott 2026 |
-| [Florence2-Sharp](https://docs.curiosity.ai/florence2-sharp/) | MIT | Verificato |
+| [Florence2-Sharp](https://docs.curiosity.ai/florence2-sharp/) | MIT; non adottato (F5-1: adattatori nostri su `IInferenceProvider`) | Verificato |
 | [RapidOcrNet](https://www.nuget.org/packages/rapidocrnet) (4.2.0) | Codice Apache 2.0; non adottato (F4-1: adattatori nostri sui modelli RapidOCR, per usare `IInferenceProvider`) | Verificato 12 ott 2026 (codice) |
 | [HdbscanSharp](https://www.nuget.org/packages/HdbscanSharp) (3.0.1) | MIT; inattivo da maggio 2025; O(n²), non adatto a ~100.000 volti (R18) | Verificato 12 ott 2026 |
 | IBM Plex Sans / Plex Mono (font) | SIL Open Font License, incorporabile | Da design |
@@ -1061,9 +1094,9 @@ Il progetto è Apache 2.0; l'unico componente non commerciale (buffalo\_l) è op
 | [RF-DETR](https://pypi.org/project/rfdetr-onnx/) Nano-Large | Apache 2.0 (XLarge/2XLarge: PML 1.0, esclusi) | Sì |
 | [CLIP](https://huggingface.co/Xenova/clip-vit-base-patch32) | MIT (la scheda del modello OpenAI dichiara fuori ambito gli usi "deployed": indicazione d'uso, non licenza; da valutare in fase 2) | Sì |
 | [RAM++ (ONNX int8)](https://huggingface.co/anakhiu/ram-plus-onnx-int8) | Apache 2.0 (provenienza debole; non supera la parità, vedi §5) | Sì |
-| [Florence-2](https://huggingface.co/onnx-community/Florence-2-large) | MIT | Sì |
+| [Florence-2](https://huggingface.co/microsoft/Florence-2-base-ft) (base-ft: `onnx-community` e nostro export dell'encoder visivo da `florence-community`) | MIT (verificato il 13 ott 2026) | Sì |
 | PaddleOCR (modelli ONNX di `SWHL/RapidOCR`) | Apache 2.0 (repository RapidOCR e PaddleOCR) | Sì |
-| Qwen2.5-VL | Varia per dimensione | Da verificare |
+| Qwen2.5-VL | 3B: "qwen-research" (non commerciale); 7B: Apache-2.0 (schede Hugging Face, verificate il 13 ott 2026) | 3B no; 7B sì |
 | Predittore estetico LAION | Da verificare | Da verificare |
 | [InsightFace buffalo\_l](https://pypi.org/project/insightface/) | Solo ricerca non commerciale | No |
 | YuNet (OpenCV Zoo) | MIT (LICENSE in opencv\_zoo, verificato il 12 ott 2026) | Sì |
@@ -1156,6 +1189,10 @@ Decisioni emerse in Design (confermate), funzioni rinviate a dopo la stabilizzaz
 | Vista Numeri: foto intera con i riquadri delle vetture (ambra = numero incerto, grigio = altra vettura riconosciuta), "Conferma e scrivi XMP" nella vista, numero di eventi in cui è usato un elenco (tavola 2c); oggi ritagli con le letture e conferma dalla Revisione | Tappa 4.5 |
 | Elenco iscritti: modifica in tabella (oggi come testo, una vettura per riga) | Tappa 4.5 |
 | Ricampionamento più veloce per l'OCR (oggi il ridimensionamento antialias del fotogramma costa ~65 ms a 1600 px) | Tappa 4.6 |
+| Didascalie VLM (livello D): Qwen2.5-VL-7B con un nostro export, quando sarà percorribile dentro `IInferenceProvider` con test di parità | F5-2 |
+| Didascalie più veloci: cache dell'encoder sulla GPU (IO binding) invece di ricopiarla a ogni passo del decoder; Florence-2 large come alternativa | Tappa 5.1 |
+| Rigenerazione: scambio dell'indice embedding quando ci sarà un secondo modello di embedding | Tappa 5.4 |
+| Registro della sincronizzazione XMP consultabile nell'interfaccia (oggi nel catalogo e nel riepilogo delle Impostazioni) | Tappa 5.6 |
 
 ### Verifiche tecniche
 

@@ -21,10 +21,14 @@ public sealed class NamedTensorTests
     }
 
     [Fact]
-    public void Dimensions_must_be_positive()
+    public void Dimensions_must_not_be_negative()
     {
-        Assert.Throws<ArgumentException>(() => NamedTensor.Int64("ids", Array.Empty<long>(), 1, 0));
+        Assert.Throws<ArgumentException>(() => NamedTensor.Int64("ids", Array.Empty<long>(), 1, -1));
         Assert.Throws<ArgumentException>(() => NamedTensor.Int64("ids", Array.Empty<long>()));
+
+        // An empty dimension is valid (the cache of a decoder before its first step) and holds no data.
+        Assert.Equal(0, NamedTensor.Float32("past", Array.Empty<float>(), 3, 12, 0, 64).ElementCount);
+        Assert.Throws<ArgumentException>(() => NamedTensor.Float32("past", new float[1], 3, 12, 0, 64));
     }
 
     [Fact]

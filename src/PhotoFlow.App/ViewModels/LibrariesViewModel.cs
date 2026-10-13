@@ -53,6 +53,29 @@ public sealed partial class LibrariesViewModel : PageViewModel
     private readonly PhotoFlowHost _host;
     private readonly IShellNavigator _navigator;
 
+    /// <summary>Raised when the view should open the file picker of a .pfcatalog (board 5b2).</summary>
+    public event EventHandler? CatalogPickRequested;
+
+    [RelayCommand]
+    private void RequestImportCatalog() => CatalogPickRequested?.Invoke(this, EventArgs.Empty);
+
+    /// <summary>Regeneration of the selected library (spec §5).</summary>
+    [RelayCommand]
+    private void Regenerate()
+    {
+        if (Selected is { } library)
+        {
+            _navigator.ShowPage(new RegenerationViewModel(_host, _navigator, libraryId: library.Library.Id));
+        }
+    }
+
+    /// <summary>The import continues in Settings › Catalog (remapping of the folders, password of the fingerprints).</summary>
+    public void ImportCatalog(string path)
+    {
+        _host.PendingCatalogImport = path;
+        _navigator.ShowSection(SectionCatalog.Settings);
+    }
+
     public LibrariesViewModel(PhotoFlowHost host, IShellNavigator navigator)
     {
         _host = host;

@@ -44,6 +44,7 @@ public sealed class BrowseKeyboardTests : IDisposable
 
         await catalog.Tags.ReplaceAutomaticAsync(ids[0], TagSource.RamPlus, "r", [("beach", 0.9), ("sunset", 0.8)], ct);
         await catalog.Tags.ReplaceAutomaticAsync(ids[1], TagSource.RamPlus, "r", [("beach", 0.9)], ct);
+        await catalog.Captions.SetAutomaticAsync(ids[1], "en", "A beach with umbrellas.", "florence2-base-ft@1", ct);
 
         using var shell = new MainWindowViewModel(host);
         var window = new MainWindow { DataContext = shell, Width = 1440, Height = 900 };
@@ -80,6 +81,19 @@ public sealed class BrowseKeyboardTests : IDisposable
         browse.RemoveTagCommand.Execute(beach);
         await WaitAsync(() => browse.DetailTags.All(t => t.Label != "beach"));
         Assert.Equal(AssetTagState.Suppressed, (await catalog.Tags.GetForAssetAsync(ids[1], ct)).Single(t => t.Tag.Key == "beach").Assignment.State);
+
+        // D: the caption is edited in its field; Enter saves it as the user's, and the keys go back to the page.
+        Assert.Equal("A beach with umbrellas.", browse.DetailCaption);
+        Press(window, PhysicalKey.D);
+        Assert.True(browse.IsEditingCaption);
+        Assert.Equal("A beach with umbrellas.", browse.CaptionText);
+        browse.CaptionText = "Ferragosto a Rimini, la spiaggia all'alba.";
+        Press(window, PhysicalKey.Enter);
+        await WaitAsync(() => browse.DetailCaption.StartsWith("Ferragosto a Rimini", StringComparison.Ordinal));
+        Assert.Equal(CaptionOrigin.Manual, (await catalog.Captions.GetAsync(ids[1], ct))!.Origin);
+        Assert.False(await catalog.Captions.SetAutomaticAsync(ids[1], "en", "A beach.", "florence2-base-ft@2", ct));
+        Press(window, PhysicalKey.Digit4);
+        await WaitAsync(() => browse.DetailRating.StartsWith("★★★★", StringComparison.Ordinal));
 
         Save(window, "4d-browse");
 

@@ -24,6 +24,7 @@ public sealed class CullingPhotoProcessor : IPhotoProcessor
     private readonly Func<IFingerprintProtector>? _protector;
     private readonly IImageTagger? _tagger;
     private readonly ITextReader? _textReader;
+    private readonly IImageCaptioner? _captioner;
 
     /// <summary>Vehicles read by the OCR at most, the largest first.</summary>
     public const int MaxVehicles = 6;
@@ -36,9 +37,10 @@ public sealed class CullingPhotoProcessor : IPhotoProcessor
     /// <param name="protector">Current fingerprint encryption; without an available key no fingerprint is computed (P13).</param>
     /// <param name="tagger">Image tagger (level B, phase 3), run when the options ask for it; null without the model.</param>
     /// <param name="textReader">OCR of race numbers (phase 4), run on each vehicle when the profile asks for it.</param>
+    /// <param name="captioner">Captions (level C, phase 5), run when the options ask for them.</param>
     public CullingPhotoProcessor(IPreviewProvider previews, CullingAnalyzer analyzer, IDecisionEngine engine, Func<string, SceneProfile> profiles, IThumbnailStore? thumbnails,
         IImageEmbedder? embedder = null, IFaceEmbedder? faceEmbedder = null, Func<IFingerprintProtector>? protector = null, IImageTagger? tagger = null,
-        ITextReader? textReader = null)
+        ITextReader? textReader = null, IImageCaptioner? captioner = null)
     {
         ArgumentNullException.ThrowIfNull(previews);
         ArgumentNullException.ThrowIfNull(analyzer);
@@ -54,6 +56,7 @@ public sealed class CullingPhotoProcessor : IPhotoProcessor
         _protector = protector;
         _tagger = tagger;
         _textReader = textReader;
+        _captioner = captioner;
     }
 
     public async Task<PhotoProcessingResult> ProcessAsync(PhotoInput photo, ProcessingOptions options, CancellationToken ct)
@@ -78,6 +81,9 @@ public sealed class CullingPhotoProcessor : IPhotoProcessor
             : new ImageEmbedding(_embedder.ModelVersion, await _embedder.EmbedAsync(preview.Image, ct).ConfigureAwait(false));
         var tags = options.Tagger && _tagger is not null ? await _tagger.TagAsync(preview.Image, ct).ConfigureAwait(false) : null;
         var readings = profile.Ocr && _textReader is not null ? await ReadNumbersAsync(preview.Image, analysis.Subjects, ct).ConfigureAwait(false) : null;
+        var caption = options.Captions && _captioner is not null
+            ? new GeneratedCaption(_captioner.Language, await _captioner.CaptionAsync(preview.Image, ct).ConfigureAwait(false), _captioner.ModelVersion)
+            : null;
         var decision = _engine.Decide(analysis.Signals, profile);
         var (width, height) = (preview.Image.Width, preview.Image.Height);
         var protector = profile.Faces == FaceMode.Recognize && _faceEmbedder is not null ? _protector?.Invoke() : null;
@@ -114,7 +120,8 @@ public sealed class CullingPhotoProcessor : IPhotoProcessor
             $"{_engine.Version}+{analysis.ModelVersion}+{profile.Id}@{profile.Version}",
             embedding,
             tags,
-            readings);
+            readings,
+            caption);
     }
 
     /// <summary>
