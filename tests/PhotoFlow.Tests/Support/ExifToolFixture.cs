@@ -32,6 +32,28 @@ public static class ExifToolFixture
 /// <summary>Synthetic JPEG images (no personal photos, no license issues).</summary>
 public static class SyntheticImages
 {
+    /// <summary>A "scene" of coloured rectangles that depends on the seed, drawn at any size in proportion (same picture, different sizes).</summary>
+    public static string WriteScene(string path, int width, int height, int seed)
+    {
+        using var bitmap = new SKBitmap(width, height, SKColorType.Rgba8888, SKAlphaType.Opaque);
+        using (var canvas = new SKCanvas(bitmap))
+        {
+            var random = new Random(seed);
+            canvas.Clear(new SKColor((byte)random.Next(256), (byte)random.Next(256), (byte)random.Next(256)));
+            using var paint = new SKPaint();
+            for (var i = 0; i < 12; i++)
+            {
+                paint.Color = new SKColor((byte)random.Next(256), (byte)random.Next(256), (byte)random.Next(256));
+                var (x, y) = ((float)random.NextDouble() * width, (float)random.NextDouble() * height);
+                canvas.DrawRect(x, y, (float)random.NextDouble() * width / 2, (float)random.NextDouble() * height / 2, paint);
+            }
+        }
+
+        using var data = bitmap.Encode(SKEncodedImageFormat.Jpeg, 90);
+        File.WriteAllBytes(path, data.ToArray());
+        return path;
+    }
+
     public static string WriteJpeg(string path, int width = 96, int height = 64, int seed = 1)
     {
         using var bitmap = new SKBitmap(width, height, SKColorType.Rgba8888, SKAlphaType.Opaque);

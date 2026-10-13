@@ -32,6 +32,7 @@
     <DataTemplate DataType="vm:PersonPageViewModel"><v:PersonPageView /></DataTemplate>
     <DataTemplate DataType="vm:ProfilesViewModel"><v:ProfilesView /></DataTemplate>
     <DataTemplate DataType="vm:BrowseViewModel"><v:BrowseView /></DataTemplate>
+    <DataTemplate DataType="vm:DuplicatesViewModel"><v:DuplicatesView /></DataTemplate>
     <DataTemplate DataType="vm:PlaceholderPageViewModel"><v:PlaceholderView /></DataTemplate>
   </Window.DataTemplates>
 

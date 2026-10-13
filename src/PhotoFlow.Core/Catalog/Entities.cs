@@ -311,6 +311,25 @@ public enum AssetTagState
 /// <summary>A personal tag recognized by CLIP zero-shot (level A, board 5d): English description for the model, threshold, margin over the second candidate.</summary>
 public sealed record CustomTag(long TagId, string ClipDescription, double Threshold, double Margin);
 
+// --- Duplicates ---
+
+public enum DuplicateKind
+{
+    /// <summary>Same content (same hash) in several folders of a library.</summary>
+    Exact,
+
+    /// <summary>Different files of the same picture: exports, resized or cropped copies (F3-5).</summary>
+    Near,
+}
+
+/// <summary>A copy in a duplicate group: the asset and the file.</summary>
+public sealed record DuplicateMember(long AssetId, AssetLocation Location);
+
+/// <param name="Key">Stable key of the group (its files), used to remember "not duplicates".</param>
+/// <param name="Similarity">CLIP cosine for near duplicates, 1 for exact ones.</param>
+/// <param name="Recommended">The copy proposed to keep.</param>
+public sealed record DuplicateGroup(string Key, DuplicateKind Kind, IReadOnlyList<DuplicateMember> Members, double Similarity, int Recommended);
+
 // --- Faces ---
 
 public readonly record struct Point2(float X, float Y);

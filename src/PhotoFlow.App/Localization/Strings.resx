@@ -705,4 +705,31 @@
   <data name="Settings.Editor.None" xml:space="preserve"><value>Not chosen</value></data>
   <data name="Settings.Editor.Choose" xml:space="preserve"><value>Choose the program…</value></data>
   <data name="Settings.Editor.Clear" xml:space="preserve"><value>Remove</value></data>
+  <data name="Duplicates.Keep" xml:space="preserve"><value>To keep</value></data>
+  <data name="Duplicates.Move" xml:space="preserve"><value>To move</value></data>
+  <data name="Duplicates.Scanning" xml:space="preserve"><value>Comparing photos… {0} / {1}</value></data>
+  <data name="Duplicates.GroupTitle" xml:space="preserve"><value>{0} · {1} copies</value></data>
+  <data name="Duplicates.GroupTitleNear" xml:space="preserve"><value>{0} · {1} versions</value></data>
+  <data name="Duplicates.SameContent" xml:space="preserve"><value>same content · different folders</value></data>
+  <data name="Duplicates.Similarity" xml:space="preserve"><value>similarity {0}</value></data>
+  <data name="Duplicates.Exact" xml:space="preserve"><value>Exact · {0} groups</value></data>
+  <data name="Duplicates.Near" xml:space="preserve"><value>Near duplicates · {0} groups</value></data>
+  <data name="Duplicates.LastScan" xml:space="preserve"><value>Last check at {0} · {1} photos compared · {2} groups marked "not duplicates" stay out</value></data>
+  <data name="Duplicates.NoClip" xml:space="preserve"><value>Near duplicates need the CLIP model (Settings › Models): now only exact copies are looked for.</value></data>
+  <data name="Duplicates.ExactDetail" xml:space="preserve"><value>Group {0} of {1} · exact copies</value></data>
+  <data name="Duplicates.NearDetail" xml:space="preserve"><value>Group {0} of {1} · near duplicates · similarity {2}</value></data>
+  <data name="Duplicates.ManualTags" xml:space="preserve"><value>{0} manual tags</value></data>
+  <data name="Duplicates.NoTags" xml:space="preserve"><value>no manual tags</value></data>
+  <data name="Duplicates.Sidecar" xml:space="preserve"><value>XMP sidecar</value></data>
+  <data name="Duplicates.Recommended" xml:space="preserve"><value>Proposed: keep {0} ({1}) — the original, the largest, with your tags.</value></data>
+  <data name="Duplicates.RecommendedBadge" xml:space="preserve"><value>Recommended</value></data>
+  <data name="Duplicates.MoveNote" xml:space="preserve"><value>The others are not deleted: they move into _duplicati in the same library, with their sidecar.</value></data>
+  <data name="Duplicates.Moved" xml:space="preserve"><value>{0} files moved into _duplicati, {1} left in place (read-only or not found).</value></data>
+  <data name="Duplicates.Ignored" xml:space="preserve"><value>Marked as not duplicates: it will not be proposed again.</value></data>
+  <data name="Duplicates.None" xml:space="preserve"><value>No duplicates</value></data>
+  <data name="Duplicates.Command.Group" xml:space="preserve"><value>Group</value></data>
+  <data name="Duplicates.Command.Choose" xml:space="preserve"><value>Choose which to keep</value></data>
+  <data name="Duplicates.Command.Confirm" xml:space="preserve"><value>Keep it, move the others</value></data>
+  <data name="Duplicates.Command.Ignore" xml:space="preserve"><value>Not duplicates</value></data>
+  <data name="Duplicates.Command.Rescan" xml:space="preserve"><value>Check again</value></data>
 </root>

@@ -27,6 +27,8 @@ public interface ICatalog : IAsyncDisposable
 
     ITagStore Tags { get; }
 
+    IDuplicateStore Duplicates { get; }
+
     /// <summary>Search over the photos of the catalog (spec §3: only through this interface).</summary>
     Search.ISearchIndex Search { get; }
 
@@ -319,4 +321,20 @@ public interface ITagStore
 
     /// <summary>Creates or updates a personal CLIP tag (board 5d); returns its id.</summary>
     Task<long> SaveCustomAsync(string key, string italian, string? category, string clipDescription, double threshold, double margin, CancellationToken ct);
+}
+
+/// <summary>What the duplicate search keeps between runs (spec §12 view 7, P5).</summary>
+public interface IDuplicateStore
+{
+    /// <summary>Copies of the same content in several folders of the same library (exact duplicates, F3-6).</summary>
+    Task<IReadOnlyList<IReadOnlyList<AssetLocation>>> ListExactCopiesAsync(CancellationToken ct);
+
+    Task<IReadOnlyDictionary<long, ulong>> GetHashesAsync(IReadOnlyCollection<long> assetIds, CancellationToken ct);
+
+    Task SetHashAsync(long assetId, ulong hash, CancellationToken ct);
+
+    /// <summary>Groups marked "not duplicates" by the user, by key.</summary>
+    Task<IReadOnlySet<string>> ListExclusionsAsync(CancellationToken ct);
+
+    Task ExcludeAsync(string key, CancellationToken ct);
 }

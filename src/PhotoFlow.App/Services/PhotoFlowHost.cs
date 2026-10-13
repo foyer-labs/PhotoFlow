@@ -121,6 +121,9 @@ public sealed class PhotoFlowHost : IAsyncDisposable
 
     public ThumbnailCache Thumbnails { get; }
 
+    /// <summary>Decoding and resampling for the UI and the duplicate search (no models).</summary>
+    public IImageOperations ImageOperations { get; } = new SkiaImageOperations();
+
     public IPreviewProvider Previews { get; }
 
     public OnnxRuntimeInferenceProvider Inference { get; }
