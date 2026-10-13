@@ -129,6 +129,16 @@ public sealed class BrowseFacetsTests : IDisposable
         await facets.ClearCommand.ExecuteAsync(null);
         await WaitAsync(() => browse.Rows.Sum(r => r.Items.Count) == 6 && !facets.HasSelection);
 
+        // The large preview (double click or Space) says how to go back: ✕ Chiudi, Esc, double click.
+        browse.TogglePreviewCommand.Execute(null);
+        Assert.True(browse.IsLargePreview);
+        Save(window, "facets-3-preview");
+        Dispatcher.UIThread.RunJobs();
+        window.GetVisualDescendantsOf<BrowseView>()?.Focus();
+        window.KeyPressQwerty(Avalonia.Input.PhysicalKey.Escape, Avalonia.Input.RawInputModifiers.None);
+        Dispatcher.UIThread.RunJobs();
+        Assert.False(browse.IsLargePreview);
+
         // F hides and shows the panel.
         Assert.True(facets.IsOpen);
         facets.ToggleCommand.Execute(null);

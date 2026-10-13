@@ -273,8 +273,14 @@
         </ListBox>
 
         <!-- Space: larger preview -->
-        <Border IsVisible="{Binding IsLargePreview}" Background="{DynamicResource PF.Brush.Viewer}">
-          <Image Source="{Binding DetailImage}" Stretch="Uniform" Margin="16" />
+        <Border IsVisible="{Binding IsLargePreview}" Background="{DynamicResource PF.Brush.Viewer}" PointerPressed="OnLargePreviewPressed">
+          <Grid RowDefinitions="Auto,*,Auto">
+            <Button Classes="secondary" HorizontalAlignment="Right" Margin="12" Command="{Binding TogglePreviewCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Text="✕" /><TextBlock Text="{l:Tr Browse.Preview.Close}" /><Border Classes="key"><TextBlock Text="Esc" /></Border></StackPanel>
+            </Button>
+            <Image Grid.Row="1" Source="{Binding DetailImage}" Stretch="Uniform" Margin="16,0" />
+            <TextBlock Grid.Row="2" Classes="micro secondary" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="16,8,16,12" Text="{l:Tr Browse.Preview.Hint}" />
+          </Grid>
         </Border>
       </Panel>
 

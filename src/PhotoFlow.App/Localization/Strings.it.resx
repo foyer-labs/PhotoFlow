@@ -972,4 +972,6 @@
   <data name="Browse.Facets.More" xml:space="preserve"><value>Altri {0} tag: usa il filtro.</value></data>
   <data name="Browse.Facets.Unknown" xml:space="preserve"><value>(tag)</value></data>
   <data name="Browse.Command.Facets" xml:space="preserve"><value>Filtri</value></data>
+  <data name="Browse.Preview.Close" xml:space="preserve"><value>Chiudi</value></data>
+  <data name="Browse.Preview.Hint" xml:space="preserve"><value>Esc, Spazio o doppio clic: torna all'elenco · ← →: altre foto</value></data>
 </root>

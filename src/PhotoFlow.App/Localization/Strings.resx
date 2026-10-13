@@ -972,4 +972,6 @@
   <data name="Browse.Facets.More" xml:space="preserve"><value>{0} more tags: use the filter.</value></data>
   <data name="Browse.Facets.Unknown" xml:space="preserve"><value>(tag)</value></data>
   <data name="Browse.Command.Facets" xml:space="preserve"><value>Filters</value></data>
+  <data name="Browse.Preview.Close" xml:space="preserve"><value>Close</value></data>
+  <data name="Browse.Preview.Hint" xml:space="preserve"><value>Esc, Space or double click: back to the list · ← →: other photos</value></data>
 </root>

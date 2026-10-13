@@ -113,6 +113,17 @@ public sealed partial class BrowseView : UserControl
         }
     }
 
+    /// <summary>A double click on the large preview goes back to the grid, as one on a thumbnail opened it.</summary>
+    private void OnLargePreviewPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (e.ClickCount == 2 && _viewModel is { IsLargePreview: true })
+        {
+            e.Handled = true;
+            _viewModel.TogglePreviewCommand.Execute(null);
+            Focus();
+        }
+    }
+
     private void OnCellPressed(object? sender, PointerPressedEventArgs e)
     {
         if (sender is Control { Tag: BrowseItemViewModel item } && _viewModel is not null)
