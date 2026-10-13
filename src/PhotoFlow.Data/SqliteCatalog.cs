@@ -39,6 +39,7 @@ public sealed class SqliteCatalog : ICatalog
         Tags = new TagStore(this);
         Search = new SqliteSearchIndex(this);
         Duplicates = new DuplicateStore(this);
+        Motorsport = new MotorsportStore(this);
     }
 
     public ILibraryStore Libraries { get; }
@@ -66,6 +67,8 @@ public sealed class SqliteCatalog : ICatalog
     public Core.Search.ISearchIndex Search { get; }
 
     public IDuplicateStore Duplicates { get; }
+
+    public IMotorsportStore Motorsport { get; }
 
     public static async Task<SqliteCatalog> OpenAsync(CatalogOpenOptions options, CancellationToken ct)
     {

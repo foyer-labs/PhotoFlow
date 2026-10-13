@@ -315,6 +315,11 @@ public sealed class ArchiveJobRunner : IJobRunner
                     await catalog.Analysis.SaveEmbeddingAsync(analyzed.AssetId, embedding.ModelVersion, embedding.Vector, done).ConfigureAwait(false);
                 }
 
+                if (result.Readings is { } readings)
+                {
+                    await catalog.Motorsport.ReplaceReadingsAsync(analyzed.AssetId, readings.Select(r => r with { AssetId = analyzed.AssetId }).ToList(), done).ConfigureAwait(false);
+                }
+
                 if (result.Tags is { } tags)
                 {
                     await catalog.Tags.ReplaceAutomaticAsync(analyzed.AssetId, TagSource.RamPlus, tags.FirstOrDefault()?.ModelVersion, tags.Select(t => (t.TagKey, (double?)t.Confidence)).ToList(), done).ConfigureAwait(false);

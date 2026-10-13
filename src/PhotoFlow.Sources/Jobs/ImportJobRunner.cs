@@ -424,6 +424,11 @@ public sealed class ImportJobRunner : IJobRunner
                 await catalog.Analysis.SaveEmbeddingAsync(assetId, embedding.ModelVersion, embedding.Vector, done).ConfigureAwait(false);
             }
 
+            if (result.Readings is { } readings)
+            {
+                await catalog.Motorsport.ReplaceReadingsAsync(assetId, readings.Select(r => r with { AssetId = assetId }).ToList(), done).ConfigureAwait(false);
+            }
+
             if (result.Tags is { } tags)
             {
                 await catalog.Tags.ReplaceAutomaticAsync(assetId, TagSource.RamPlus, tags.FirstOrDefault()?.ModelVersion, tags.Select(t => (t.TagKey, (double?)t.Confidence)).ToList(), done).ConfigureAwait(false);

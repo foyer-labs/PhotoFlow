@@ -33,8 +33,6 @@
   <data name="Common.Browse" xml:space="preserve"><value>Browse…</value></data>
   <data name="Common.Cancel" xml:space="preserve"><value>Cancel</value></data>
   <data name="Common.Next" xml:space="preserve"><value>Next</value></data>
-  <data name="Common.ComesWithPhase2" xml:space="preserve"><value>Comes with phase 2</value></data>
-  <data name="Common.ComesWithPhase3" xml:space="preserve"><value>Comes with phase 3</value></data>
   <data name="Common.ComesWithPhase5" xml:space="preserve"><value>Comes with phase 5</value></data>
   <data name="Page.ComesWithPhase" xml:space="preserve"><value>This section comes with phase {0}.</value></data>
   <data name="Duration.UnderMinute" xml:space="preserve"><value>&lt; 1 min</value></data>
@@ -57,7 +55,7 @@
   <data name="FirstRun.DownloadGpuPack" xml:space="preserve"><value>Download GPU pack</value></data>
   <data name="FirstRun.GpuPackRestart" xml:space="preserve"><value>GPU pack installed: restart PhotoFlow to use the GPU.</value></data>
   <data name="FirstRun.Models" xml:space="preserve"><value>Models</value></data>
-  <data name="FirstRun.ModelsIntro" xml:space="preserve"><value>Phase 1: subject detection and faces. One face model is for non-commercial use only (buffalo_l): accept its license before the download, or choose YuNet.</value></data>
+  <data name="FirstRun.ModelsIntro" xml:space="preserve"><value>Basic models: subject detection and faces. One face model is for non-commercial use only (buffalo_l): accept its license before the download, or choose YuNet.</value></data>
   <data name="FirstRun.BuffaloNote" xml:space="preserve"><value>Detects closed eyes.</value></data>
   <data name="FirstRun.YuNetNote" xml:space="preserve"><value>Permissive license; closed eyes are not detected (eyes always unknown).</value></data>
   <data name="FirstRun.AcceptBuffalo" xml:space="preserve"><value>I accept the InsightFace license: non-commercial research use only</value></data>
@@ -93,9 +91,6 @@
   <data name="Home.Libraries" xml:space="preserve"><value>LIBRARIES</value></data>
   <data name="Home.QuickActions" xml:space="preserve"><value>QUICK ACTIONS</value></data>
   <data name="Home.QuickAction.ImportFolder" xml:space="preserve"><value>Import folder</value></data>
-  <data name="Home.QuickAction.SearchLater" xml:space="preserve"><value>Search comes with phase 3</value></data>
-  <data name="Home.QuickAction.PeopleLater" xml:space="preserve"><value>People comes with phase 2</value></data>
-  <data name="Home.QuickAction.DuplicatesLater" xml:space="preserve"><value>Duplicates comes with phase 3</value></data>
   <data name="Home.Recovery.Title" xml:space="preserve"><value>PhotoFlow closed unexpectedly</value></data>
   <data name="Home.Recovery.Body" xml:space="preserve"><value>These jobs can resume from the last saved point. No file was lost; at most the photos in progress are processed again.</value></data>
   <data name="Home.Recovery.Resume" xml:space="preserve"><value>Resume {0} jobs</value></data>
@@ -136,7 +131,7 @@
   <data name="Import.Faces.Off" xml:space="preserve"><value>Off</value></data>
   <data name="Import.Faces.DetectOnly" xml:space="preserve"><value>Detection only</value></data>
   <data name="Import.Faces.Recognize" xml:space="preserve"><value>Recognition</value></data>
-  <data name="Import.Faces.Note" xml:space="preserve"><value>Detection is needed for closed eyes; recognition of people comes with phase 2.</value></data>
+  <data name="Import.Faces.Note" xml:space="preserve"><value>Detection is used for closed eyes; recognition also groups the people (People section).</value></data>
   <data name="Import.Tags" xml:space="preserve"><value>Automatic tags</value></data>
   <data name="Import.Tags.A" xml:space="preserve"><value>A · Personal vocabulary (CLIP)</value></data>
   <data name="Import.Tags.B" xml:space="preserve"><value>B · Generic tags (RAM++)</value></data>
@@ -308,7 +303,6 @@
   <data name="Settings.Tab.Catalog" xml:space="preserve"><value>Catalog</value></data>
   <data name="Settings.Tab.General" xml:space="preserve"><value>General</value></data>
   <data name="Settings.Tab.Culling" xml:space="preserve"><value>Culling</value></data>
-  <data name="Settings.Phase2" xml:space="preserve"><value>Comes with phase 2</value></data>
   <data name="Settings.Phase5" xml:space="preserve"><value>Comes with phase 5</value></data>
   <data name="Settings.Hardware.Execution" xml:space="preserve"><value>Model execution</value></data>
   <data name="Settings.Hardware.Cuda" xml:space="preserve"><value>CUDA · NVIDIA GPU in use</value></data>
@@ -319,7 +313,6 @@
   <data name="Settings.Hardware.Limits" xml:space="preserve"><value>Parallel work</value></data>
   <data name="Settings.Hardware.Workers" xml:space="preserve"><value>Analysis of an import: {0} photos at a time. Archive analysis in background: {1} at a time, and it waits while an import runs.</value></data>
   <data name="Settings.Hardware.Benchmark" xml:space="preserve"><value>Run benchmark</value></data>
-  <data name="Settings.Hardware.BenchmarkPhase" xml:space="preserve"><value>Comes with phase 2, with all the analysis stages</value></data>
   <data name="Settings.Hardware.Note" xml:space="preserve"><value>Models are loaded on first use and stay in memory for the session. The network is used only for downloads.</value></data>
   <data name="Models.Function.ObjectDetection" xml:space="preserve"><value>Subjects</value></data>
   <data name="Models.Function.Faces" xml:space="preserve"><value>Faces</value></data>
@@ -406,7 +399,6 @@
   <data name="Stage.Read" xml:space="preserve"><value>Read</value></data>
   <data name="Jobs.Background.Running" xml:space="preserve"><value>Background · low priority</value></data>
   <data name="Jobs.Background.Waiting" xml:space="preserve"><value>Background · waiting for the import</value></data>
-  <data name="Common.ComesWithPhase4" xml:space="preserve"><value>Comes with phase 4</value></data>
   <data name="Label.Good" xml:space="preserve"><value>Good</value></data>
   <data name="Label.Blurred" xml:space="preserve"><value>Blurred</value></data>
   <data name="Label.EyesClosed" xml:space="preserve"><value>Eyes closed</value></data>
@@ -496,7 +488,6 @@
   <data name="Review.MoveDiscards.Done" xml:space="preserve"><value>{0} files moved into _scarti, {1} left in place.</value></data>
   <data name="Review.MoveDiscards.None" xml:space="preserve"><value>No discards in this job.</value></data>
   <data name="Review.MoveDiscards.Question" xml:space="preserve"><value>Move {0} discarded photos into _scarti?</value></data>
-  <data name="Review.NumbersPhase4" xml:space="preserve"><value>The Numbers view comes with phase 4 (motorsport OCR).</value></data>
   <data name="Review.People" xml:space="preserve"><value>People</value></data>
   <data name="Review.People.Note" xml:space="preserve"><value>Tags and names are written only after the confirmation.</value></data>
   <data name="Review.Reanalyzed" xml:space="preserve"><value>{0} analyzed again as {1}.</value></data>
@@ -779,4 +770,68 @@
   <data name="Vocabulary.Custom.Margin" xml:space="preserve"><value>Margin over the 2nd candidate</value></data>
   <data name="Vocabulary.Custom.TrialButton" xml:space="preserve"><value>Try</value></data>
   <data name="Vocabulary.Custom.Save" xml:space="preserve"><value>Save and re-analyze</value></data>
+  <data name="Key.PageUp" xml:space="preserve"><value>PgUp</value></data>
+  <data name="Key.PageDown" xml:space="preserve"><value>PgDn</value></data>
+  <data name="Numbers.Title" xml:space="preserve"><value>Numbers</value></data>
+  <data name="Numbers.Command.Type" xml:space="preserve"><value>type the number</value></data>
+  <data name="Numbers.Command.Erase" xml:space="preserve"><value>erase a digit</value></data>
+  <data name="Numbers.Command.Confirm" xml:space="preserve"><value>confirm and next</value></data>
+  <data name="Numbers.Command.None" xml:space="preserve"><value>no number</value></data>
+  <data name="Numbers.Command.Cycle" xml:space="preserve"><value>number in the list</value></data>
+  <data name="Numbers.Command.Move" xml:space="preserve"><value>photo</value></data>
+  <data name="Numbers.Command.Group" xml:space="preserve"><value>list</value></data>
+  <data name="Numbers.Command.Propagate" xml:space="preserve"><value>propagate to the burst</value></data>
+  <data name="Numbers.Command.Exit" xml:space="preserve"><value>back to the review</value></data>
+  <data name="Numbers.Doubt.Confusion" xml:space="preserve"><value>digits often confused</value></data>
+  <data name="Numbers.Doubt.Partial" xml:space="preserve"><value>partial or uncertain reading</value></data>
+  <data name="Numbers.Doubt.Unknown" xml:space="preserve"><value>no candidate</value></data>
+  <data name="Numbers.Or" xml:space="preserve"><value> or </value></data>
+  <data name="Numbers.NotInList" xml:space="preserve"><value>not in the entry list</value></data>
+  <data name="Numbers.InList" xml:space="preserve"><value>In the list · {0} of {1}</value></data>
+  <data name="Numbers.NoNumber" xml:space="preserve"><value>No readable number</value></data>
+  <data name="Numbers.OutOfList" xml:space="preserve"><value>Out of the list, ignored</value></data>
+  <data name="Numbers.Summary" xml:space="preserve"><value>{0} photos · {1} vehicles · {2} to resolve · {3} entries in the list</value></data>
+  <data name="Numbers.Crew" xml:space="preserve"><value>Crew of {0} · {1} · number only in the XMP</value></data>
+  <data name="Numbers.State.Certain" xml:space="preserve"><value>Number {0}</value></data>
+  <data name="Numbers.State.ToReview" xml:space="preserve"><value>To review</value></data>
+  <data name="Numbers.State.NoNumber" xml:space="preserve"><value>No number</value></data>
+  <data name="Numbers.State.OutOfList" xml:space="preserve"><value>Out of the list</value></data>
+  <data name="Numbers.Origin.Manual" xml:space="preserve"><value>yours</value></data>
+  <data name="Numbers.Origin.Propagated" xml:space="preserve"><value>from the burst</value></data>
+  <data name="Numbers.OtherVehicle" xml:space="preserve"><value>+ {0} certain</value></data>
+  <data name="Numbers.TypeFirst" xml:space="preserve"><value>Type the number first, or Del if there is none.</value></data>
+  <data name="Numbers.Set" xml:space="preserve"><value>{0}: number {1}.</value></data>
+  <data name="Numbers.SetBurst" xml:space="preserve"><value>{0}: number {1}, also on {2} more photos of the burst.</value></data>
+  <data name="Numbers.SetNone" xml:space="preserve"><value>{0}: no number.</value></data>
+  <data name="Numbers.Undone" xml:space="preserve"><value>Last correction undone.</value></data>
+  <data name="Numbers.List.Title" xml:space="preserve"><value>Entry list</value></data>
+  <data name="Numbers.List.Choose" xml:space="preserve"><value>Choose a list</value></data>
+  <data name="Numbers.List.Info" xml:space="preserve"><value>{0} · {1} entries</value></data>
+  <data name="Numbers.List.Manual" xml:space="preserve"><value>typed in</value></data>
+  <data name="Numbers.List.None" xml:space="preserve"><value>No list for this job: only clear readings count as numbers.</value></data>
+  <data name="Numbers.List.Import" xml:space="preserve"><value>Import CSV/Excel</value></data>
+  <data name="Numbers.List.Edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="Numbers.List.EditHint" xml:space="preserve"><value>One entry per line: number; drivers (separated by /); team; category; car.</value></data>
+  <data name="Numbers.List.Save" xml:space="preserve"><value>Save and match again</value></data>
+  <data name="Numbers.List.FileType" xml:space="preserve"><value>Entry lists (CSV, Excel)</value></data>
+  <data name="Numbers.List.ImportFailed" xml:space="preserve"><value>{0} could not be read: {1}</value></data>
+  <data name="Numbers.List.ImportEmpty" xml:space="preserve"><value>{0} has no entries with a number.</value></data>
+  <data name="Numbers.List.Imported" xml:space="preserve"><value>List {0} imported: {1} entries; numbers matched again.</value></data>
+  <data name="Numbers.List.Saved" xml:space="preserve"><value>List saved: {0} entries; numbers matched again.</value></data>
+  <data name="Numbers.Propagate" xml:space="preserve"><value>Propagate the correction to the burst</value></data>
+  <data name="Numbers.Back" xml:space="preserve"><value>Review</value></data>
+  <data name="Numbers.ToResolve" xml:space="preserve"><value>To resolve</value></data>
+  <data name="Numbers.NothingToResolve" xml:space="preserve"><value>Nothing to resolve.</value></data>
+  <data name="Numbers.Other" xml:space="preserve"><value>Other</value></data>
+  <data name="Numbers.Empty" xml:space="preserve"><value>No numbers read in this job: the OCR runs on the photos whose profile asks for it (Motorsport).</value></data>
+  <data name="Numbers.Number" xml:space="preserve"><value>Number</value></data>
+  <data name="Numbers.Confirm" xml:space="preserve"><value>Confirm</value></data>
+  <data name="Numbers.None" xml:space="preserve"><value>No number</value></data>
+  <data name="Numbers.Hint" xml:space="preserve"><value>0-9 type · Enter confirms (the typed number or the first candidate) · ↑ ↓ numbers of the list · ← → photo · PgUp PgDn list · Ctrl Z undo. Your numbers are never replaced by a new analysis.</value></data>
+  <data name="Numbers.Candidates" xml:space="preserve"><value>Candidates for the photo</value></data>
+  <data name="Numbers.CandidatesNote" xml:space="preserve"><value>Colour and model help to tell them apart: they come from the entry list.</value></data>
+  <data name="Import.EntryList" xml:space="preserve"><value>Entry list</value></data>
+  <data name="Import.EntryList.None" xml:space="preserve"><value>No list (clear readings only)</value></data>
+  <data name="Import.EntryList.Item" xml:space="preserve"><value>{0} · {1} entries</value></data>
+  <data name="Import.EntryList.Note" xml:space="preserve"><value>Only the numbers of the list are recognized; sponsors and plates are ignored. It can be changed later in the Numbers view.</value></data>
 </root>

@@ -23,6 +23,10 @@ public sealed class CullingPhotoProcessor : IPhotoProcessor
     private readonly IFaceEmbedder? _faceEmbedder;
     private readonly Func<IFingerprintProtector>? _protector;
     private readonly IImageTagger? _tagger;
+    private readonly ITextReader? _textReader;
+
+    /// <summary>Vehicles read by the OCR at most, the largest first.</summary>
+    public const int MaxVehicles = 6;
 
     /// <summary>Faces smaller than this (long side, reference scale) get no fingerprint (spec §7 <c>minFaceSizePx</c>).</summary>
     public const double MinFingerprintFaceSize = 48;
@@ -31,8 +35,10 @@ public sealed class CullingPhotoProcessor : IPhotoProcessor
     /// <param name="faceEmbedder">Fingerprints for the Recognize mode; null without the model.</param>
     /// <param name="protector">Current fingerprint encryption; without an available key no fingerprint is computed (P13).</param>
     /// <param name="tagger">Image tagger (level B, phase 3), run when the options ask for it; null without the model.</param>
+    /// <param name="textReader">OCR of race numbers (phase 4), run on each vehicle when the profile asks for it.</param>
     public CullingPhotoProcessor(IPreviewProvider previews, CullingAnalyzer analyzer, IDecisionEngine engine, Func<string, SceneProfile> profiles, IThumbnailStore? thumbnails,
-        IImageEmbedder? embedder = null, IFaceEmbedder? faceEmbedder = null, Func<IFingerprintProtector>? protector = null, IImageTagger? tagger = null)
+        IImageEmbedder? embedder = null, IFaceEmbedder? faceEmbedder = null, Func<IFingerprintProtector>? protector = null, IImageTagger? tagger = null,
+        ITextReader? textReader = null)
     {
         ArgumentNullException.ThrowIfNull(previews);
         ArgumentNullException.ThrowIfNull(analyzer);
@@ -47,6 +53,7 @@ public sealed class CullingPhotoProcessor : IPhotoProcessor
         _faceEmbedder = faceEmbedder;
         _protector = protector;
         _tagger = tagger;
+        _textReader = textReader;
     }
 
     public async Task<PhotoProcessingResult> ProcessAsync(PhotoInput photo, ProcessingOptions options, CancellationToken ct)
@@ -70,6 +77,7 @@ public sealed class CullingPhotoProcessor : IPhotoProcessor
             ? null
             : new ImageEmbedding(_embedder.ModelVersion, await _embedder.EmbedAsync(preview.Image, ct).ConfigureAwait(false));
         var tags = options.Tagger && _tagger is not null ? await _tagger.TagAsync(preview.Image, ct).ConfigureAwait(false) : null;
+        var readings = profile.Ocr && _textReader is not null ? await ReadNumbersAsync(preview.Image, analysis.Subjects, ct).ConfigureAwait(false) : null;
         var decision = _engine.Decide(analysis.Signals, profile);
         var (width, height) = (preview.Image.Width, preview.Image.Height);
         var protector = profile.Faces == FaceMode.Recognize && _faceEmbedder is not null ? _protector?.Invoke() : null;
@@ -105,6 +113,52 @@ public sealed class CullingPhotoProcessor : IPhotoProcessor
             decision,
             $"{_engine.Version}+{analysis.ModelVersion}+{profile.Id}@{profile.Version}",
             embedding,
-            tags);
+            tags,
+            readings);
+    }
+
+    /// <summary>
+    /// OCR on the crop of each vehicle found by the object detector (spec §8: numbers are read on the vehicle only),
+    /// the whole frame when none is found; the boxes of the readings are given in the photo, normalized.
+    /// </summary>
+    private async Task<IReadOnlyList<OcrReading>> ReadNumbersAsync(RgbImage image, IReadOnlyList<Detection> subjects, CancellationToken ct)
+    {
+        var vehicles = subjects.Count > 0
+            ? subjects.OrderByDescending(s => s.Box.Area).Take(MaxVehicles).Select(s => s.Box).ToList()
+            : [new BoundingBox(0, 0, 1, 1)];
+        var readings = new List<OcrReading>();
+        for (var v = 0; v < vehicles.Count; v++)
+        {
+            var box = vehicles[v];
+            var (x0, y0) = ((int)Math.Floor(Math.Max(0, box.X1 - 0.02f) * image.Width), (int)Math.Floor(Math.Max(0, box.Y1 - 0.02f) * image.Height));
+            var (x1, y1) = ((int)Math.Ceiling(Math.Min(1, box.X2 + 0.02f) * image.Width), (int)Math.Ceiling(Math.Min(1, box.Y2 + 0.02f) * image.Height));
+            if (x1 - x0 < 32 || y1 - y0 < 32)
+            {
+                continue;
+            }
+
+            var crop = Crop(image, x0, y0, x1 - x0, y1 - y0);
+            foreach (var reading in await _textReader!.ReadAsync(crop, ct).ConfigureAwait(false))
+            {
+                float X(float u) => (x0 + (u * (x1 - x0))) / image.Width;
+                float Y(float u) => (y0 + (u * (y1 - y0))) / image.Height;
+                readings.Add(new OcrReading(0, v, box, new BoundingBox(X(reading.Box.X1), Y(reading.Box.Y1), X(reading.Box.X2), Y(reading.Box.Y2)),
+                    reading.Text, reading.Confidence, _textReader.ModelVersion));
+            }
+        }
+
+        return readings;
+    }
+
+    private static RgbImage Crop(RgbImage image, int x, int y, int width, int height)
+    {
+        var pixels = new byte[width * height * 3];
+        var source = image.Pixels.Span;
+        for (var row = 0; row < height; row++)
+        {
+            source.Slice((((y + row) * image.Width) + x) * 3, width * 3).CopyTo(pixels.AsSpan(row * width * 3, width * 3));
+        }
+
+        return new RgbImage(width, height, pixels);
     }
 }

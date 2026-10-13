@@ -98,7 +98,7 @@
               <Button Classes="chip" Classes.active="{Binding IsCompare}" Command="{Binding CompareCommand}">
                 <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Classes="label" Text="{l:Tr Review.Mode.Compare}" /><TextBlock Classes="micro tertiary" Text="C" /></StackPanel>
               </Button>
-              <Button Classes="chip" Opacity="0.5" Command="{Binding NumbersCommand}" ToolTip.Tip="{l:Tr Common.ComesWithPhase4}">
+              <Button Classes="chip" Command="{Binding NumbersCommand}">
                 <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Classes="label" Text="{l:Tr Review.Mode.Numbers}" /><TextBlock Classes="micro tertiary" Text="N" /></StackPanel>
               </Button>
               <Button Classes="chip" Command="{Binding LabelingCommand}">

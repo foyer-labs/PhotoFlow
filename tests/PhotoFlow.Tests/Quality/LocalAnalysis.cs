@@ -14,6 +14,7 @@ using PhotoFlow.Imaging;
 using PhotoFlow.Inference;
 using PhotoFlow.Metadata.ExifTool;
 using PhotoFlow.Tagging.Clip;
+using PhotoFlow.Tagging.Ocr;
 using PhotoFlow.Tagging.RamPlus;
 using PhotoFlow.Tests.Parity;
 using PhotoFlow.Tests.Support;
@@ -52,7 +53,9 @@ public sealed class LocalAnalysis : IAsyncDisposable
 
     /// <param name="recognition">Phase 2: CLIP image embeddings and scene classifier, ArcFace fingerprints with a random key.</param>
     /// <param name="tagging">Phase 3: RAM++ fp32 tags on every photo.</param>
-    public static async Task<LocalAnalysis> CreateAsync(IFileSystem fileSystem, IThumbnailStore? thumbnails, CancellationToken ct, bool recognition = false, bool tagging = false)
+    /// <param name="ocr">Phase 4: PaddleOCR on the vehicles of the photos whose profile asks for it.</param>
+    public static async Task<LocalAnalysis> CreateAsync(IFileSystem fileSystem, IThumbnailStore? thumbnails, CancellationToken ct, bool recognition = false, bool tagging = false,
+        bool ocr = false)
     {
         var models = TestData.RequireDirectory("models");
         var provider = new OnnxRuntimeInferenceProvider(new InferenceOptions(GpuRuntime.Directory));
@@ -101,8 +104,11 @@ public sealed class LocalAnalysis : IAsyncDisposable
                 RamPlusClasses.Load(Path.Combine(folder, RamPlusTagger.TagListFile), Path.Combine(folder, RamPlusTagger.ThresholdsFile)));
         }
 
+        PaddleOcr? reader = ocr
+            ? new PaddleOcr(await Open("ppocr", PaddleOcr.DetectorFile, PaddleOcr.AdapterId), await Open("ppocr", PaddleOcr.RecognizerFile, PaddleOcr.AdapterId), operations)
+            : null;
         var processor = new CullingPhotoProcessor(previews, new CullingAnalyzer(operations, detector, faces), new DecisionEngine(), BuiltInProfiles.Get, thumbnails,
-            clip, arcFace, () => protector, tagger);
+            clip, arcFace, () => protector, tagger, reader);
         var analysis = new LocalAnalysis(exifTool, processor, target == ExecutionTarget.Gpu ? ExecutionBackend.Cuda : ExecutionBackend.Cpu)
         {
             SceneClassifier = scenes,

@@ -629,8 +629,15 @@ public sealed partial class ReviewViewModel : PageViewModel, IDisposable
     [RelayCommand]
     private void ToggleDetails() => IsDetailsOpen = !IsDetailsOpen;
 
+    /// <summary>N: the Numbers view of the job (board 2c).</summary>
     [RelayCommand]
-    private void Numbers() => StatusMessage = Strings.Get("Review.NumbersPhase4");
+    private void Numbers()
+    {
+        if (_navigator is not null)
+        {
+            _navigator.ShowPage(new NumbersViewModel(_host, _navigator, JobId));
+        }
+    }
 
     [RelayCommand]
     private void Labeling()

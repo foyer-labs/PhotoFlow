@@ -329,6 +329,16 @@ public sealed partial class HomeViewModel : PageViewModel, IDisposable
     [RelayCommand]
     private void OpenJobs() => _navigator.ShowSection(SectionCatalog.Jobs);
 
+    /// <summary>Quick actions (board 3a): search, people, duplicates.</summary>
+    [RelayCommand]
+    private void OpenSection(string? sectionId)
+    {
+        if (sectionId is not null)
+        {
+            _navigator.ShowSection(sectionId);
+        }
+    }
+
     public void Dispose()
     {
         _host.Cards.CardInserted -= OnCardInserted;

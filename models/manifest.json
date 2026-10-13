@@ -236,6 +236,40 @@
       ],
       "io": "input [1,3,384,384] fixed (Pillow bilinear squash resize, ImageNet mean/std) -> output [1,4585] logits (sigmoid, then per-tag thresholds).",
       "notes": "Decision F3-1 (13 Oct 2026): same tag sets as the original PyTorch RAM++ on 52/52 local photos (tools/lab/verify_ramplus.py); C# adapter parity: identical probabilities on CPU, max 1.7e-6 on CUDA (RamPlusParityTests). The int8 conversion is no longer used (12/52 identical sets)."
+    },
+    {
+      "id": "ppocr-en",
+      "function": "Ocr",
+      "name": "PaddleOCR (RapidOCR ONNX): PP-OCRv4 detection + PP-OCRv3 English recognition",
+      "version": "SWHL/RapidOCR@1cfba2e90fc938db55889873735088de210cc173",
+      "phase": 4,
+      "defaultFor": "any",
+      "adapter": "ppocr-v1",
+      "license": {
+        "spdx": "Apache-2.0",
+        "source": "https://huggingface.co/SWHL/RapidOCR",
+        "commercialUse": true,
+        "requiresAcceptance": false,
+        "notes": "PaddleOCR models (Apache-2.0) converted to ONNX by RapidOCR (Apache-2.0); the recognition dictionary is in the model metadata ('character')."
+      },
+      "files": [
+        {
+          "path": "ch_PP-OCRv4_det_infer.onnx",
+          "url": "https://huggingface.co/SWHL/RapidOCR/resolve/1cfba2e90fc938db55889873735088de210cc173/PP-OCRv4/ch_PP-OCRv4_det_infer.onnx",
+          "sha256": "d2a7720d45a54257208b1e13e36a8479894cb74155a5efe29462512d42f49da9",
+          "size": 4745517,
+          "mirrors": []
+        },
+        {
+          "path": "en_PP-OCRv3_rec_infer.onnx",
+          "url": "https://huggingface.co/SWHL/RapidOCR/resolve/1cfba2e90fc938db55889873735088de210cc173/PP-OCRv3/en_PP-OCRv3_rec_infer.onnx",
+          "sha256": "ef7abd8bd3629ae57ea2c28b425c1bd258a871b93fd2fe7c433946ade9b5d9ea",
+          "size": 8967018,
+          "mirrors": []
+        }
+      ],
+      "io": "det x [1,3,H,W] (multiples of 32, min side 736, (x/255-0.5)/0.5) -> probability map [1,1,H,W]; rec x [1,3,48,W<=320] -> softmax [1,T,97] (blank + 96 characters).",
+      "notes": "Decision F4-1 (13 Oct 2026): C# adapters with antialiased resizing and simple DB post-processing; parity with tools/lab/ocr_refs.py on 25 real photos: identical inputs, maps, boxes and texts (OcrParityTests)."
     }
   ]
 }
