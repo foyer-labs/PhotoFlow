@@ -24,7 +24,11 @@ internal sealed class TagStore(SqliteCatalog catalog) : ITagStore
                 .ToHashSet(StringComparer.Ordinal);
             foreach (var entry in entries.Where(e => !existing.Contains(e.Key)))
             {
-                await InsertAsync(c, transaction, entry.Key, source, entry.Category, entry.Italian, reviewed: false, ct).ConfigureAwait(false);
+                var id = await InsertAsync(c, transaction, entry.Key, source, entry.Category, entry.Italian, reviewed: false, ct).ConfigureAwait(false);
+                if (entry.Blacklisted)
+                {
+                    await c.ExecuteAsync(new CommandDefinition("UPDATE Tags SET Blacklisted = 1 WHERE Id = @id;", new { id }, transaction, cancellationToken: ct)).ConfigureAwait(false);
+                }
             }
 
             transaction.Commit();

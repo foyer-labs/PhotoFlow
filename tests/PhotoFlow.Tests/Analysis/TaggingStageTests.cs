@@ -83,6 +83,8 @@ public sealed class TaggingStageTests : IDisposable
         Assert.All(entries.Where(e => e.Category is not null), e => Assert.Contains(e.Category, (string[])["Persone", "Luoghi", "Natura", "Veicoli", "Eventi", "Animali"]));
         Assert.Equal("tramonto", entries.Single(e => e.Key == "sunset").Italian);
         Assert.Equal("Natura", entries.Single(e => e.Key == "sunset").Category);
+        Assert.True(entries.Single(e => e.Key == "photo").Blacklisted);
+        Assert.Equal(7, entries.Count(e => e.Blacklisted));
     }
 
     public void Dispose() => _temp.Dispose();

@@ -6,5 +6,6 @@
   <ItemGroup>
     <!-- RAM++ tags with Italian labels and categories (decision F3-2), versioned in the repository root. -->
     <EmbeddedResource Include="..\..\vocabulary\ramplus.tsv" LogicalName="PhotoFlow.Vocabulary.ramplus.tsv" />
+    <EmbeddedResource Include="..\..\vocabulary\blacklist.txt" LogicalName="PhotoFlow.Vocabulary.blacklist.txt" />
   </ItemGroup>
 </Project>

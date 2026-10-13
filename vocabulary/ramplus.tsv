@@ -3046,7 +3046,7 @@ picnic	picnic	Eventi
 picnic area	area picnic	Luoghi
 picnic basket	cesto da picnic	
 picnic table	tavolo da picnic	
-picture	quadro	
+picture	immagine	
 picture frame	cornice	
 pie	torta salata	
 pigeon	piccione	Animali
@@ -3698,7 +3698,7 @@ singe	bruciacchiare
 singer	cantante	Persone
 sink	lavandino	
 sip	sorso	
-sit	sedersi	
+sit	seduto	Persone
 sitting	seduto	
 skate park	skate park	Luoghi
 skateboard	skateboard	
@@ -3862,7 +3862,7 @@ stairs	scale
 stairwell	tromba delle scale	
 stall	bancarella	
 stallion	stallone	Animali
-stand	supporto	
+stand	in piedi	Persone
 standing	in piedi	
 staple	graffetta	
 stapler	spillatrice	
@@ -3902,7 +3902,7 @@ stir	mescolare
 stirrer	agitatore	
 stirrup	staffa	
 sew	cucire	
-stock	borsa valori	
+stock	stock	
 stocking	calza	
 stomach	stomaco	Persone
 stone building	edificio in pietra	Luoghi
@@ -4389,7 +4389,7 @@ waist	vita	Persone
 waiter	cameriere	Persone
 waiting hall	sala d'attesa	Luoghi
 waiting room	sala d'aspetto	Luoghi
-walk	camminare	
+walk	camminare	Persone
 walking	camminata	Eventi
 walking cane	bastone da passeggio	
 wall clock	orologio da parete	

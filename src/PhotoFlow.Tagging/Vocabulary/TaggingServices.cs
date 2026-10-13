@@ -13,11 +13,13 @@ namespace PhotoFlow.Tagging.Vocabulary;
 public static class RamPlusVocabulary
 {
     private const string Resource = "PhotoFlow.Vocabulary.ramplus.tsv";
+    private const string BlacklistResource = "PhotoFlow.Vocabulary.blacklist.txt";
 
     public static IReadOnlyList<VocabularyEntry> Entries { get; } = Load();
 
     private static List<VocabularyEntry> Load()
     {
+        var blacklist = Lines(BlacklistResource).ToHashSet(StringComparer.Ordinal);
         using var stream = typeof(RamPlusVocabulary).Assembly.GetManifestResourceStream(Resource)
             ?? throw new InvalidOperationException($"Missing resource {Resource}.");
         using var reader = new StreamReader(stream);
@@ -30,10 +32,27 @@ public static class RamPlusVocabulary
             }
 
             var parts = line.Split('\t');
-            entries.Add(new VocabularyEntry(parts[0], parts.Length > 1 ? parts[1] : parts[0], parts.Length > 2 && parts[2].Length > 0 ? parts[2] : null));
+            entries.Add(new VocabularyEntry(parts[0], parts.Length > 1 ? parts[1] : parts[0], parts.Length > 2 && parts[2].Length > 0 ? parts[2] : null, blacklist.Contains(parts[0])));
         }
 
         return entries;
+    }
+
+    private static IEnumerable<string> Lines(string resource)
+    {
+        using var stream = typeof(RamPlusVocabulary).Assembly.GetManifestResourceStream(resource)
+            ?? throw new InvalidOperationException($"Missing resource {resource}.");
+        using var reader = new StreamReader(stream);
+        var lines = new List<string>();
+        while (reader.ReadLine() is { } line)
+        {
+            if (line.Trim().Length > 0 && !line.StartsWith('#'))
+            {
+                lines.Add(line.Trim());
+            }
+        }
+
+        return lines;
     }
 }
 

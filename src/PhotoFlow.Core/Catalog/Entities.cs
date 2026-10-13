@@ -284,8 +284,8 @@ public sealed record Tag(long Id, string Key, string? Category, TagSource Source
 /// <summary>A tag of a photo with its assignment (active or suppressed).</summary>
 public sealed record AssetTagInfo(Tag Tag, AssetTag Assignment);
 
-/// <summary>A tag of a shipped vocabulary (RAM++): key, Italian label to review, default category.</summary>
-public sealed record VocabularyEntry(string Key, string Italian, string? Category);
+/// <summary>A tag of a shipped vocabulary (RAM++): key, Italian label to review, default category, blacklisted at first start.</summary>
+public sealed record VocabularyEntry(string Key, string Italian, string? Category, bool Blacklisted = false);
 
 public enum TagSource
 {

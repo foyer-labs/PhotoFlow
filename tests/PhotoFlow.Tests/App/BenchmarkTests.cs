@@ -58,7 +58,7 @@ public sealed class BenchmarkTests : IDisposable
 
         await activation;
         Assert.True(settings.HasBenchmark);
-        Assert.Equal(6, settings.BenchmarkRows.Count);
+        Assert.Equal(6, settings.BenchmarkRows.Count); // 5 stages + captions (phase 5)
         Assert.False(string.IsNullOrEmpty(settings.BenchmarkEstimates));
     }
 

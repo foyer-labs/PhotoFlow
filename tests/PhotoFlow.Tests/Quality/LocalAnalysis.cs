@@ -14,6 +14,7 @@ using PhotoFlow.Imaging;
 using PhotoFlow.Inference;
 using PhotoFlow.Metadata.ExifTool;
 using PhotoFlow.Tagging.Clip;
+using PhotoFlow.Tagging.RamPlus;
 using PhotoFlow.Tests.Parity;
 using PhotoFlow.Tests.Support;
 
@@ -50,7 +51,8 @@ public sealed class LocalAnalysis : IAsyncDisposable
     public ExecutionBackend Backend { get; }
 
     /// <param name="recognition">Phase 2: CLIP image embeddings and scene classifier, ArcFace fingerprints with a random key.</param>
-    public static async Task<LocalAnalysis> CreateAsync(IFileSystem fileSystem, IThumbnailStore? thumbnails, CancellationToken ct, bool recognition = false)
+    /// <param name="tagging">Phase 3: RAM++ fp32 tags on every photo.</param>
+    public static async Task<LocalAnalysis> CreateAsync(IFileSystem fileSystem, IThumbnailStore? thumbnails, CancellationToken ct, bool recognition = false, bool tagging = false)
     {
         var models = TestData.RequireDirectory("models");
         var provider = new OnnxRuntimeInferenceProvider(new InferenceOptions(GpuRuntime.Directory));
@@ -91,8 +93,16 @@ public sealed class LocalAnalysis : IAsyncDisposable
             protector = new FingerprintCipher(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
         }
 
+        RamPlusTagger? tagger = null;
+        if (tagging)
+        {
+            var folder = Path.Combine(models, "ramplus-fp32");
+            tagger = new RamPlusTagger(await Open("ramplus-fp32", RamPlusTagger.ModelFile, RamPlusTagger.AdapterId), operations,
+                RamPlusClasses.Load(Path.Combine(folder, RamPlusTagger.TagListFile), Path.Combine(folder, RamPlusTagger.ThresholdsFile)));
+        }
+
         var processor = new CullingPhotoProcessor(previews, new CullingAnalyzer(operations, detector, faces), new DecisionEngine(), BuiltInProfiles.Get, thumbnails,
-            clip, arcFace, () => protector);
+            clip, arcFace, () => protector, tagger);
         var analysis = new LocalAnalysis(exifTool, processor, target == ExecutionTarget.Gpu ? ExecutionBackend.Cuda : ExecutionBackend.Cpu)
         {
             SceneClassifier = scenes,

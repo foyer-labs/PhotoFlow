@@ -302,7 +302,6 @@ public sealed partial class SettingsViewModel : PageViewModel
                 stage.PeakVramBytes is { } vram ? Formats.Bytes(vram) : "—"));
         }
 
-        BenchmarkRows.Add(new BenchmarkRow(Strings.Get("Settings.Benchmark.Stage.Tags"), Strings.Get("Common.ComesWithPhase3"), "—", "—"));
         BenchmarkRows.Add(new BenchmarkRow(Strings.Get("Settings.Benchmark.Stage.Captions"), Strings.Get("Common.ComesWithPhase5"), "—", "—"));
         BenchmarkTitle = Strings.Format("Settings.Benchmark.Title", result.Photos, result.At.ToLocalTime().ToString("d MMM yyyy", CultureInfo.CurrentCulture), result.Backend);
         var archive = 0;
