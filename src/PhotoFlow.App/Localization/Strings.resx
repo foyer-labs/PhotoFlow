@@ -504,4 +504,72 @@
   <data name="Review.Retry" xml:space="preserve"><value>Retry</value></data>
   <data name="Review.Single" xml:space="preserve"><value>Single shot</value></data>
   <data name="Review.XmpPending" xml:space="preserve"><value>XMP pending</value></data>
+  <data name="Key.Delete" xml:space="preserve"><value>Del</value></data>
+  <data name="People.Filter.New" xml:space="preserve"><value>New · {0} {1}</value></data>
+  <data name="People.Filter.Unnamed" xml:space="preserve"><value>Unnamed {0}</value></data>
+  <data name="People.Filter.Named" xml:space="preserve"><value>Named {0}</value></data>
+  <data name="People.Filter.Ignored" xml:space="preserve"><value>Ignored {0}</value></data>
+  <data name="People.Summary" xml:space="preserve"><value>{0} named · {1} unnamed · {2} ignored · encrypted fingerprints</value></data>
+  <data name="People.BySize" xml:space="preserve"><value>By size</value></data>
+  <data name="People.Selected" xml:space="preserve"><value>{0} groups selected</value></data>
+  <data name="People.Renamed" xml:space="preserve"><value>Named {0}: its faces become samples.</value></data>
+  <data name="People.MergeNeedsTwo" xml:space="preserve"><value>Select at least two groups to merge (Space or Ctrl+click).</value></data>
+  <data name="People.Merged" xml:space="preserve"><value>{0} groups merged into {1}.</value></data>
+  <data name="People.Rename" xml:space="preserve"><value>Name</value></data>
+  <data name="People.RenameHint" xml:space="preserve"><value>Enter confirms, Esc cancels. An existing name merges into that person.</value></data>
+  <data name="People.IgnoreLong" xml:space="preserve"><value>Ignore strangers, do not propose again</value></data>
+  <data name="People.OpenPage" xml:space="preserve"><value>Open person page</value></data>
+  <data name="People.ThresholdNote" xml:space="preserve"><value>The thresholds prefer splitting: merging is one key, separating is work. That is why you see several groups of the same person.</value></data>
+  <data name="People.XmpNote" xml:space="preserve"><value>Names are written in the XMP only for confirmed photos.</value></data>
+  <data name="People.Command.Navigate" xml:space="preserve"><value>Navigate</value></data>
+  <data name="People.Command.Select" xml:space="preserve"><value>Select</value></data>
+  <data name="People.Command.Range" xml:space="preserve"><value>Range</value></data>
+  <data name="People.Command.Rename" xml:space="preserve"><value>Rename</value></data>
+  <data name="People.Command.Merge" xml:space="preserve"><value>Merge</value></data>
+  <data name="People.Command.Ignore" xml:space="preserve"><value>Ignore</value></data>
+  <data name="People.Command.Open" xml:space="preserve"><value>Open</value></data>
+  <data name="People.Command.Filter" xml:space="preserve"><value>Filters</value></data>
+  <data name="People.Command.Separate" xml:space="preserve"><value>Separate into a new person</value></data>
+  <data name="People.Command.MoveTo" xml:space="preserve"><value>Move to…</value></data>
+  <data name="People.Command.NotThis" xml:space="preserve"><value>Not this person</value></data>
+  <data name="People.Command.Cover" xml:space="preserve"><value>Set as cover</value></data>
+  <data name="People.Command.Apply" xml:space="preserve"><value>Confirm</value></data>
+  <data name="People.Command.Order" xml:space="preserve"><value>Order</value></data>
+  <data name="People.Command.Back" xml:space="preserve"><value>Back</value></data>
+  <data name="People.Empty.Title" xml:space="preserve"><value>No faces yet</value></data>
+  <data name="People.Empty.Body" xml:space="preserve"><value>Groups appear after an import or an analysis with face recognition on.</value></data>
+  <data name="People.Empty.Analyze" xml:space="preserve"><value>Analyze a library…</value></data>
+  <data name="People.Empty.Settings" xml:space="preserve"><value>Face settings</value></data>
+  <data name="People.Grouping" xml:space="preserve"><value>Grouping faces: {0} / {1}</value></data>
+  <data name="People.GroupingHint" xml:space="preserve"><value>The groups already formed are available now, ordered by size. Start from the largest: a name given now helps recognition in the other years.</value></data>
+  <data name="People.Key.Title" xml:space="preserve"><value>Face fingerprints not readable on this account</value></data>
+  <data name="People.Key.Body" xml:space="preserve"><value>The catalog was opened by another user or PC. Names and assignments stay; the key is needed only to recognize new faces.</value></data>
+  <data name="People.Key.Password" xml:space="preserve"><value>Password</value></data>
+  <data name="People.Key.Unlock" xml:space="preserve"><value>Enter password</value></data>
+  <data name="People.Key.Recompute" xml:space="preserve"><value>Recompute fingerprints</value></data>
+  <data name="People.Key.Meanwhile" xml:space="preserve"><value>Until then: the gallery is browsable, recognition is suspended.</value></data>
+  <data name="People.Key.Unlocked" xml:space="preserve"><value>Key unlocked: recognition resumes.</value></data>
+  <data name="People.Key.WrongPassword" xml:space="preserve"><value>Wrong password.</value></data>
+  <data name="People.Key.Recomputed" xml:space="preserve"><value>{0} fingerprints recomputed with a new key; {1} faces without a readable photo.</value></data>
+  <data name="People.Key.RecomputeFailed" xml:space="preserve"><value>Recompute failed: {0}</value></data>
+  <data name="People.BackToList" xml:space="preserve"><value>← People</value></data>
+  <data name="People.Delete" xml:space="preserve"><value>Delete person…</value></data>
+  <data name="People.DeleteQuestion" xml:space="preserve"><value>Delete the person? The name and every fingerprint of its faces are removed. The photos stay.</value></data>
+  <data name="People.DeleteConfirm" xml:space="preserve"><value>Delete</value></data>
+  <data name="People.DeleteNote" xml:space="preserve"><value>"Delete person" removes the name and all its fingerprints. The photos stay.</value></data>
+  <data name="People.LeastSimilarFirst" xml:space="preserve"><value>Least similar first</value></data>
+  <data name="People.DashedNote" xml:space="preserve"><value>Dashed border = low similarity, to check</value></data>
+  <data name="People.FacesSelected" xml:space="preserve"><value>{0} faces selected</value></data>
+  <data name="People.NothingWritten" xml:space="preserve"><value>No photo is modified until you confirm the review.</value></data>
+  <data name="People.Samples" xml:space="preserve"><value>Reference samples</value></data>
+  <data name="People.SamplesNote" xml:space="preserve"><value>Updated per year: a face changes over time. They renew themselves when you confirm new faces.</value></data>
+  <data name="People.InMetadata" xml:space="preserve"><value>In the metadata</value></data>
+  <data name="People.Metadata" xml:space="preserve"><value>Persone|{0} · MWG face regions</value></data>
+  <data name="People.PageSummary" xml:space="preserve"><value>{0} photos · {1} faces · {2}–{3}</value></data>
+  <data name="People.Year" xml:space="preserve"><value>{0} · {1}</value></data>
+  <data name="People.Separated" xml:space="preserve"><value>{0} faces separated into a new person.</value></data>
+  <data name="People.NotThis" xml:space="preserve"><value>{0} faces removed: they will not be proposed for this person again.</value></data>
+  <data name="People.CoverSet" xml:space="preserve"><value>Cover set.</value></data>
+  <data name="People.MoveTo" xml:space="preserve"><value>Move to</value></data>
+  <data name="People.Moved" xml:space="preserve"><value>{0} faces moved to {1}.</value></data>
 </root>

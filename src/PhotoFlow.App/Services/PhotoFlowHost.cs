@@ -246,6 +246,31 @@ public sealed class PhotoFlowHost : IAsyncDisposable
         await new GroupDecisionStage(Catalog, BuiltInProfiles.Get, new DecisionEngine()).RunAsync(context, null, ct).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// The fingerprint key is lost (4c3): a new key, then every fingerprint is recomputed from the library previews;
+    /// names and assignments stay (spec §7). Needs the face recognition model.
+    /// </summary>
+    public async Task<(int Recomputed, int Missing)> RecomputeFingerprintsAsync(string? password, IProgress<(int Done, int Total)>? progress, CancellationToken ct)
+    {
+        var setup = DescribeAnalysis();
+        if (setup.FaceRecognizer is not { } recognizer)
+        {
+            throw new InvalidOperationException("No face recognition model installed.");
+        }
+
+        FingerprintKeys.Reset(password);
+        var session = await Inference.CreateSessionAsync(Models.Resolve(recognizer, recognizer == SFaceModelId ? SFaceEmbedder.File : ArcFaceEmbedder.File), ExecutionTarget.Auto, ct).ConfigureAwait(false);
+        try
+        {
+            IFaceEmbedder embedder = recognizer == SFaceModelId ? new SFaceEmbedder(session) : new ArcFaceEmbedder(session);
+            return await new FingerprintRecompute(Catalog, FileSystem, Previews, embedder, FingerprintKeys.Protector).RunAsync(progress, ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            session.Dispose();
+        }
+    }
+
     /// <summary>Models the analysis would use now (installed and, where needed, accepted).</summary>
     public AnalysisSetup DescribeAnalysis()
     {

@@ -149,6 +149,11 @@ internal sealed class AssetStore(SqliteCatalog catalog) : IAssetStore
         .Select(r => new AssetLocation(r.Id, r.AssetId, r.LibraryId, r.RelativePath, Db.Instant(r.LastSeenMs)!.Value))
         .ToList();
 
+    public async Task<long?> GetTwinAsync(long assetId, CancellationToken ct) =>
+        (await catalog.RunAsync(c => c.QueryAsync<long>(new CommandDefinition(
+            "SELECT CASE WHEN RawAssetId = @assetId THEN JpegAssetId ELSE RawAssetId END FROM AssetPairs WHERE RawAssetId = @assetId OR JpegAssetId = @assetId LIMIT 1;",
+            new { assetId }, cancellationToken: ct)), ct).ConfigureAwait(false)).Cast<long?>().FirstOrDefault();
+
     public Task AddPairAsync(long rawAssetId, long jpegAssetId, CancellationToken ct) =>
         catalog.RunAsync(c => c.ExecuteAsync(new CommandDefinition(
             "INSERT OR IGNORE INTO AssetPairs (RawAssetId, JpegAssetId) VALUES (@rawAssetId, @jpegAssetId);", new { rawAssetId, jpegAssetId }, cancellationToken: ct)), ct);

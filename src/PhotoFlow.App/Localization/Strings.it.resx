@@ -504,4 +504,72 @@
   <data name="Review.Retry" xml:space="preserve"><value>Riprova</value></data>
   <data name="Review.Single" xml:space="preserve"><value>Scatto singolo</value></data>
   <data name="Review.XmpPending" xml:space="preserve"><value>XMP in sospeso</value></data>
+  <data name="Key.Delete" xml:space="preserve"><value>Canc</value></data>
+  <data name="People.Filter.New" xml:space="preserve"><value>Nuovi · {0} {1}</value></data>
+  <data name="People.Filter.Unnamed" xml:space="preserve"><value>Senza nome {0}</value></data>
+  <data name="People.Filter.Named" xml:space="preserve"><value>Con nome {0}</value></data>
+  <data name="People.Filter.Ignored" xml:space="preserve"><value>Ignorate {0}</value></data>
+  <data name="People.Summary" xml:space="preserve"><value>{0} con nome · {1} senza nome · {2} ignorate · impronte cifrate</value></data>
+  <data name="People.BySize" xml:space="preserve"><value>Per dimensione</value></data>
+  <data name="People.Selected" xml:space="preserve"><value>{0} gruppi selezionati</value></data>
+  <data name="People.Renamed" xml:space="preserve"><value>Nominata {0}: i suoi volti diventano campioni.</value></data>
+  <data name="People.MergeNeedsTwo" xml:space="preserve"><value>Seleziona almeno due gruppi da unire (Spazio o Ctrl+clic).</value></data>
+  <data name="People.Merged" xml:space="preserve"><value>{0} gruppi uniti in {1}.</value></data>
+  <data name="People.Rename" xml:space="preserve"><value>Nome</value></data>
+  <data name="People.RenameHint" xml:space="preserve"><value>Invio conferma, Esc annulla. Un nome esistente unisce a quella persona.</value></data>
+  <data name="People.IgnoreLong" xml:space="preserve"><value>Ignora sconosciuti, non riproporre</value></data>
+  <data name="People.OpenPage" xml:space="preserve"><value>Apri pagina persona</value></data>
+  <data name="People.ThresholdNote" xml:space="preserve"><value>Le soglie preferiscono dividere: unire è un tasto, separare è un lavoro. Per questo vedi più gruppi della stessa persona.</value></data>
+  <data name="People.XmpNote" xml:space="preserve"><value>Nomi scritti negli XMP solo per foto confermate.</value></data>
+  <data name="People.Command.Navigate" xml:space="preserve"><value>Naviga</value></data>
+  <data name="People.Command.Select" xml:space="preserve"><value>Seleziona</value></data>
+  <data name="People.Command.Range" xml:space="preserve"><value>Intervallo</value></data>
+  <data name="People.Command.Rename" xml:space="preserve"><value>Rinomina</value></data>
+  <data name="People.Command.Merge" xml:space="preserve"><value>Unisci</value></data>
+  <data name="People.Command.Ignore" xml:space="preserve"><value>Ignora</value></data>
+  <data name="People.Command.Open" xml:space="preserve"><value>Apri</value></data>
+  <data name="People.Command.Filter" xml:space="preserve"><value>Filtri</value></data>
+  <data name="People.Command.Separate" xml:space="preserve"><value>Separa in nuova persona</value></data>
+  <data name="People.Command.MoveTo" xml:space="preserve"><value>Sposta a…</value></data>
+  <data name="People.Command.NotThis" xml:space="preserve"><value>Non è questa persona</value></data>
+  <data name="People.Command.Cover" xml:space="preserve"><value>Usa come copertina</value></data>
+  <data name="People.Command.Apply" xml:space="preserve"><value>Conferma</value></data>
+  <data name="People.Command.Order" xml:space="preserve"><value>Ordine</value></data>
+  <data name="People.Command.Back" xml:space="preserve"><value>Torna</value></data>
+  <data name="People.Empty.Title" xml:space="preserve"><value>Ancora nessun volto</value></data>
+  <data name="People.Empty.Body" xml:space="preserve"><value>I gruppi compaiono dopo un import o un'analisi con il riconoscimento volti attivo.</value></data>
+  <data name="People.Empty.Analyze" xml:space="preserve"><value>Analizza una libreria…</value></data>
+  <data name="People.Empty.Settings" xml:space="preserve"><value>Impostazioni volti</value></data>
+  <data name="People.Grouping" xml:space="preserve"><value>Raggruppamento volti: {0} / {1}</value></data>
+  <data name="People.GroupingHint" xml:space="preserve"><value>I gruppi già formati sono disponibili subito, ordinati per dimensione. Inizia dai più grandi: un nome assegnato ora aiuta il riconoscimento negli altri anni.</value></data>
+  <data name="People.Key.Title" xml:space="preserve"><value>Impronte dei volti non leggibili su questo account</value></data>
+  <data name="People.Key.Body" xml:space="preserve"><value>Il catalogo è stato aperto da un altro utente o PC. I nomi e le assegnazioni restano; serve la chiave solo per riconoscere nuovi volti.</value></data>
+  <data name="People.Key.Password" xml:space="preserve"><value>Password</value></data>
+  <data name="People.Key.Unlock" xml:space="preserve"><value>Inserisci password</value></data>
+  <data name="People.Key.Recompute" xml:space="preserve"><value>Ricalcola impronte</value></data>
+  <data name="People.Key.Meanwhile" xml:space="preserve"><value>Fino ad allora: galleria consultabile, riconoscimento sospeso.</value></data>
+  <data name="People.Key.Unlocked" xml:space="preserve"><value>Chiave sbloccata: il riconoscimento riprende.</value></data>
+  <data name="People.Key.WrongPassword" xml:space="preserve"><value>Password errata.</value></data>
+  <data name="People.Key.Recomputed" xml:space="preserve"><value>{0} impronte ricalcolate con una nuova chiave; {1} volti senza foto leggibile.</value></data>
+  <data name="People.Key.RecomputeFailed" xml:space="preserve"><value>Ricalcolo non riuscito: {0}</value></data>
+  <data name="People.BackToList" xml:space="preserve"><value>← Persone</value></data>
+  <data name="People.Delete" xml:space="preserve"><value>Elimina persona…</value></data>
+  <data name="People.DeleteQuestion" xml:space="preserve"><value>Eliminare la persona? Si cancellano il nome e tutte le impronte dei suoi volti. Le foto restano.</value></data>
+  <data name="People.DeleteConfirm" xml:space="preserve"><value>Elimina</value></data>
+  <data name="People.DeleteNote" xml:space="preserve"><value>"Elimina persona" cancella nome e tutte le impronte. Le foto restano.</value></data>
+  <data name="People.LeastSimilarFirst" xml:space="preserve"><value>Prima i meno simili</value></data>
+  <data name="People.DashedNote" xml:space="preserve"><value>Bordo tratteggiato = somiglianza bassa, da verificare</value></data>
+  <data name="People.FacesSelected" xml:space="preserve"><value>{0} volti selezionati</value></data>
+  <data name="People.NothingWritten" xml:space="preserve"><value>Nessuna foto viene modificata finché non confermi la revisione.</value></data>
+  <data name="People.Samples" xml:space="preserve"><value>Campioni di riferimento</value></data>
+  <data name="People.SamplesNote" xml:space="preserve"><value>Aggiornati per anno: il volto cambia nel tempo. Si rinnovano da soli quando confermi nuovi volti.</value></data>
+  <data name="People.InMetadata" xml:space="preserve"><value>Nei metadati</value></data>
+  <data name="People.Metadata" xml:space="preserve"><value>Persone|{0} · regioni volto MWG</value></data>
+  <data name="People.PageSummary" xml:space="preserve"><value>{0} foto · {1} volti · {2}–{3}</value></data>
+  <data name="People.Year" xml:space="preserve"><value>{0} · {1}</value></data>
+  <data name="People.Separated" xml:space="preserve"><value>{0} volti separati in una nuova persona.</value></data>
+  <data name="People.NotThis" xml:space="preserve"><value>{0} volti tolti: non verranno più proposti per questa persona.</value></data>
+  <data name="People.CoverSet" xml:space="preserve"><value>Copertina impostata.</value></data>
+  <data name="People.MoveTo" xml:space="preserve"><value>Sposta a</value></data>
+  <data name="People.Moved" xml:space="preserve"><value>{0} volti spostati a {1}.</value></data>
 </root>

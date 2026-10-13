@@ -70,6 +70,9 @@ public interface IAssetStore
 
     Task AddPairAsync(long rawAssetId, long jpegAssetId, CancellationToken ct);
 
+    /// <summary>The other asset of a RAW+JPEG pair, if any.</summary>
+    Task<long?> GetTwinAsync(long assetId, CancellationToken ct);
+
     /// <summary>Assets of a library still without the full hash (computed in background, spec §10).</summary>
     Task<IReadOnlyList<(long AssetId, string RelativePath)>> ListWithoutFullHashAsync(long libraryId, int limit, CancellationToken ct);
 
