@@ -129,6 +129,16 @@ public sealed class SearchTests : IDisposable
             slowest = Max(slowest, await Timed(name, query));
         }
 
+        // Changes made by the user (a person renamed, tags added and removed): the next search updates only those photos.
+        await catalog.People.RenameAsync(3, "Sara Bianchi", Ct);
+        for (var id = 1; id <= 200; id++)
+        {
+            await catalog.Tags.AddManualAsync(id, "vacanze", Ct);
+            await catalog.Tags.SuppressAsync(id + 1000, tag, Ct);
+        }
+
+        slowest = Max(slowest, await Timed("After a person renamed and 400 tag changes", SearchQuery.Empty with { Text = "bianchi" }));
+
         var folder = Path.Combine(TestData.Root ?? _temp.Path, "lab", "performance");
         Directory.CreateDirectory(folder);
         await File.WriteAllTextAsync(Path.Combine(folder, $"search-{DateTime.Now:yyyyMMdd-HHmmss}.md"), report.ToString(), Ct);

@@ -12,8 +12,8 @@ using PhotoFlow.Core.Search;
 namespace PhotoFlow.Data;
 
 /// <summary>
-/// Search on SQLite (decision F3-4): exact filters in SQL, words in the FTS5 table <c>SearchText</c> (rebuilt when the
-/// content of the catalog changes, detected by a fingerprint), meaning and similarity by an exact scan of the image
+/// Search on SQLite (decision F3-4): exact filters in SQL, words in the FTS5 table <c>SearchText</c> (updated photo by
+/// photo from the changes marked by triggers), meaning and similarity by an exact scan of the image
 /// embeddings kept in memory (60,000 × 512 floats = 120 MB, a few tens of milliseconds with SIMD). The RAW of a
 /// RAW+JPEG pair is not a separate result: its JPEG carries tags and faces.
 /// </summary>
@@ -219,7 +219,24 @@ internal sealed class SqliteSearchIndex(SqliteCatalog catalog) : ISearchIndex
         }
     }
 
-    /// <summary>Rebuilds the full-text table when the catalog content it depends on changed.</summary>
+    /// <summary>The searchable text of the photos selected by <c>{0}</c> (file names, tag labels in both languages, people).</summary>
+    private const string ContentSql = """
+        INSERT INTO SearchText (rowid, Content)
+        SELECT a.Id,
+               IFNULL((SELECT group_concat(l.RelativePath, ' ') FROM AssetLocations l WHERE l.AssetId = a.Id), '') || ' ' ||
+               IFNULL((SELECT group_concat(CASE WHEN instr(t.Key, ':') > 0 THEN substr(t.Key, instr(t.Key, ':') + 1) ELSE t.Key END || ' ' || IFNULL(tl.Label, ''), ' ')
+                       FROM AssetTags x JOIN Tags t ON t.Id = x.TagId LEFT JOIN TagLabels tl ON tl.TagId = t.Id AND tl.Language = 'it'
+                       WHERE x.AssetId = a.Id AND x.State = 'Active' AND t.Blacklisted = 0), '') || ' ' ||
+               IFNULL((SELECT group_concat(p.Name, ' ') FROM Faces f JOIN Persons p ON p.Id = f.PersonId
+                       WHERE f.AssetId = a.Id AND p.Name IS NOT NULL AND p.Ignored = 0), '')
+        FROM Assets a
+        WHERE a.State = 'Active' AND NOT EXISTS (SELECT 1 FROM AssetPairs p WHERE p.RawAssetId = a.Id) AND {0};
+        """;
+
+    /// <summary>
+    /// Brings the full-text table up to date: built in full the first time, then only the photos marked in
+    /// <c>SearchDirty</c> by the triggers of migration 0012 (in full again when most of the catalog changed).
+    /// </summary>
     private async Task EnsureTextIndexAsync(CancellationToken ct)
     {
         await _gate.WaitAsync(ct).ConfigureAwait(false);
@@ -227,40 +244,34 @@ internal sealed class SqliteSearchIndex(SqliteCatalog catalog) : ISearchIndex
         {
             await catalog.RunAsync(async c =>
             {
-                var fingerprint = await c.ExecuteScalarAsync<string>(new CommandDefinition(
-                    """
-                    SELECT (SELECT COUNT(*) || ':' || IFNULL(MAX(UpdatedAtMs), 0) FROM AssetTags) || '|' ||
-                           (SELECT COUNT(*) || ':' || IFNULL(MAX(Id), 0) FROM Assets) || '|' ||
-                           (SELECT COUNT(*) || ':' || TOTAL(length(RelativePath)) FROM AssetLocations) || '|' ||
-                           (SELECT COUNT(*) || ':' || TOTAL(PersonId) FROM Faces) || '|' ||
-                           (SELECT IFNULL(group_concat(Id || '=' || IFNULL(Name, '') || Ignored, ','), '') FROM Persons) || '|' ||
-                           (SELECT COUNT(*) || ':' || TOTAL(length(Label)) FROM TagLabels) || '|' ||
-                           (SELECT TOTAL(Blacklisted) FROM Tags);
-                    """, cancellationToken: ct)).ConfigureAwait(false) ?? string.Empty;
-                var stored = await c.ExecuteScalarAsync<string>(new CommandDefinition("SELECT Fingerprint FROM SearchState WHERE Id = 1;", cancellationToken: ct)).ConfigureAwait(false);
-                if (stored == fingerprint)
+                var built = await c.ExecuteScalarAsync<int>(new CommandDefinition("SELECT COUNT(*) FROM SearchState WHERE Id = 1;", cancellationToken: ct)).ConfigureAwait(false) > 0;
+                var dirty = (await c.QueryAsync<long>(new CommandDefinition("SELECT AssetId FROM SearchDirty;", cancellationToken: ct)).ConfigureAwait(false)).ToList();
+                if (built && dirty.Count == 0)
                 {
                     return;
                 }
 
+                var total = await c.ExecuteScalarAsync<int>(new CommandDefinition("SELECT COUNT(*) FROM Assets;", cancellationToken: ct)).ConfigureAwait(false);
                 using var transaction = c.BeginTransaction();
-                await c.ExecuteAsync(new CommandDefinition("DELETE FROM SearchText;", transaction: transaction, cancellationToken: ct)).ConfigureAwait(false);
+                if (!built || dirty.Count > total / 4)
+                {
+                    await c.ExecuteAsync(new CommandDefinition("DELETE FROM SearchText;", transaction: transaction, cancellationToken: ct)).ConfigureAwait(false);
+                    await c.ExecuteAsync(new CommandDefinition(string.Format(CultureInfo.InvariantCulture, ContentSql, "1 = 1"), transaction: transaction, cancellationToken: ct)).ConfigureAwait(false);
+                    await c.ExecuteAsync(new CommandDefinition("DELETE FROM SearchDirty;", transaction: transaction, cancellationToken: ct)).ConfigureAwait(false);
+                }
+                else
+                {
+                    foreach (var chunk in dirty.Chunk(500))
+                    {
+                        await c.ExecuteAsync(new CommandDefinition("DELETE FROM SearchText WHERE rowid IN @chunk;", new { chunk }, transaction, cancellationToken: ct)).ConfigureAwait(false);
+                        await c.ExecuteAsync(new CommandDefinition(string.Format(CultureInfo.InvariantCulture, ContentSql, "a.Id IN @chunk"), new { chunk }, transaction, cancellationToken: ct)).ConfigureAwait(false);
+                        await c.ExecuteAsync(new CommandDefinition("DELETE FROM SearchDirty WHERE AssetId IN @chunk;", new { chunk }, transaction, cancellationToken: ct)).ConfigureAwait(false);
+                    }
+                }
+
                 await c.ExecuteAsync(new CommandDefinition(
-                    """
-                    INSERT INTO SearchText (rowid, Content)
-                    SELECT a.Id,
-                           IFNULL((SELECT group_concat(l.RelativePath, ' ') FROM AssetLocations l WHERE l.AssetId = a.Id), '') || ' ' ||
-                           IFNULL((SELECT group_concat(CASE WHEN instr(t.Key, ':') > 0 THEN substr(t.Key, instr(t.Key, ':') + 1) ELSE t.Key END || ' ' || IFNULL(tl.Label, ''), ' ')
-                                   FROM AssetTags x JOIN Tags t ON t.Id = x.TagId LEFT JOIN TagLabels tl ON tl.TagId = t.Id AND tl.Language = 'it'
-                                   WHERE x.AssetId = a.Id AND x.State = 'Active' AND t.Blacklisted = 0), '') || ' ' ||
-                           IFNULL((SELECT group_concat(p.Name, ' ') FROM Faces f JOIN Persons p ON p.Id = f.PersonId
-                                   WHERE f.AssetId = a.Id AND p.Name IS NOT NULL AND p.Ignored = 0), '')
-                    FROM Assets a
-                    WHERE a.State = 'Active' AND NOT EXISTS (SELECT 1 FROM AssetPairs p WHERE p.RawAssetId = a.Id);
-                    """, transaction: transaction, cancellationToken: ct)).ConfigureAwait(false);
-                await c.ExecuteAsync(new CommandDefinition(
-                    "INSERT INTO SearchState (Id, Fingerprint) VALUES (1, @fingerprint) ON CONFLICT (Id) DO UPDATE SET Fingerprint = excluded.Fingerprint;",
-                    new { fingerprint }, transaction, cancellationToken: ct)).ConfigureAwait(false);
+                    "INSERT INTO SearchState (Id, Fingerprint) VALUES (1, 'triggers') ON CONFLICT (Id) DO UPDATE SET Fingerprint = excluded.Fingerprint;",
+                    transaction: transaction, cancellationToken: ct)).ConfigureAwait(false);
                 transaction.Commit();
             }, ct).ConfigureAwait(false);
         }

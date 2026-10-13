@@ -66,8 +66,8 @@ public sealed class XmpPublisher(ICatalog catalog, IMetadataWriter writer)
     }
 
     /// <summary>
-    /// Adds the tags of the photo (spec §8): the English label always, the Italian one once reviewed, and
-    /// <c>Category|Label</c> in the hierarchy; blacklisted tags are never written. The keywords of tags the user removed
+    /// Adds the tags of the photo (spec §4, §8): the English label always, the Italian one once reviewed, and
+    /// <c>Category|Label</c> in the hierarchy (Italian once reviewed, English before); blacklisted tags are never written. The keywords of tags the user removed
     /// (or blacklisted) are taken out of the file by <see cref="WithRemovals"/>, only if PhotoFlow wrote them before.
     /// </summary>
     public static MetadataChanges? WithTags(MetadataChanges? changes, IReadOnlyList<AssetTagInfo> tags)
@@ -89,9 +89,10 @@ public sealed class XmpPublisher(ICatalog catalog, IMetadataWriter writer)
         static IEnumerable<string> Flat(Tag tag) =>
             new[] { tag.English, tag.Reviewed ? tag.Italian : null }.OfType<string>().Distinct(StringComparer.Ordinal);
 
+        // Spec §4: the hierarchy is in Italian; a tag not reviewed yet is written in English only (there too).
         static IEnumerable<string> Hierarchical(Tag tag) => tag.Category is not { } category
             ? []
-            : new[] { tag.English, tag.Reviewed ? tag.Italian : null }.OfType<string>().Distinct(StringComparer.Ordinal).Select(l => $"{category}|{Capitalize(l)}");
+            : [$"{category}|{Capitalize(tag.Reviewed && tag.Italian is { } italian ? italian : tag.English)}"];
 
         static string Capitalize(string label) => label.Length == 0 ? label : char.ToUpper(label[0], System.Globalization.CultureInfo.InvariantCulture) + label[1..];
     }

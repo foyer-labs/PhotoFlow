@@ -61,10 +61,12 @@ public sealed class TagXmpTests : IDisposable
         Assert.Contains("lake", subject.Split('|'));
         Assert.DoesNotContain("image", subject, StringComparison.Ordinal);
         Assert.DoesNotContain("immagine", subject, StringComparison.Ordinal);
-        foreach (var expected in new[] { "Natura|Sunset", "Natura|Tramonto", "Natura|Lake", "Eventi|Gita al lago" })
+        foreach (var expected in new[] { "Natura|Tramonto", "Natura|Lake", "Eventi|Gita al lago" })
         {
             Assert.Contains(expected, hierarchy, StringComparison.Ordinal);
         }
+
+        Assert.DoesNotContain("Natura|Sunset", hierarchy, StringComparison.Ordinal);   // the hierarchy is in Italian once reviewed
 
         // The user removes "sunset"; another analysis finds the lake no more. Only PhotoFlow's keywords go away.
         await tags.SuppressAsync(assetId, sunset.Id, Ct);
@@ -75,7 +77,7 @@ public sealed class TagXmpTests : IDisposable
         Assert.DoesNotContain("sunset", subject, StringComparison.Ordinal);
         Assert.DoesNotContain("tramonto", subject, StringComparison.Ordinal);
         Assert.DoesNotContain("lake", subject, StringComparison.Ordinal);
-        Assert.DoesNotContain("Natura|Sunset", hierarchy, StringComparison.Ordinal);
+        Assert.DoesNotContain("Natura|Tramonto", hierarchy, StringComparison.Ordinal);
         Assert.Contains("vacanze", subject, StringComparison.Ordinal);
         Assert.Contains("beach", subject, StringComparison.Ordinal);
         Assert.Contains("Gita al lago", subject, StringComparison.Ordinal);
