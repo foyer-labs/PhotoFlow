@@ -97,6 +97,8 @@ public sealed partial class ImportWizardViewModel : PageViewModel
         var levels = defaults.Tags ?? (setup.Backend == Core.Inference.ExecutionBackend.Cuda ? Core.Tagging.TagLevels.Default : Core.Tagging.TagLevels.ZeroShot);
         _tagsA = CanTagA && levels.HasFlag(Core.Tagging.TagLevels.ZeroShot);
         _tagsB = CanTagB && levels.HasFlag(Core.Tagging.TagLevels.Tagger);
+        CanTagC = host.Models.IsInstalled(PhotoFlowHost.CaptionModelId);
+        _tagsC = CanTagC && levels.HasFlag(Core.Tagging.TagLevels.Caption);
         _xmpPolicy = defaults.XmpPolicy;
         RecentEvents = defaults.RecentEvents;
         _eventName = string.Empty;
@@ -188,7 +190,14 @@ public sealed partial class ImportWizardViewModel : PageViewModel
     [ObservableProperty]
     private bool _tagsB;
 
-    public Core.Tagging.TagLevels TagLevels => (TagsA ? Core.Tagging.TagLevels.ZeroShot : 0) | (TagsB ? Core.Tagging.TagLevels.Tagger : 0);
+    /// <summary>Level C: Florence-2 captions (optional, off by default; about a second per photo on the GPU).</summary>
+    [ObservableProperty]
+    private bool _tagsC;
+
+    public bool CanTagC { get; }
+
+    public Core.Tagging.TagLevels TagLevels =>
+        (TagsA ? Core.Tagging.TagLevels.ZeroShot : 0) | (TagsB ? Core.Tagging.TagLevels.Tagger : 0) | (TagsC ? Core.Tagging.TagLevels.Caption : 0);
 
     /// <summary>A face recognition model is installed (SFace, or buffalo_l with its license accepted).</summary>
     public bool CanRecognize { get; }

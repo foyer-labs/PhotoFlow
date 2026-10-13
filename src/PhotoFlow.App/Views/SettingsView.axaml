@@ -210,6 +210,11 @@
             <Button Classes="ghost" Command="{Binding UseBundledExifToolCommand}" Content="{l:Tr Settings.ExifTool.UseBundled}" />
           </StackPanel>
 
+          <TextBlock Classes="overline" Text="{l:Tr Settings.Xmp}" />
+          <CheckBox IsChecked="{Binding WriteCaptions}">
+            <StackPanel><TextBlock Text="{l:Tr Settings.Xmp.WriteCaptions}" /><TextBlock Classes="micro tertiary" TextWrapping="Wrap" Text="{l:Tr Settings.Xmp.WriteCaptionsNote}" /></StackPanel>
+          </CheckBox>
+
           <TextBlock Classes="overline" Text="{l:Tr Settings.Editor}" />
           <TextBlock Classes="data" TextWrapping="Wrap" Text="{Binding EditorText}" />
           <StackPanel Orientation="Horizontal" Spacing="8">

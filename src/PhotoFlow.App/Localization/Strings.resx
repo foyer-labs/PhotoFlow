@@ -33,7 +33,6 @@
   <data name="Common.Browse" xml:space="preserve"><value>Browse…</value></data>
   <data name="Common.Cancel" xml:space="preserve"><value>Cancel</value></data>
   <data name="Common.Next" xml:space="preserve"><value>Next</value></data>
-  <data name="Common.ComesWithPhase5" xml:space="preserve"><value>Comes with phase 5</value></data>
   <data name="Page.ComesWithPhase" xml:space="preserve"><value>This section comes with phase {0}.</value></data>
   <data name="Duration.UnderMinute" xml:space="preserve"><value>&lt; 1 min</value></data>
   <data name="Duration.Minutes" xml:space="preserve"><value>~{0} min</value></data>
@@ -834,4 +833,15 @@
   <data name="Import.EntryList.None" xml:space="preserve"><value>No list (clear readings only)</value></data>
   <data name="Import.EntryList.Item" xml:space="preserve"><value>{0} · {1} entries</value></data>
   <data name="Import.EntryList.Note" xml:space="preserve"><value>Only the numbers of the list are recognized; sponsors and plates are ignored. It can be changed later in the Numbers view.</value></data>
+  <data name="Import.Tags.CNoModel" xml:space="preserve"><value>Captions need the Florence-2 model (Settings › Models); about a second per photo on the GPU, a few seconds on the CPU.</value></data>
+  <data name="Import.Tags.DUnavailable" xml:space="preserve"><value>Not available: the VLMs that can run here are either for non-commercial use only or need a separate runtime without parity tests (see the specification, decision F5-2).</value></data>
+  <data name="Settings.Xmp" xml:space="preserve"><value>XMP</value></data>
+  <data name="Settings.Xmp.WriteCaptions" xml:space="preserve"><value>Write captions in dc:description</value></data>
+  <data name="Settings.Xmp.WriteCaptionsNote" xml:space="preserve"><value>Florence-2 captions are in English. Captions you write yourself are written too.</value></data>
+  <data name="Browse.Command.Caption" xml:space="preserve"><value>caption</value></data>
+  <data name="Browse.Detail.Caption" xml:space="preserve"><value>Caption</value></data>
+  <data name="Browse.Caption.Edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="Browse.Caption.Yours" xml:space="preserve"><value>Written by you</value></data>
+  <data name="Browse.Caption.Automatic" xml:space="preserve"><value>Automatic · {0}</value></data>
+  <data name="Browse.Caption.Placeholder" xml:space="preserve"><value>Describe the photo; Enter saves, Esc cancels</value></data>
 </root>

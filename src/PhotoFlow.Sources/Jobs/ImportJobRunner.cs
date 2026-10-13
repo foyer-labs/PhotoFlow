@@ -389,7 +389,7 @@ public sealed class ImportJobRunner : IJobRunner
             PhotoProcessingResult result;
             try
             {
-                result = await owner._processor.ProcessAsync(new PhotoInput(path, hash, exifSummary), new ProcessingOptions(settings.ProfileId, settings.Faces, (settings.Tags ?? TagLevels.Default).HasFlag(TagLevels.Tagger)), ct).ConfigureAwait(false);
+                result = await owner._processor.ProcessAsync(new PhotoInput(path, hash, exifSummary), new ProcessingOptions(settings.ProfileId, settings.Faces, (settings.Tags ?? TagLevels.Default).HasFlag(TagLevels.Tagger), (settings.Tags ?? TagLevels.Default).HasFlag(TagLevels.Caption)), ct).ConfigureAwait(false);
             }
             catch (Exception e) when (e is not OperationCanceledException)
             {
@@ -422,6 +422,11 @@ public sealed class ImportJobRunner : IJobRunner
             if (result.Embedding is { } embedding)
             {
                 await catalog.Analysis.SaveEmbeddingAsync(assetId, embedding.ModelVersion, embedding.Vector, done).ConfigureAwait(false);
+            }
+
+            if (result.Caption is { } caption)
+            {
+                await catalog.Captions.SetAutomaticAsync(assetId, caption.Language, caption.Text, caption.ModelVersion, done).ConfigureAwait(false);
             }
 
             if (result.Readings is { } readings)

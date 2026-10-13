@@ -31,6 +31,8 @@ public interface ICatalog : IAsyncDisposable
 
     IMotorsportStore Motorsport { get; }
 
+    ICaptionStore Captions { get; }
+
     /// <summary>Search over the photos of the catalog (spec §3: only through this interface).</summary>
     Search.ISearchIndex Search { get; }
 
@@ -345,6 +347,21 @@ public interface IDuplicateStore
 }
 
 /// <summary>Entry lists, OCR readings and race numbers (spec §8, §9).</summary>
+/// <summary>Captions (spec §8, levels C/D): one per photo and language; the user's are never replaced (I5).</summary>
+public interface ICaptionStore
+{
+    /// <summary>Saves an automatic caption; false (nothing written) when the user wrote or cleared the caption.</summary>
+    Task<bool> SetAutomaticAsync(long assetId, string language, string text, string modelVersion, CancellationToken ct);
+
+    /// <summary>The user's caption (an empty text clears it for good).</summary>
+    Task SetManualAsync(long assetId, string language, string text, CancellationToken ct);
+
+    /// <summary>The caption of a photo (the user's first, then the most recent).</summary>
+    Task<Caption?> GetAsync(long assetId, CancellationToken ct);
+
+    Task<IReadOnlyDictionary<long, Caption>> GetForAssetsAsync(IReadOnlyList<long> assetIds, CancellationToken ct);
+}
+
 public interface IMotorsportStore
 {
     Task<long> CreateListAsync(string name, string? sourceFile, CancellationToken ct);

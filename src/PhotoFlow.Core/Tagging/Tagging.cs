@@ -43,6 +43,9 @@ public enum TagLevels
     /// <summary>B: RAM++.</summary>
     Tagger = 2,
 
+    /// <summary>C: Florence-2 captions (optional, spec §5).</summary>
+    Caption = 4,
+
     Default = ZeroShot | Tagger,
 }
 

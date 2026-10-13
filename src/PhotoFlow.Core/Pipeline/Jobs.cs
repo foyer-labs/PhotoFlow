@@ -95,7 +95,8 @@ public interface IPhotoProcessor
 
 /// <param name="Faces">Face analysis chosen for the job (board 3e); null keeps the profile's mode.</param>
 /// <param name="Tagger">Run the image tagger (level B, RAM++) on the photo.</param>
-public sealed record ProcessingOptions(string ProfileId, FaceMode? Faces = null, bool Tagger = false);
+/// <param name="Captions">Level C: a caption of the photo (when the model is installed).</param>
+public sealed record ProcessingOptions(string ProfileId, FaceMode? Faces = null, bool Tagger = false, bool Captions = false);
 
 /// <param name="Path">Verified copy in the library (never the source).</param>
 /// <param name="ContentHash">xxHash3 of the file (thumbnail key).</param>
@@ -110,7 +111,11 @@ public sealed record PhotoProcessingResult(
     string DecisionVersion,
     ImageEmbedding? Embedding = null,
     IReadOnlyList<Tagging.TagResult>? Tags = null,
-    IReadOnlyList<OcrReading>? Readings = null);
+    IReadOnlyList<OcrReading>? Readings = null,
+    GeneratedCaption? Caption = null);
+
+/// <summary>An automatic caption (spec §8) with its language and the model that wrote it.</summary>
+public sealed record GeneratedCaption(string Language, string Text, string ModelVersion);
 
 /// <summary>An L2-normalized image embedding and the model version that produced it.</summary>
 public sealed record ImageEmbedding(string ModelVersion, float[] Vector);

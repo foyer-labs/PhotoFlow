@@ -33,7 +33,6 @@
   <data name="Common.Browse" xml:space="preserve"><value>Sfoglia…</value></data>
   <data name="Common.Cancel" xml:space="preserve"><value>Annulla</value></data>
   <data name="Common.Next" xml:space="preserve"><value>Avanti</value></data>
-  <data name="Common.ComesWithPhase5" xml:space="preserve"><value>Arriva con la fase 5</value></data>
   <data name="Page.ComesWithPhase" xml:space="preserve"><value>Questa sezione arriva con la fase {0}.</value></data>
   <data name="Duration.UnderMinute" xml:space="preserve"><value>&lt; 1 min</value></data>
   <data name="Duration.Minutes" xml:space="preserve"><value>~{0} min</value></data>
@@ -834,4 +833,15 @@
   <data name="Import.EntryList.None" xml:space="preserve"><value>Nessun elenco (solo letture nitide)</value></data>
   <data name="Import.EntryList.Item" xml:space="preserve"><value>{0} · {1} vetture</value></data>
   <data name="Import.EntryList.Note" xml:space="preserve"><value>Vengono riconosciuti solo i numeri in elenco; sponsor e targhe sono ignorati. Si può cambiare dopo nella vista Numeri.</value></data>
+  <data name="Import.Tags.CNoModel" xml:space="preserve"><value>Le didascalie richiedono il modello Florence-2 (Impostazioni › Modelli); circa un secondo per foto con la GPU, qualche secondo su CPU.</value></data>
+  <data name="Import.Tags.DUnavailable" xml:space="preserve"><value>Non disponibile: i VLM utilizzabili qui sono solo per uso non commerciale oppure richiedono un runtime separato senza test di parità (vedi la specifica, decisione F5-2).</value></data>
+  <data name="Settings.Xmp" xml:space="preserve"><value>XMP</value></data>
+  <data name="Settings.Xmp.WriteCaptions" xml:space="preserve"><value>Scrivi le didascalie in dc:description</value></data>
+  <data name="Settings.Xmp.WriteCaptionsNote" xml:space="preserve"><value>Le didascalie di Florence-2 sono in inglese. Anche quelle scritte da te vengono scritte.</value></data>
+  <data name="Browse.Command.Caption" xml:space="preserve"><value>didascalia</value></data>
+  <data name="Browse.Detail.Caption" xml:space="preserve"><value>Didascalia</value></data>
+  <data name="Browse.Caption.Edit" xml:space="preserve"><value>Modifica</value></data>
+  <data name="Browse.Caption.Yours" xml:space="preserve"><value>Scritta da te</value></data>
+  <data name="Browse.Caption.Automatic" xml:space="preserve"><value>Automatica · {0}</value></data>
+  <data name="Browse.Caption.Placeholder" xml:space="preserve"><value>Descrivi la foto; Invio salva, Esc annulla</value></data>
 </root>

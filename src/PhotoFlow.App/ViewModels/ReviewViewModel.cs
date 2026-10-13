@@ -874,7 +874,7 @@ public sealed partial class ReviewViewModel : PageViewModel, IDisposable
                 await _host.UpdateSettingsAsync(s => s with { PrudentMode = PrudentMode }, CancellationToken.None);
             }
 
-            var summary = await Task.Run(() => new XmpPublisher(_host.Catalog, _host.MetadataWriter).WriteAsync(assets, PrudentMode, null, CancellationToken.None));
+            var summary = await Task.Run(() => _host.CreatePublisher().WriteAsync(assets, PrudentMode, null, CancellationToken.None));
             _failedAssets = [.. summary.FailedAssets];
             ResultMessage = Strings.Format("Review.Result.Written", DateTime.Now.ToString("d MMM yyyy · HH:mm", CultureInfo.CurrentCulture), summary.Written.ToString("N0", CultureInfo.CurrentCulture));
             ResultError = summary.Failed.Count == 0 ? null

@@ -27,6 +27,7 @@ using PhotoFlow.Sources.Jobs;
 using PhotoFlow.Sources.Scanning;
 using PhotoFlow.Core.Tagging;
 using PhotoFlow.Tagging.Clip;
+using PhotoFlow.Tagging.Captions;
 using PhotoFlow.Tagging.Ocr;
 using PhotoFlow.Tagging.RamPlus;
 using PhotoFlow.Tagging.Vocabulary;
@@ -36,7 +37,7 @@ namespace PhotoFlow.App.Services;
 /// <summary>Which models the analysis uses, for the status bar and the first run (3b).</summary>
 /// <summary>The loaded models of the analysis (null when not installed).</summary>
 public sealed record AnalysisComponents(IImageOperations Operations, IObjectDetector? Objects, IFaceDetector? Faces, IImageEmbedder? Embedder, IFaceEmbedder? Fingerprints,
-    IImageTagger? Tagger = null, ITextReader? TextReader = null);
+    IImageTagger? Tagger = null, ITextReader? TextReader = null, IImageCaptioner? Captioner = null);
 
 public sealed record AnalysisSetup(string? ObjectDetector, string? FaceDetector, bool EyesAvailable, ExecutionBackend Backend, string? Embedder = null, string? FaceRecognizer = null);
 
@@ -58,6 +59,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     public const string ClipModelId = "clip-vit-b32";
     public const string RamPlusModelId = "ramplus-fp32";
     public const string OcrModelId = "ppocr-en";
+    public const string CaptionModelId = "florence2-base-ft";
     public const string SFaceModelId = "opencv-sface-2021dec";
 
     private readonly SemaphoreSlim _sessionsGate = new(1, 1);
@@ -120,6 +122,9 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     public IExifReader ExifReader { get; }
 
     public IMetadataWriter MetadataWriter { get; }
+
+    /// <summary>The XMP writer with the current preferences (captions in <c>dc:description</c>).</summary>
+    public XmpPublisher CreatePublisher() => new(Catalog, MetadataWriter, Settings.Xmp.WriteCaptions);
 
     public ThumbnailCache Thumbnails { get; }
 
@@ -341,7 +346,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     {
         var c = await GetAnalysisComponentsAsync(ct).ConfigureAwait(false);
         var created = new CullingPhotoProcessor(Previews, new CullingAnalyzer(c.Operations, c.Objects, c.Faces), new DecisionEngine(), Profiles.Get, Thumbnails,
-            c.Embedder, c.Fingerprints, () => FingerprintKeys.Protector, c.Tagger, c.TextReader);
+            c.Embedder, c.Fingerprints, () => FingerprintKeys.Protector, c.Tagger, c.TextReader, c.Captioner);
         return Interlocked.CompareExchange(ref _processor, created, null) ?? created;
     }
 
@@ -396,7 +401,14 @@ public sealed class PhotoFlowHost : IAsyncDisposable
                 ? new PaddleOcr(await Open(OcrModelId, PaddleOcr.DetectorFile).ConfigureAwait(false),
                     await Open(OcrModelId, PaddleOcr.RecognizerFile, PaddleOcr.RecognizerTarget).ConfigureAwait(false), operations)
                 : null;
-            _components = new AnalysisComponents(operations, objects, faces, embedder, fingerprints, tagger, textReader);
+            IImageCaptioner? captioner = Models.IsInstalled(CaptionModelId)
+                ? new Florence2Captioner(await Open(CaptionModelId, Florence2Captioner.VisionFile).ConfigureAwait(false),
+                    await Open(CaptionModelId, Florence2Captioner.EmbedFile).ConfigureAwait(false),
+                    await Open(CaptionModelId, Florence2Captioner.EncoderFile).ConfigureAwait(false),
+                    await Open(CaptionModelId, Florence2Captioner.DecoderFile).ConfigureAwait(false),
+                    ByteLevelDecoder.Load(Models.Resolve(CaptionModelId, Florence2Captioner.TokenizerFile).FilePath), operations)
+                : null;
+            _components = new AnalysisComponents(operations, objects, faces, embedder, fingerprints, tagger, textReader, captioner);
             return _components;
         }
         finally

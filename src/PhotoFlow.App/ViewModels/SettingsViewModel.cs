@@ -302,7 +302,6 @@ public sealed partial class SettingsViewModel : PageViewModel
                 stage.PeakVramBytes is { } vram ? Formats.Bytes(vram) : "—"));
         }
 
-        BenchmarkRows.Add(new BenchmarkRow(Strings.Get("Settings.Benchmark.Stage.Captions"), Strings.Get("Common.ComesWithPhase5"), "—", "—"));
         BenchmarkTitle = Strings.Format("Settings.Benchmark.Title", result.Photos, result.At.ToLocalTime().ToString("d MMM yyyy", CultureInfo.CurrentCulture), result.Backend);
         var archive = 0;
         foreach (var library in await _host.Catalog.Libraries.ListAsync(CancellationToken.None))
@@ -636,6 +635,20 @@ public sealed partial class SettingsViewModel : PageViewModel
     // Editor for "Apri in Photoshop" (board 4d, Ctrl E)
 
     public string EditorText => _host.Settings.PhotoshopPath ?? Strings.Get("Settings.Editor.None");
+
+    /// <summary>Captions in <c>dc:description</c> (spec §8, off by default); applies to the next XMP writes.</summary>
+    public bool WriteCaptions
+    {
+        get => _host.Settings.Xmp.WriteCaptions;
+        set
+        {
+            if (value != _host.Settings.Xmp.WriteCaptions)
+            {
+                _ = _host.UpdateSettingsAsync(s => s with { Xmp = s.Xmp with { WriteCaptions = value } }, CancellationToken.None);
+                OnPropertyChanged();
+            }
+        }
+    }
 
     [RelayCommand]
     private void RequestEditor() => PickRequested?.Invoke(this, SettingsPick.Editor);

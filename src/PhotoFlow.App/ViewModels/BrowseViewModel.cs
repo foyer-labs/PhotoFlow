@@ -145,6 +145,7 @@ public sealed partial class BrowseViewModel : PageViewModel
         new("Browse.Default", new KeyGesture(Key.Enter, KeyModifiers.Control), "Browse.Command.Default"),
         new("Browse.Explorer", new KeyGesture(Key.E, KeyModifiers.Control | KeyModifiers.Shift), "Browse.Command.Explorer"),
         new("Browse.Tag", new KeyGesture(Key.T), "Browse.Command.Tag", StatusGroupKey: "Browse.Command.Tag"),
+        new("Browse.Caption", new KeyGesture(Key.D), "Browse.Command.Caption", StatusGroupKey: "Browse.Command.Caption"),
         new("Browse.Similar", new KeyGesture(Key.S), "Browse.Command.Similar", StatusGroupKey: "Browse.Command.Similar"),
         new("Browse.Stars", new KeyGesture(Key.D1), "Browse.Command.Stars", StatusGroupKey: "Browse.Command.Stars", Parameter: "1"),
         new("Browse.Stars", new KeyGesture(Key.D2), "Browse.Command.Stars", Parameter: "2"),
@@ -181,6 +182,7 @@ public sealed partial class BrowseViewModel : PageViewModel
         "Browse.Default" => OpenDefaultCommand,
         "Browse.Explorer" => ShowInExplorerCommand,
         "Browse.Tag" => StartTagCommand,
+        "Browse.Caption" => StartCaptionCommand,
         "Browse.Similar" => FindSimilarCommand,
         "Browse.Stars" => SetStarsCommand,
         "Browse.Preview" => TogglePreviewCommand,
@@ -193,6 +195,8 @@ public sealed partial class BrowseViewModel : PageViewModel
 
     /// <summary>Asks the view to focus the tag field (T).</summary>
     public event EventHandler? FocusTagRequested;
+
+    public event EventHandler? FocusCaptionRequested;
 
     // --- Query ---
 
@@ -323,6 +327,23 @@ public sealed partial class BrowseViewModel : PageViewModel
 
     [ObservableProperty]
     private string? _tagText;
+
+    /// <summary>Caption of the photo (spec §8), "—" when there is none.</summary>
+    [ObservableProperty]
+    private string _detailCaption = string.Empty;
+
+    /// <summary>Where the caption comes from: the model, or the user.</summary>
+    [ObservableProperty]
+    private string _detailCaptionOrigin = string.Empty;
+
+    /// <summary>The caption being edited (D), or null.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsEditingCaption))]
+    private string? _captionText;
+
+    public bool IsEditingCaption => CaptionText is not null;
+
+    private Caption? _caption;
 
     public bool IsTagging => TagText is not null;
 
@@ -673,6 +694,22 @@ public sealed partial class BrowseViewModel : PageViewModel
             DetailTags.Add(new DetailTagViewModel(tag.Tag.Id, tag.Tag.Reviewed && tag.Tag.Italian is { } it ? it : tag.Tag.English, tag.Assignment.Source == TagSource.Manual));
         }
 
+        _caption = await catalog.Captions.GetAsync(item.AssetId, CancellationToken.None);
+        if (_caption is null && await catalog.Assets.GetTwinAsync(item.AssetId, CancellationToken.None) is { } twin)
+        {
+            _caption = await catalog.Captions.GetAsync(twin, CancellationToken.None);
+        }
+
+        DetailCaption = _caption is { Text.Length: > 0 } caption ? caption.Text : "—";
+        DetailCaptionOrigin = _caption switch
+        {
+            null => string.Empty,
+            { Origin: CaptionOrigin.Manual } => Strings.Get("Browse.Caption.Yours"),
+            { ModelVersion: { } model } => Strings.Format("Browse.Caption.Automatic", model.Split('@')[0]),
+            _ => string.Empty,
+        };
+        CaptionText = null;
+
         var persons = (await catalog.People.ListPersonsAsync(CancellationToken.None)).ToDictionary(p => p.Person.Id, p => p.Person);
         var faces = await catalog.Analysis.GetFacesAsync(item.AssetId, CancellationToken.None);
         var names = faces.Select(f => f.PersonId is { } id && persons.TryGetValue(id, out var p) && !p.Ignored ? p.Name : null).ToList();
@@ -745,6 +782,36 @@ public sealed partial class BrowseViewModel : PageViewModel
         await LoadDetailAsync(item);
     }
 
+    /// <summary>D: edit the caption of the photo.</summary>
+    [RelayCommand]
+    private void StartCaption()
+    {
+        if (Selected is not null)
+        {
+            CaptionText = _caption?.Text ?? string.Empty;
+            FocusCaptionRequested?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    /// <summary>Enter in the caption field: the user's caption, never replaced by an analysis (I5); empty clears it for good.</summary>
+    [RelayCommand]
+    private async Task SaveCaptionAsync()
+    {
+        if (Selected is not { } item || CaptionText is not { } text)
+        {
+            return;
+        }
+
+        CaptionText = null;
+        var language = _caption?.Language ?? (CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "it" ? "it" : "en");
+        await _host.Catalog.Captions.SetManualAsync(_caption?.AssetId ?? item.AssetId, language, text.Trim(), CancellationToken.None);
+        await WriteXmpAsync(item.AssetId);
+        await LoadDetailAsync(item);
+    }
+
+    [RelayCommand]
+    private void CancelCaption() => CaptionText = null;
+
     /// <summary>✕ on a tag: removed from the photo and suppressed, so no analysis adds it again (I5).</summary>
     [RelayCommand]
     private async Task RemoveTagAsync(DetailTagViewModel? tag)
@@ -765,7 +832,7 @@ public sealed partial class BrowseViewModel : PageViewModel
         }
 
         await _host.Catalog.XmpSync.MarkPendingAsync(assetId, null, CancellationToken.None);
-        var summary = await Task.Run(() => new XmpPublisher(_host.Catalog, _host.MetadataWriter).WriteAsync([assetId], _host.Settings.PrudentMode, null, CancellationToken.None));
+        var summary = await Task.Run(() => _host.CreatePublisher().WriteAsync([assetId], _host.Settings.PrudentMode, null, CancellationToken.None));
         Message = summary.Failed.Count > 0 ? Strings.Get("Browse.XmpFailed") : null;
     }
 
@@ -836,6 +903,10 @@ public sealed partial class BrowseViewModel : PageViewModel
         if (TagText is not null)
         {
             TagText = null;
+        }
+        else if (CaptionText is not null)
+        {
+            CaptionText = null;
         }
         else if (IsLargePreview)
         {

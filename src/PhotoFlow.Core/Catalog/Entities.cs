@@ -423,7 +423,16 @@ public sealed record FaceFingerprint(long FaceId, long AssetId, int? Year, byte[
 
 // --- Text ---
 
-public sealed record Caption(long Id, long AssetId, string Language, string Text, string ModelVersion);
+public enum CaptionOrigin
+{
+    Automatic,
+
+    /// <summary>Written by the user (or imported from another program): never replaced by an analysis (I5).</summary>
+    Manual,
+}
+
+/// <param name="ModelVersion">Model that wrote an automatic caption; null for the user's.</param>
+public sealed record Caption(long AssetId, string Language, string Text, string? ModelVersion, CaptionOrigin Origin, DateTimeOffset UpdatedAt);
 
 public sealed record OcrResult(long Id, long AssetId, BoundingBox Box, string Text, double Confidence, string ModelVersion);
 

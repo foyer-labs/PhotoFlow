@@ -40,6 +40,7 @@ public sealed class SqliteCatalog : ICatalog
         Search = new SqliteSearchIndex(this);
         Duplicates = new DuplicateStore(this);
         Motorsport = new MotorsportStore(this);
+        Captions = new CaptionStore(this);
     }
 
     public ILibraryStore Libraries { get; }
@@ -69,6 +70,8 @@ public sealed class SqliteCatalog : ICatalog
     public IDuplicateStore Duplicates { get; }
 
     public IMotorsportStore Motorsport { get; }
+
+    public ICaptionStore Captions { get; }
 
     public static async Task<SqliteCatalog> OpenAsync(CatalogOpenOptions options, CancellationToken ct)
     {
