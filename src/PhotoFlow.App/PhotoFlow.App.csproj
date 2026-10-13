@@ -27,6 +27,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- License of PhotoFlow and third-party notices, shipped with the application (spec §11, R19). -->
+    <Content Include="..\..\LICENSE;..\..\NOTICE;..\..\THIRD-PARTY-NOTICES.md" Link="licenses\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Desktop" />
     <PackageReference Include="Avalonia.Themes.Fluent" />

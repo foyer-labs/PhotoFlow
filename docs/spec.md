@@ -1159,7 +1159,7 @@ Il rischio principale è l'allargamento continuo dell'ambito; questa specifica e
 | R16 | Una sola distribuzione di ONNX Runtime per processo | Bassa | Medio | Scelto ORT 1.31 (CUDA + CPU, F1-2): compatibile con RapidOcrNet (≥ 1.29); ogni nuovo backend o libreria con ORT propria va verificato |
 | R17 | CUDA in migrazione verso un plugin EP di ONNX Runtime; dimensione del pacchetto GPU (CUDA/cuDNN ~1-1,5 GB) | Media | Medio | `IInferenceProvider`; pacchetto GPU separato e facoltativo, con SHA-256; CPU sempre disponibile |
 | R18 | Clustering volti: HdbscanSharp O(n²) non scala a ~100.000 volti | Alta | Medio | HDBSCAN su grafo k-NN dietro interfaccia di Core, validato contro Python in `tools/lab` |
-| R19 | LGPL (libheif, libde265, LibRaw) collegate staticamente in Magick.Native | Media | Medio | NOTICE e offerta dei sorgenti; revisione di conformità prima della prima versione distribuita |
+| R19 | LGPL (libheif, libde265, LibRaw) collegate staticamente in Magick.Native | Media | Medio | NOTICE e offerta dei sorgenti; revisione di conformità prima della prima versione distribuita. **Fatta per la 0.1.0 (13 ott 2026)**: Magick.Native è ridistribuita non modificata come libreria condivisa separata e sostituibile; nel pacchetto `licenses/` con le note e i testi di licenza di Magick.NET; elenco delle librerie LGPL con versioni e sorgenti, offerta scritta dei sorgenti in `THIRD-PARTY-NOTICES.md`. Non è un parere legale; i brevetti HEVC (HEIC) restano un tema separato, mitigabile disattivando HEIC |
 | R20 | Perl di sistema deprecato su macOS (serve a exiftool) | Media | Basso | Controllo all'avvio con messaggio chiaro; in prospettiva Perl incluso nel pacchetto Mac |
 
 ## 17. Backlog e punti da verificare
