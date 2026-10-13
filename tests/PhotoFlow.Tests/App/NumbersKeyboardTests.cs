@@ -5,6 +5,7 @@ using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Threading;
+using PhotoFlow.App.Localization;
 using PhotoFlow.App.Services;
 using PhotoFlow.App.ViewModels;
 using PhotoFlow.App.Views;
@@ -79,7 +80,7 @@ public sealed class NumbersKeyboardTests : IDisposable
 
         // The doubt comes first.
         Assert.Equal(NumberListKind.ToResolve, numbers.Group?.Kind);
-        Assert.Equal("6 o 9", numbers.Group?.Title);
+        Assert.Equal($"6{Strings.Get("Numbers.Or")}9", numbers.Group?.Title);
         Assert.Equal(assets[1], numbers.Current?.AssetId);
         Assert.Equal(["6", "9"], numbers.Candidates.Select(c => c.Number).Order(StringComparer.Ordinal));
 
