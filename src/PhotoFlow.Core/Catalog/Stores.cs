@@ -61,6 +61,12 @@ public interface IAssetStore
 
     Task<Asset?> GetAsync(long id, CancellationToken ct);
 
+    /// <summary>Several assets at once (missing ids are skipped).</summary>
+    Task<IReadOnlyDictionary<long, Asset>> GetManyAsync(IReadOnlyCollection<long> ids, CancellationToken ct);
+
+    /// <summary>Camera models in the catalog, for the EXIF filter.</summary>
+    Task<IReadOnlyList<string>> ListCamerasAsync(CancellationToken ct);
+
     /// <summary>"Already imported" identity: quick hash plus capture time (spec §4).</summary>
     Task<Asset?> FindByIdentityAsync(string quickHash, DateTimeOffset? capturedAt, CancellationToken ct);
 

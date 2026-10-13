@@ -660,4 +660,49 @@
   <data name="Settings.Benchmark.Estimates" xml:space="preserve"><value>Import di 1.000 scatti: {0} di analisi · archivio di {1} foto: {2} in bassa priorità ({3} ms/foto con {4} foto in parallelo; copia esclusa).</value></data>
   <data name="Settings.Benchmark.Note" xml:space="preserve"><value>Circa 50 foto delle tue librerie, in sola lettura: nulla viene scritto. La VRAM è letta dal driver NVIDIA (tutti i processi); senza, si mostra solo la RAM di PhotoFlow.</value></data>
   <data name="Import.Tags.NoModel" xml:space="preserve"><value>I tag generici richiedono il modello RAM++ (Impostazioni › Modelli); su sola CPU serve circa un secondo per foto.</value></data>
+  <data name="Browse.Kind.Person" xml:space="preserve"><value>Persona</value></data>
+  <data name="Browse.Kind.Tag" xml:space="preserve"><value>Tag</value></data>
+  <data name="Browse.Kind.Event" xml:space="preserve"><value>Evento</value></data>
+  <data name="Browse.PhotosCount" xml:space="preserve"><value>{0} foto</value></data>
+  <data name="Browse.Results.Meaning" xml:space="preserve"><value>{0} foto · per pertinenza · {1} s</value></data>
+  <data name="Browse.Results.Date" xml:space="preserve"><value>{0} foto · dalle più recenti · {1} s</value></data>
+  <data name="Browse.Results.Similar" xml:space="preserve"><value>{0} foto simili</value></data>
+  <data name="Browse.Coverage" xml:space="preserve"><value>Ricerca per significato disponibile su {0} di {1} foto. Tag, persone, date ed EXIF funzionano già su tutto; l'analisi dell'archivio è in corso.</value></data>
+  <data name="Browse.NoClip" xml:space="preserve"><value>La ricerca per significato richiede il modello CLIP (Impostazioni › Modelli): ora si cercano solo le parole in nomi e tag.</value></data>
+  <data name="Browse.Empty.Title" xml:space="preserve"><value>Nessuna foto per {0}</value></data>
+  <data name="Browse.Empty.Without" xml:space="preserve"><value>Togli "{0}" → {1} foto</value></data>
+  <data name="Browse.Filter.RatingValue" xml:space="preserve"><value>Rating ≥ {0}</value></data>
+  <data name="Browse.Filter.Date" xml:space="preserve"><value>Data</value></data>
+  <data name="Browse.Filter.Any" xml:space="preserve"><value>Qualsiasi</value></data>
+  <data name="Browse.Filter.Camera" xml:space="preserve"><value>EXIF</value></data>
+  <data name="Browse.Filter.Rating" xml:space="preserve"><value>Rating</value></data>
+  <data name="Browse.Filter.Outcome" xml:space="preserve"><value>Esito</value></data>
+  <data name="Browse.Reset" xml:space="preserve"><value>Azzera</value></data>
+  <data name="Browse.Meaning" xml:space="preserve"><value>SIGNIFICATO</value></data>
+  <data name="Browse.Placeholder" xml:space="preserve"><value>Persone, tag, eventi, oppure descrivi la foto…</value></data>
+  <data name="Browse.MeaningOnly" xml:space="preserve"><value>Cerca solo per significato su tutto l'archivio</value></data>
+  <data name="Browse.ShowMore" xml:space="preserve"><value>Mostra altre</value></data>
+  <data name="Browse.Detail.NotFound" xml:space="preserve"><value>File non raggiungibile ora (disco o NAS scollegato?)</value></data>
+  <data name="Browse.Detail.Taken" xml:space="preserve"><value>Scatto</value></data>
+  <data name="Browse.Detail.Event" xml:space="preserve"><value>Evento</value></data>
+  <data name="Browse.Detail.Exposure" xml:space="preserve"><value>Esposiz.</value></data>
+  <data name="Browse.Detail.Rating" xml:space="preserve"><value>Valutaz.</value></data>
+  <data name="Browse.Detail.People" xml:space="preserve"><value>Persone</value></data>
+  <data name="Browse.Detail.Tags" xml:space="preserve"><value>Tag</value></data>
+  <data name="Browse.AddTag" xml:space="preserve"><value>Aggiungi tag</value></data>
+  <data name="Browse.Command.Navigate" xml:space="preserve"><value>Naviga</value></data>
+  <data name="Browse.Command.Photoshop" xml:space="preserve"><value>Apri in Photoshop</value></data>
+  <data name="Browse.Command.Default" xml:space="preserve"><value>Apri con app predefinita</value></data>
+  <data name="Browse.Command.Explorer" xml:space="preserve"><value>Mostra in Esplora risorse</value></data>
+  <data name="Browse.Command.Tag" xml:space="preserve"><value>Tag</value></data>
+  <data name="Browse.Command.Similar" xml:space="preserve"><value>Trova simili</value></data>
+  <data name="Browse.Command.Stars" xml:space="preserve"><value>Stelle</value></data>
+  <data name="Browse.Command.Preview" xml:space="preserve"><value>Anteprima grande</value></data>
+  <data name="Browse.XmpFailed" xml:space="preserve"><value>Salvato nel catalogo; l'XMP non è stato scritto (nuovo tentativo al prossimo avvio).</value></data>
+  <data name="Browse.NoPhotoshop" xml:space="preserve"><value>Scegli l'editor in Impostazioni › Generali (Photoshop).</value></data>
+  <data name="Browse.LaunchFailed" xml:space="preserve"><value>Impossibile aprire: {0}</value></data>
+  <data name="Settings.Editor" xml:space="preserve"><value>Editor per "Apri in Photoshop" (Ctrl E)</value></data>
+  <data name="Settings.Editor.None" xml:space="preserve"><value>Non scelto</value></data>
+  <data name="Settings.Editor.Choose" xml:space="preserve"><value>Scegli il programma…</value></data>
+  <data name="Settings.Editor.Clear" xml:space="preserve"><value>Rimuovi</value></data>
 </root>

@@ -37,6 +37,9 @@ public sealed record AppSettings
 
     public TaggingSettings Tagging { get; init; } = new();
 
+    /// <summary>"Apri in Photoshop" (Ctrl E, board 4d): the editor's executable, chosen by the user.</summary>
+    public string? PhotoshopPath { get; init; }
+
     /// <summary>Last in-app benchmark (board 5f), shown in the settings and used for the estimates.</summary>
     public BenchmarkResult? Benchmark { get; init; }
 }

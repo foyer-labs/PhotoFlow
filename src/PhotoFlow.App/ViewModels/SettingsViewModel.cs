@@ -71,6 +71,7 @@ public enum SettingsPick
 {
     OfflinePackage,
     ExifTool,
+    Editor,
 }
 
 /// <summary>
@@ -631,6 +632,26 @@ public sealed partial class SettingsViewModel : PageViewModel
         {
             Message = Strings.Format("Settings.ExifTool.Invalid", e.Message);
         }
+    }
+
+    // Editor for "Apri in Photoshop" (board 4d, Ctrl E)
+
+    public string EditorText => _host.Settings.PhotoshopPath ?? Strings.Get("Settings.Editor.None");
+
+    [RelayCommand]
+    private void RequestEditor() => PickRequested?.Invoke(this, SettingsPick.Editor);
+
+    public async Task UseEditorAsync(string path)
+    {
+        await _host.UpdateSettingsAsync(s => s with { PhotoshopPath = path }, CancellationToken.None);
+        OnPropertyChanged(nameof(EditorText));
+    }
+
+    [RelayCommand]
+    private async Task ClearEditorAsync()
+    {
+        await _host.UpdateSettingsAsync(s => s with { PhotoshopPath = null }, CancellationToken.None);
+        OnPropertyChanged(nameof(EditorText));
     }
 
     [RelayCommand]

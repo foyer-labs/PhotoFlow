@@ -660,4 +660,49 @@
   <data name="Settings.Benchmark.Estimates" xml:space="preserve"><value>Import of 1,000 shots: {0} of analysis · archive of {1} photos: {2} at low priority ({3} ms/photo with {4} photos in parallel; copy excluded).</value></data>
   <data name="Settings.Benchmark.Note" xml:space="preserve"><value>About 50 photos of your libraries, read only: nothing is written. VRAM is read from the NVIDIA driver (all processes); without it only the RAM of PhotoFlow is shown.</value></data>
   <data name="Import.Tags.NoModel" xml:space="preserve"><value>Generic tags need the RAM++ model (Settings › Models); on CPU only it takes about a second per photo.</value></data>
+  <data name="Browse.Kind.Person" xml:space="preserve"><value>Person</value></data>
+  <data name="Browse.Kind.Tag" xml:space="preserve"><value>Tag</value></data>
+  <data name="Browse.Kind.Event" xml:space="preserve"><value>Event</value></data>
+  <data name="Browse.PhotosCount" xml:space="preserve"><value>{0} photos</value></data>
+  <data name="Browse.Results.Meaning" xml:space="preserve"><value>{0} photos · by relevance · {1} s</value></data>
+  <data name="Browse.Results.Date" xml:space="preserve"><value>{0} photos · newest first · {1} s</value></data>
+  <data name="Browse.Results.Similar" xml:space="preserve"><value>{0} similar photos</value></data>
+  <data name="Browse.Coverage" xml:space="preserve"><value>Search by meaning available on {0} of {1} photos. Tags, people, dates and EXIF already work on all of them; the analysis of the archive is in progress.</value></data>
+  <data name="Browse.NoClip" xml:space="preserve"><value>Search by meaning needs the CLIP model (Settings › Models): now only words in names and tags are searched.</value></data>
+  <data name="Browse.Empty.Title" xml:space="preserve"><value>No photos for {0}</value></data>
+  <data name="Browse.Empty.Without" xml:space="preserve"><value>Remove "{0}" → {1} photos</value></data>
+  <data name="Browse.Filter.RatingValue" xml:space="preserve"><value>Rating ≥ {0}</value></data>
+  <data name="Browse.Filter.Date" xml:space="preserve"><value>Date</value></data>
+  <data name="Browse.Filter.Any" xml:space="preserve"><value>Any</value></data>
+  <data name="Browse.Filter.Camera" xml:space="preserve"><value>EXIF</value></data>
+  <data name="Browse.Filter.Rating" xml:space="preserve"><value>Rating</value></data>
+  <data name="Browse.Filter.Outcome" xml:space="preserve"><value>Outcome</value></data>
+  <data name="Browse.Reset" xml:space="preserve"><value>Reset</value></data>
+  <data name="Browse.Meaning" xml:space="preserve"><value>MEANING</value></data>
+  <data name="Browse.Placeholder" xml:space="preserve"><value>People, tags, events, or describe the photo…</value></data>
+  <data name="Browse.MeaningOnly" xml:space="preserve"><value>Search by meaning only, on the whole archive</value></data>
+  <data name="Browse.ShowMore" xml:space="preserve"><value>Show more</value></data>
+  <data name="Browse.Detail.NotFound" xml:space="preserve"><value>File not reachable now (disk or NAS disconnected?)</value></data>
+  <data name="Browse.Detail.Taken" xml:space="preserve"><value>Taken</value></data>
+  <data name="Browse.Detail.Event" xml:space="preserve"><value>Event</value></data>
+  <data name="Browse.Detail.Exposure" xml:space="preserve"><value>Exposure</value></data>
+  <data name="Browse.Detail.Rating" xml:space="preserve"><value>Rating</value></data>
+  <data name="Browse.Detail.People" xml:space="preserve"><value>People</value></data>
+  <data name="Browse.Detail.Tags" xml:space="preserve"><value>Tags</value></data>
+  <data name="Browse.AddTag" xml:space="preserve"><value>Add tag</value></data>
+  <data name="Browse.Command.Navigate" xml:space="preserve"><value>Navigate</value></data>
+  <data name="Browse.Command.Photoshop" xml:space="preserve"><value>Open in Photoshop</value></data>
+  <data name="Browse.Command.Default" xml:space="preserve"><value>Open with default app</value></data>
+  <data name="Browse.Command.Explorer" xml:space="preserve"><value>Show in Explorer</value></data>
+  <data name="Browse.Command.Tag" xml:space="preserve"><value>Tag</value></data>
+  <data name="Browse.Command.Similar" xml:space="preserve"><value>Find similar</value></data>
+  <data name="Browse.Command.Stars" xml:space="preserve"><value>Stars</value></data>
+  <data name="Browse.Command.Preview" xml:space="preserve"><value>Large preview</value></data>
+  <data name="Browse.XmpFailed" xml:space="preserve"><value>Saved in the catalog; the XMP could not be written (retried at the next start).</value></data>
+  <data name="Browse.NoPhotoshop" xml:space="preserve"><value>Choose the editor in Settings › General (Photoshop).</value></data>
+  <data name="Browse.LaunchFailed" xml:space="preserve"><value>Could not open: {0}</value></data>
+  <data name="Settings.Editor" xml:space="preserve"><value>Editor for "Open in Photoshop" (Ctrl E)</value></data>
+  <data name="Settings.Editor.None" xml:space="preserve"><value>Not chosen</value></data>
+  <data name="Settings.Editor.Choose" xml:space="preserve"><value>Choose the program…</value></data>
+  <data name="Settings.Editor.Clear" xml:space="preserve"><value>Remove</value></data>
 </root>

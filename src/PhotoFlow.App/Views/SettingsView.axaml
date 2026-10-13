@@ -210,6 +210,13 @@
             <Button Classes="ghost" Command="{Binding UseBundledExifToolCommand}" Content="{l:Tr Settings.ExifTool.UseBundled}" />
           </StackPanel>
 
+          <TextBlock Classes="overline" Text="{l:Tr Settings.Editor}" />
+          <TextBlock Classes="data" TextWrapping="Wrap" Text="{Binding EditorText}" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Classes="secondary" Command="{Binding RequestEditorCommand}" Content="{l:Tr Settings.Editor.Choose}" />
+            <Button Classes="ghost" Command="{Binding ClearEditorCommand}" Content="{l:Tr Settings.Editor.Clear}" />
+          </StackPanel>
+
           <TextBlock Classes="overline" Text="{l:Tr Settings.Template}" />
           <TextBox Classes="field" FontFamily="{StaticResource PF.Font.Mono}" Text="{Binding PathTemplate}" />
           <ItemsControl ItemsSource="{Binding TemplateVariables}">

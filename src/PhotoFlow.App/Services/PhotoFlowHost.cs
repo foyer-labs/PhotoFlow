@@ -438,6 +438,21 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     private ClipTextEmbedder? _textEmbedder;
     private CustomTagClassifier? _customTags;
 
+    /// <summary>Model version of the stored CLIP embeddings (search by meaning, similar photos); null without CLIP.</summary>
+    public string? EmbeddingModelVersion => Models.IsInstalled(ClipModelId) ? $"{ClipModelId}@{Models.Get(ClipModelId).Version}" : null;
+
+    /// <summary>CLIP text embedding of a free-text search; null without the CLIP model.</summary>
+    public async Task<float[]?> EmbedQueryAsync(string text, CancellationToken ct)
+    {
+        if (EmbeddingModelVersion is null || string.IsNullOrWhiteSpace(text))
+        {
+            return null;
+        }
+
+        await GetSceneClassifierAsync(ct).ConfigureAwait(false);
+        return Vectors.Normalize(await _textEmbedder!.EmbedAsync(text, ct).ConfigureAwait(false));
+    }
+
     /// <summary>The personal CLIP tags (level A) over the stored embeddings; null without the CLIP model.</summary>
     public async Task<CustomTagScan?> GetCustomTagScanAsync(CancellationToken ct)
     {

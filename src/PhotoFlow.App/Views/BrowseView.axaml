@@ -1,0 +1,245 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- Consultazione, boards 4d (tokens + meaning, detail), 4e (no results), 4e2 (index being built). -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:PhotoFlow.App.ViewModels"
+             xmlns:l="using:PhotoFlow.App.Localization"
+             x:Class="PhotoFlow.App.Views.BrowseView"
+             x:DataType="vm:BrowseViewModel">
+  <UserControl.Styles>
+    <Style Selector="Border.token">
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Padding" Value="8,2,4,2" />
+      <Setter Property="Margin" Value="0,0,6,0" />
+      <Setter Property="Background" Value="{DynamicResource PF.Brush.Control}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource PF.Brush.BorderStrong}" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Border.token.meaning">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="{DynamicResource PF.Brush.Accent}" />
+    </Style>
+    <Style Selector="Button.remove">
+      <Setter Property="Padding" Value="4,0" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="MinHeight" Value="0" />
+    </Style>
+    <Style Selector="ComboBox">
+      <Setter Property="MinWidth" Value="110" />
+    </Style>
+  </UserControl.Styles>
+
+  <Grid ColumnDefinitions="*,360">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto" Background="{DynamicResource PF.Brush.GridArea}">
+      <!-- Search field: tokens + free text -->
+      <Border Margin="16,12,16,8" Padding="8,4" CornerRadius="{StaticResource PF.Radius.Control}" BorderThickness="1"
+              BorderBrush="{DynamicResource PF.Brush.BorderStrong}" Background="{DynamicResource PF.Brush.Panel}">
+        <DockPanel>
+          <Border DockPanel.Dock="Right" Classes="key" VerticalAlignment="Center"><TextBlock Text="Ctrl K" /></Border>
+          <ItemsControl DockPanel.Dock="Left" ItemsSource="{Binding Tokens}" VerticalAlignment="Center">
+            <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:SearchSuggestion">
+                <Border Classes="token">
+                  <StackPanel Orientation="Horizontal" Spacing="4">
+                    <TextBlock Classes="micro tertiary" VerticalAlignment="Center" Text="{Binding KindLabel}" />
+                    <TextBlock Classes="label" VerticalAlignment="Center" Text="{Binding Label}" />
+                    <Button Classes="remove" Command="{Binding $parent[UserControl].((vm:BrowseViewModel)DataContext).RemoveTokenCommand}" CommandParameter="{Binding}">
+                      <TextBlock Classes="micro" Text="✕" />
+                    </Button>
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <Border DockPanel.Dock="Left" Classes="token meaning" IsVisible="{Binding HasFreeText}" VerticalAlignment="Center">
+            <StackPanel Orientation="Horizontal" Spacing="4">
+              <TextBlock Classes="label" VerticalAlignment="Center" Text="{Binding FreeText}" />
+              <TextBlock Classes="micro tertiary" VerticalAlignment="Center" Text="{l:Tr Browse.Meaning}" />
+              <Button Classes="remove" Command="{Binding ClearFreeTextCommand}"><TextBlock Classes="micro" Text="✕" /></Button>
+            </StackPanel>
+          </Border>
+          <AutoCompleteBox x:Name="QueryBox" ItemsSource="{Binding Suggestions}" Text="{Binding QueryText}" FilterMode="ContainsOrdinal"
+                           MinimumPrefixLength="1" MaxDropDownHeight="360" BorderThickness="0" Background="Transparent"
+                           PlaceholderText="{l:Tr Browse.Placeholder}">
+            <AutoCompleteBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:SearchSuggestion">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                  <TextBlock Classes="micro tertiary" Width="60" Text="{Binding KindLabel}" />
+                  <TextBlock Grid.Column="1" Classes="label" Text="{Binding Label}" />
+                  <TextBlock Grid.Column="2" Classes="micro tertiary" Text="{Binding Detail}" />
+                </Grid>
+              </DataTemplate>
+            </AutoCompleteBox.ItemTemplate>
+          </AutoCompleteBox>
+        </DockPanel>
+      </Border>
+
+      <!-- Filters -->
+      <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="16,0,16,8">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <TextBlock Classes="label tertiary" VerticalAlignment="Center" Text="{l:Tr Browse.Filter.Date}" />
+          <ComboBox ItemsSource="{Binding YearOptions}" SelectedItem="{Binding YearFromOption}" />
+          <TextBlock Classes="label tertiary" VerticalAlignment="Center" Text="–" />
+          <ComboBox ItemsSource="{Binding YearOptions}" SelectedItem="{Binding YearToOption}" />
+          <TextBlock Classes="label tertiary" VerticalAlignment="Center" Margin="8,0,0,0" Text="{l:Tr Browse.Filter.Camera}" />
+          <ComboBox ItemsSource="{Binding CameraOptions}" SelectedItem="{Binding CameraOption}" />
+          <TextBlock Classes="label tertiary" VerticalAlignment="Center" Margin="8,0,0,0" Text="{l:Tr Browse.Filter.Rating}" />
+          <ComboBox ItemsSource="{Binding RatingOptions}" SelectedItem="{Binding RatingOption}" />
+          <TextBlock Classes="label tertiary" VerticalAlignment="Center" Margin="8,0,0,0" Text="{l:Tr Browse.Filter.Outcome}" />
+          <ComboBox ItemsSource="{Binding OutcomeOptions}" SelectedItem="{Binding OutcomeOption}" />
+          <Button Classes="ghost" Command="{Binding ResetCommand}" Content="{l:Tr Browse.Reset}" />
+        </StackPanel>
+      </ScrollViewer>
+
+      <!-- 4e2: meaning available on part of the archive -->
+      <Border Grid.Row="2" Classes="card" Margin="16,0,16,8" IsVisible="{Binding CoverageText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+        <TextBlock Classes="label secondary" TextWrapping="Wrap" Text="{Binding CoverageText}" />
+      </Border>
+
+      <TextBlock Grid.Row="3" Classes="label tertiary" Margin="16,0,16,6" Text="{Binding ResultText}" />
+
+      <Panel Grid.Row="4">
+        <!-- 4e: no results -->
+        <StackPanel IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" MaxWidth="520">
+          <TextBlock Classes="subtitle" TextAlignment="Center" TextWrapping="Wrap" Text="{Binding EmptyText}" />
+          <ItemsControl ItemsSource="{Binding NoResultOptions}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:NoResultOption">
+                <Button Classes="secondary" HorizontalAlignment="Stretch" Margin="0,0,0,6"
+                        Command="{Binding $parent[UserControl].((vm:BrowseViewModel)DataContext).ApplyNoResultOptionCommand}" CommandParameter="{Binding}"
+                        Content="{Binding Label}" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <Button Classes="ghost" HorizontalAlignment="Center" Command="{Binding MeaningOnlyCommand}" IsVisible="{Binding HasFreeText}" Content="{l:Tr Browse.MeaningOnly}" />
+        </StackPanel>
+
+        <ListBox x:Name="RowsList" ItemsSource="{Binding Rows}" IsVisible="{Binding !IsEmpty}" Background="{DynamicResource PF.Brush.GridArea}" Padding="16,0,8,8" Focusable="False">
+          <ListBox.Styles>
+            <Style Selector="ListBoxItem">
+              <Setter Property="Padding" Value="0" />
+              <Setter Property="Focusable" Value="False" />
+            </Style>
+            <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter, ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+              <Setter Property="Background" Value="Transparent" />
+            </Style>
+          </ListBox.Styles>
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:BrowseRow">
+              <ItemsControl ItemsSource="{Binding Items}">
+                <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:BrowseItemViewModel">
+                    <Border Classes="tile" Classes.selected="{Binding IsSelected}" Width="{x:Static vm:BrowseViewModel.CellSize}" Height="{x:Static vm:BrowseViewModel.CellSize}"
+                            Margin="0,0,6,6" Tag="{Binding}" PointerPressed="OnCellPressed">
+                      <Panel>
+                        <Image Source="{Binding Thumbnail}" Stretch="Uniform" Margin="2" />
+                        <TextBlock Classes="micro" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="6,4" Text="{Binding Stars}" />
+                      </Panel>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+
+        <!-- Space: larger preview -->
+        <Border IsVisible="{Binding IsLargePreview}" Background="{DynamicResource PF.Brush.Viewer}">
+          <Image Source="{Binding DetailImage}" Stretch="Uniform" Margin="16" />
+        </Border>
+      </Panel>
+
+      <Button Grid.Row="5" Classes="ghost" HorizontalAlignment="Center" Margin="0,4,0,8" IsVisible="{Binding HasMore}" Command="{Binding ShowMoreCommand}" Content="{l:Tr Browse.ShowMore}" />
+    </Grid>
+
+    <!-- Detail -->
+    <Border Grid.Column="1" Background="{DynamicResource PF.Brush.Panel}" BorderBrush="{DynamicResource PF.Brush.Border}" BorderThickness="1,0,0,0">
+      <ScrollViewer>
+        <StackPanel Margin="16" Spacing="10" IsVisible="{Binding HasSelection}">
+          <Viewbox Stretch="Uniform" MaxHeight="260">
+            <Canvas Width="{Binding DetailImageSize.Width}" Height="{Binding DetailImageSize.Height}">
+              <Image Source="{Binding DetailImage}" Width="{Binding DetailImageSize.Width}" Height="{Binding DetailImageSize.Height}" />
+              <ItemsControl ItemsSource="{Binding FaceBoxes}">
+                <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                <ItemsControl.Styles>
+                  <Style Selector="ContentPresenter" x:DataType="vm:FaceBoxViewModel">
+                    <Setter Property="Canvas.Left" Value="{Binding X}" />
+                    <Setter Property="Canvas.Top" Value="{Binding Y}" />
+                  </Style>
+                </ItemsControl.Styles>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:FaceBoxViewModel">
+                    <StackPanel>
+                      <Border Width="{Binding Width}" Height="{Binding Height}" BorderThickness="2" BorderBrush="{DynamicResource PF.Brush.Accent}" />
+                      <Border Background="{DynamicResource PF.Brush.Accent}" IsVisible="{Binding Name, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" Padding="4,1">
+                        <TextBlock Classes="micro" Foreground="{DynamicResource PF.Brush.PrimaryActionText}" Text="{Binding Name}" />
+                      </Border>
+                    </StackPanel>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </Canvas>
+          </Viewbox>
+
+          <TextBlock Classes="data" Text="{Binding DetailName}" TextTrimming="CharacterEllipsis" />
+          <TextBlock Classes="micro tertiary" Text="{Binding DetailPath}" TextTrimming="CharacterEllipsis" />
+          <Grid ColumnDefinitions="90,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="4">
+            <TextBlock Classes="label tertiary" Text="{l:Tr Browse.Detail.Taken}" />
+            <TextBlock Grid.Column="1" Classes="data" Text="{Binding DetailTaken}" />
+            <TextBlock Grid.Row="1" Classes="label tertiary" Text="{l:Tr Browse.Detail.Event}" />
+            <TextBlock Grid.Row="1" Grid.Column="1" Classes="label" Text="{Binding DetailEvent}" TextTrimming="CharacterEllipsis" />
+            <TextBlock Grid.Row="2" Classes="label tertiary" Text="{l:Tr Browse.Detail.Exposure}" />
+            <TextBlock Grid.Row="2" Grid.Column="1" Classes="data" TextWrapping="Wrap" Text="{Binding DetailExposure}" />
+            <TextBlock Grid.Row="3" Classes="label tertiary" Text="{l:Tr Browse.Detail.Rating}" />
+            <TextBlock Grid.Row="3" Grid.Column="1" Classes="label" Text="{Binding DetailRating}" />
+            <TextBlock Grid.Row="4" Classes="label tertiary" Text="{l:Tr Browse.Detail.People}" />
+            <TextBlock Grid.Row="4" Grid.Column="1" Classes="label" TextWrapping="Wrap" Text="{Binding DetailPeople}" />
+          </Grid>
+
+          <TextBlock Classes="overline" Text="{l:Tr Browse.Detail.Tags}" />
+          <ItemsControl ItemsSource="{Binding DetailTags}">
+            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:DetailTagViewModel">
+                <Border Classes="token" Margin="0,0,6,6">
+                  <StackPanel Orientation="Horizontal" Spacing="4">
+                    <TextBlock Classes="label" VerticalAlignment="Center" Text="{Binding Label}" />
+                    <Button Classes="remove" Command="{Binding $parent[UserControl].((vm:BrowseViewModel)DataContext).RemoveTagCommand}" CommandParameter="{Binding}">
+                      <TextBlock Classes="micro" Text="✕" />
+                    </Button>
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <AutoCompleteBox x:Name="TagBox" IsVisible="{Binding IsTagging}" ItemsSource="{Binding TagSuggestions}" Text="{Binding TagText}" FilterMode="StartsWith" MinimumPrefixLength="1">
+            <AutoCompleteBox.KeyBindings>
+              <KeyBinding Gesture="Enter" Command="{Binding ApplyTagCommand}" />
+            </AutoCompleteBox.KeyBindings>
+          </AutoCompleteBox>
+          <Button Classes="ghost" HorizontalAlignment="Left" Command="{Binding StartTagCommand}" IsVisible="{Binding !IsTagging}">
+            <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Text="{l:Tr Browse.AddTag}" /><Border Classes="key"><TextBlock Text="T" /></Border></StackPanel>
+          </Button>
+
+          <StackPanel Spacing="6">
+            <Button Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Command="{Binding OpenInPhotoshopCommand}">
+              <Grid ColumnDefinitions="*,Auto"><TextBlock Text="{l:Tr Browse.Command.Photoshop}" /><Border Grid.Column="1" Classes="key"><TextBlock Text="Ctrl E" /></Border></Grid>
+            </Button>
+            <Button Classes="secondary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Command="{Binding OpenDefaultCommand}">
+              <Grid ColumnDefinitions="*,Auto"><TextBlock Text="{l:Tr Browse.Command.Default}" /><Border Grid.Column="1" Classes="key"><TextBlock Text="Ctrl ↵" /></Border></Grid>
+            </Button>
+            <Button Classes="secondary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Command="{Binding ShowInExplorerCommand}">
+              <Grid ColumnDefinitions="*,Auto"><TextBlock Text="{l:Tr Browse.Command.Explorer}" /><Border Grid.Column="1" Classes="key"><TextBlock Text="Ctrl Maiusc E" /></Border></Grid>
+            </Button>
+            <Button Classes="secondary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Command="{Binding FindSimilarCommand}">
+              <Grid ColumnDefinitions="*,Auto"><TextBlock Text="{l:Tr Browse.Command.Similar}" /><Border Grid.Column="1" Classes="key"><TextBlock Text="S" /></Border></Grid>
+            </Button>
+          </StackPanel>
+          <TextBlock Classes="label" TextWrapping="Wrap" Text="{Binding Message}" IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        </StackPanel>
+      </ScrollViewer>
+    </Border>
+  </Grid>
+</UserControl>

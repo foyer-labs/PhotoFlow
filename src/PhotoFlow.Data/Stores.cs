@@ -149,6 +149,28 @@ internal sealed class AssetStore(SqliteCatalog catalog) : IAssetStore
         .Select(r => new AssetLocation(r.Id, r.AssetId, r.LibraryId, r.RelativePath, Db.Instant(r.LastSeenMs)!.Value))
         .ToList();
 
+    public async Task<IReadOnlyDictionary<long, Asset>> GetManyAsync(IReadOnlyCollection<long> ids, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(ids);
+        var result = new Dictionary<long, Asset>(ids.Count);
+        foreach (var chunk in ids.Distinct().Chunk(500))
+        {
+            foreach (var id in chunk)
+            {
+                if (await GetAsync(id, ct).ConfigureAwait(false) is { } asset)
+                {
+                    result[id] = asset;
+                }
+            }
+        }
+
+        return result;
+    }
+
+    public async Task<IReadOnlyList<string>> ListCamerasAsync(CancellationToken ct) =>
+        (await catalog.RunAsync(c => c.QueryAsync<string>(new CommandDefinition(
+            "SELECT DISTINCT CameraModel FROM Assets WHERE CameraModel IS NOT NULL ORDER BY CameraModel;", cancellationToken: ct)), ct).ConfigureAwait(false)).ToList();
+
     public async Task<long?> GetTwinAsync(long assetId, CancellationToken ct) =>
         (await catalog.RunAsync(c => c.QueryAsync<long>(new CommandDefinition(
             "SELECT CASE WHEN RawAssetId = @assetId THEN JpegAssetId ELSE RawAssetId END FROM AssetPairs WHERE RawAssetId = @assetId OR JpegAssetId = @assetId LIMIT 1;",

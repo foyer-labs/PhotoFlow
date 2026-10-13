@@ -49,6 +49,14 @@ public sealed partial class SettingsView : UserControl
                 await _viewModel.ImportOfflinePackageAsync(folder);
             }
         }
+        else if (pick == SettingsPick.Editor)
+        {
+            var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions { Title = Strings.Get("Settings.Editor.Choose"), AllowMultiple = false });
+            if (files.Count > 0 && files[0].TryGetLocalPath() is { } file)
+            {
+                await _viewModel.UseEditorAsync(file);
+            }
+        }
         else
         {
             var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions { Title = Strings.Get("Settings.ExifTool.Other"), AllowMultiple = false });
