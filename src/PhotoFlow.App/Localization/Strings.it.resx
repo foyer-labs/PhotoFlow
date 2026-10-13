@@ -982,4 +982,8 @@
   <data name="People.MoveConfirm" xml:space="preserve"><value>Sposta</value></data>
   <data name="People.NoFaceChosen" xml:space="preserve"><value>Nessun volto scelto: fai clic su uno (Ctrl+clic per più volti)</value></data>
   <data name="People.OneFaceChosen" xml:space="preserve"><value>1 volto scelto · Ctrl+clic per aggiungerne altri</value></data>
+  <data name="People.Command.OpenPhoto" xml:space="preserve"><value>Apri foto</value></data>
+  <data name="People.PhotoUnavailable" xml:space="preserve"><value>La foto di questo volto ora non si può leggere (file non raggiungibile, nessuna miniatura).</value></data>
+  <data name="People.PhotoThumbnailOnly" xml:space="preserve"><value>Miniatura ({0}) · l'originale ora non è raggiungibile</value></data>
+  <data name="People.PhotoHint" xml:space="preserve"><value>Il riquadro indica il volto · Esc, Invio o doppio clic: torna ai volti</value></data>
 </root>

@@ -982,4 +982,8 @@
   <data name="People.MoveConfirm" xml:space="preserve"><value>Move</value></data>
   <data name="People.NoFaceChosen" xml:space="preserve"><value>No face chosen: click one (Ctrl+click for more)</value></data>
   <data name="People.OneFaceChosen" xml:space="preserve"><value>1 face chosen · Ctrl+click to add more</value></data>
+  <data name="People.Command.OpenPhoto" xml:space="preserve"><value>Open photo</value></data>
+  <data name="People.PhotoUnavailable" xml:space="preserve"><value>The photo of this face cannot be read now (file not reachable, no thumbnail).</value></data>
+  <data name="People.PhotoThumbnailOnly" xml:space="preserve"><value>Thumbnail ({0}) · the original is not reachable now</value></data>
+  <data name="People.PhotoHint" xml:space="preserve"><value>The box marks the face · Esc, Enter or double click: back to the faces</value></data>
 </root>

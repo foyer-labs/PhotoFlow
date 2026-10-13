@@ -1200,7 +1200,7 @@ Decisioni emerse in Design (confermate), funzioni rinviate a dopo la stabilizzaz
 | Annulla globale (Ctrl Z) oltre le decisioni della Revisione | Tappa 1.9 |
 | Profilo automatico: classificare la scena per foto con CLIP prima dell'analisi, così solo le foto il cui gruppo cambia profilo vanno rianalizzate (oggi +55% sul set locale) | Tappa 2.12 |
 | Suggerimenti dalle correzioni anche per le soglie degli occhi e dell'esposizione | Tappa 2.10 |
-| Persone: annulla (Ctrl Z) di unisci/separa/rinomina, selezione a rettangolo, "Apri foto" dalla pagina persona (tavole 4a, 4b) | Tappa 2.8 |
+| Persone: annulla (Ctrl Z) di unisci/separa/rinomina, selezione a rettangolo (tavole 4a, 4b); "Apri foto" fatto il 13 ott 2026 (↵ o doppio clic, foto intera con il riquadro del volto) | Tappa 2.8 |
 | Modelli caricati e scaricati fase per fase (tavola 5f: "bastano 4-6 GB di VRAM"); oggi restano caricati per tutta la sessione | Tappa 2.11 |
 | Portachiavi Mac/Linux per la chiave delle impronte (oggi password) | F2-3 |
 | Eliminare un profilo personalizzato (oggi si può solo smettere di usarlo; i file restano nella cartella dei profili) | Tappa 2.10 |

@@ -91,6 +91,21 @@ public sealed partial class PersonPageView : UserControl
         {
             _viewModel.Click(tile, e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta), e.KeyModifiers.HasFlag(KeyModifiers.Shift));
             Focus();
+            if (e.ClickCount == 2)
+            {
+                _viewModel.OpenPhotoCommand.Execute(null); // double click: the photo the face comes from
+            }
+        }
+    }
+
+    /// <summary>A double click on the photo goes back to the faces.</summary>
+    private void OnPhotoPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (e.ClickCount == 2 && _viewModel is { IsShowingPhoto: true })
+        {
+            e.Handled = true;
+            _viewModel.ClosePhotoCommand.Execute(null);
+            Focus();
         }
     }
 }

@@ -10,6 +10,7 @@ using PhotoFlow.App.ViewModels;
 using PhotoFlow.App.Views;
 using PhotoFlow.Core.Analysis;
 using PhotoFlow.Core.Catalog;
+using PhotoFlow.Core.Metadata;
 using PhotoFlow.Core.Paths;
 using PhotoFlow.Tests.Support;
 
@@ -33,7 +34,9 @@ public sealed class PeopleKeyboardTests : IDisposable
         await host.UpdateSettingsAsync(s => s with { SetupCompleted = true }, CancellationToken.None);
         var ct = CancellationToken.None;
 
-        // Three automatic groups: 4, 3 and 2 faces (one face per photo).
+        // Three automatic groups: 4, 3 and 2 faces (one face per photo), each photo a real file of a library.
+        var root = _temp.Sub("photos");
+        var library = await host.Catalog.Libraries.AddAsync(new Library(0, "L", root, WritePolicy.SidecarOnly, false, LibraryOrigin.ExistingArchive, null), ct);
         var groups = new List<long>();
         foreach (var size in new[] { 4, 3, 2 })
         {
@@ -44,6 +47,8 @@ public sealed class PeopleKeyboardTests : IDisposable
             {
                 var asset = await host.Catalog.Assets.AddAsync(new Asset(0, $"q{person}-{i}", $"f{person}-{i}", "JPG", "jpeg", 400, 300, new DateTimeOffset(2020 + i, 6, 1, 12, 0, 0, TimeSpan.Zero), DateSource.Exif, null, AssetState.Active), ct);
                 await host.Catalog.Analysis.ReplaceAutomaticFacesAsync(asset, [new Face(0, asset, new BoundingBox(0.3f, 0.3f, 0.5f, 0.6f), null, 0.9, EyeState.Open, EyeState.Open, null, null, null, null, "t")], ct);
+                SyntheticImages.WriteJpeg(Path.Combine(root, $"p{person}-{i}.jpg"), 400, 300);
+                await host.Catalog.Assets.AddLocationAsync(new AssetLocation(0, asset, library, $"p{person}-{i}.jpg", DateTimeOffset.UtcNow), ct);
                 var face = (await host.Catalog.Analysis.GetFacesAsync(asset, ct))[0];
                 assignments.Add((face.Id, person, 0.8 - (i * 0.1)));
             }
@@ -104,6 +109,17 @@ public sealed class PeopleKeyboardTests : IDisposable
         Assert.Contains(persons, p => p.Person.Name is null && p.FaceCount == 1);
         Assert.Equal(5, persons.Single(p => p.Person.Id == mia.Person.Id).FaceCount);
 
+        // Enter (↵ Apri foto, board 4b): the photo of the focused face with the face boxed; Esc goes back to the faces.
+        Press(window, PhysicalKey.Enter);
+        await WaitAsync(() => page.IsShowingPhoto);
+        Assert.Equal((400d, 300d), (page.PhotoWidth, page.PhotoHeight));
+        Assert.Equal((120d, 90d, 80d, 90d), (page.FaceLeft, page.FaceTop, page.FaceWidth, page.FaceHeight), new ToleranceComparer());
+        Assert.EndsWith(".jpg", page.PhotoTitle, StringComparison.Ordinal);
+        SaveFrame(window, "people-photo");
+        Press(window, PhysicalKey.Escape);
+        Assert.False(page.IsShowingPhoto);
+        Assert.IsType<PersonPageViewModel>(shell.CurrentPage); // Esc closed the photo, not the page
+
         // Ctrl M: a list of the people (new person first); a new one by name, then an existing one from the list.
         Assert.Equal(1, page.ActionCount); // the focused face, clearly marked
         Press(window, PhysicalKey.M, RawInputModifiers.Control);
@@ -151,6 +167,14 @@ public sealed class PeopleKeyboardTests : IDisposable
     }
 
     public void Dispose() => _temp.Dispose();
+
+    private sealed class ToleranceComparer : IEqualityComparer<(double, double, double, double)>
+    {
+        public bool Equals((double, double, double, double) x, (double, double, double, double) y) =>
+            Math.Abs(x.Item1 - y.Item1) < 0.5 && Math.Abs(x.Item2 - y.Item2) < 0.5 && Math.Abs(x.Item3 - y.Item3) < 0.5 && Math.Abs(x.Item4 - y.Item4) < 0.5;
+
+        public int GetHashCode((double, double, double, double) obj) => 0;
+    }
 
     private static void SaveFrame(Window window, string name)
     {

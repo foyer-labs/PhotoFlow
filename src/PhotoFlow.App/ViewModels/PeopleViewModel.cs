@@ -600,7 +600,7 @@ public sealed partial class PersonPageViewModel : PageViewModel
         new("Person.NotThis", new KeyGesture(Key.Delete), "People.Command.NotThis", StatusGroupKey: "People.Command.NotThis"),
         new("Person.Cover", new KeyGesture(Key.C), "People.Command.Cover"),
         new("Person.Rename", new KeyGesture(Key.F2), "People.Command.Rename", StatusGroupKey: "People.Command.Rename"),
-        new("Person.Apply", new KeyGesture(Key.Enter), "People.Command.Apply"),
+        new("Person.Enter", new KeyGesture(Key.Enter), "People.Command.OpenPhoto", StatusGroupKey: "People.Command.OpenPhoto"),
         new("Person.Order", new KeyGesture(Key.O), "People.Command.Order"),
         new("Person.Back", new KeyGesture(Key.Escape), "People.Command.Back", StatusGroupKey: "People.Command.Back"),
     ]);
@@ -634,7 +634,7 @@ public sealed partial class PersonPageViewModel : PageViewModel
         "Person.NotThis" => NotThisCommand,
         "Person.Cover" => CoverCommand,
         "Person.Rename" => StartRenameCommand,
-        "Person.Apply" => ApplyCommand,
+        "Person.Enter" => EnterCommand,
         "Person.Order" => ToggleOrderCommand,
         "Person.Back" => BackCommand,
         _ => base.ResolveCommand(id),
@@ -683,6 +683,38 @@ public sealed partial class PersonPageViewModel : PageViewModel
     private string? _newPersonName;
 
     public bool IsNewPerson => MoveTarget is { Id: null };
+
+    /// <summary>The photo of the focused face, shown over the page (board 4b, "↵ Apri foto").</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsShowingPhoto))]
+    private Bitmap? _photo;
+
+    public bool IsShowingPhoto => Photo is not null;
+
+    [ObservableProperty]
+    private string _photoTitle = string.Empty;
+
+    /// <summary>Size of the photo and box of the face on it, in the photo's pixels.</summary>
+    [ObservableProperty]
+    private double _photoWidth;
+
+    [ObservableProperty]
+    private double _photoHeight;
+
+    [ObservableProperty]
+    private double _faceLeft;
+
+    [ObservableProperty]
+    private double _faceTop;
+
+    [ObservableProperty]
+    private double _faceWidth;
+
+    [ObservableProperty]
+    private double _faceHeight;
+
+    [ObservableProperty]
+    private double _faceStroke = 3;
 
     public bool CanConfirmMove => MoveTarget is { Id: not null } || (IsNewPerson && !string.IsNullOrWhiteSpace(NewPersonName));
 
@@ -935,6 +967,79 @@ public sealed partial class PersonPageViewModel : PageViewModel
     [RelayCommand]
     private void CancelMove() => IsMoving = false;
 
+    /// <summary>Enter: confirms the move or the rename in progress, otherwise opens the photo of the focused face.</summary>
+    [RelayCommand]
+    private async Task EnterAsync()
+    {
+        if (IsMoving || IsEditing)
+        {
+            await ApplyAsync();
+        }
+        else if (IsShowingPhoto)
+        {
+            ClosePhoto();
+        }
+        else
+        {
+            await OpenPhotoAsync();
+        }
+    }
+
+    /// <summary>
+    /// The whole photo the face comes from, with the face marked: the original when reachable (oriented as for the
+    /// analysis, so the box falls on the face), else the thumbnail of the catalog.
+    /// </summary>
+    [RelayCommand]
+    private async Task OpenPhotoAsync()
+    {
+        if (Focused is not { } tile)
+        {
+            Message = Strings.Get("People.NoFaceChosen");
+            return;
+        }
+
+        var face = tile.Face;
+        var asset = await _host.Catalog.Assets.GetAsync(face.AssetId, CancellationToken.None);
+        var path = await AssetFiles.LocateAsync(_host.Catalog, _host.FileSystem, face.AssetId, CancellationToken.None);
+        Bitmap? bitmap = null;
+        if (path is not null)
+        {
+            try
+            {
+                var preview = await _host.Previews.GetPreviewAsync(path, 2048, CancellationToken.None);
+                bitmap = await Task.Run(() => UiBitmaps.FromImage(preview.Image));
+            }
+            catch (Exception e) when (e is IOException or InvalidOperationException or UnauthorizedAccessException)
+            {
+                bitmap = null; // the thumbnail below
+            }
+        }
+
+        if (bitmap is null && asset is not null
+            && new[] { asset.FullHash, asset.QuickHash }.OfType<string>().Select(_host.Thumbnails.PathFor).FirstOrDefault(File.Exists) is { } thumbnail)
+        {
+            bitmap = await Task.Run(() => UiBitmaps.FromFile(thumbnail, 1600));
+        }
+
+        if (bitmap is null)
+        {
+            Message = Strings.Get("People.PhotoUnavailable");
+            return;
+        }
+
+        (PhotoWidth, PhotoHeight) = (bitmap.PixelSize.Width, bitmap.PixelSize.Height);
+        (FaceLeft, FaceTop) = (face.Box.X1 * PhotoWidth, face.Box.Y1 * PhotoHeight);
+        (FaceWidth, FaceHeight) = ((face.Box.X2 - face.Box.X1) * PhotoWidth, (face.Box.Y2 - face.Box.Y1) * PhotoHeight);
+        FaceStroke = Math.Max(2, Math.Max(PhotoWidth, PhotoHeight) / 300);
+        PhotoTitle = path is null
+            ? Strings.Format("People.PhotoThumbnailOnly", tile.Year?.ToString(CultureInfo.InvariantCulture) ?? "—")
+            : Path.GetFileName(path);
+        Photo = bitmap;
+    }
+
+    [RelayCommand]
+    private void ClosePhoto() => Photo = null;
+
     /// <summary>Enter: applies the move chosen in the list, or the rename being typed.</summary>
     [RelayCommand]
     private async Task ApplyAsync()
@@ -995,7 +1100,11 @@ public sealed partial class PersonPageViewModel : PageViewModel
     [RelayCommand]
     private void Back()
     {
-        if (IsMoving)
+        if (IsShowingPhoto)
+        {
+            ClosePhoto();
+        }
+        else if (IsMoving)
         {
             IsMoving = false;
         }

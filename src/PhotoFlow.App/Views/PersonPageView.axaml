@@ -60,6 +60,26 @@
           </ItemsControl.ItemTemplate>
         </ItemsControl>
       </ScrollViewer>
+
+      <!-- ↵ Apri foto (board 4b): the photo the face comes from, the face marked -->
+      <Border Grid.Row="0" Grid.RowSpan="3" IsVisible="{Binding IsShowingPhoto}" Background="{DynamicResource PF.Brush.Viewer}" PointerPressed="OnPhotoPressed">
+        <Grid RowDefinitions="Auto,*,Auto">
+          <Grid ColumnDefinitions="*,Auto" Margin="16,12">
+            <TextBlock Classes="label" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Text="{Binding PhotoTitle}" />
+            <Button Grid.Column="1" Classes="secondary" Command="{Binding ClosePhotoCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Text="✕" /><TextBlock Text="{l:Tr Browse.Preview.Close}" /><Border Classes="key"><TextBlock Text="Esc" /></Border></StackPanel>
+            </Button>
+          </Grid>
+          <Viewbox Grid.Row="1" Stretch="Uniform" Margin="16,0">
+            <Canvas Width="{Binding PhotoWidth}" Height="{Binding PhotoHeight}">
+              <Image Source="{Binding Photo}" Width="{Binding PhotoWidth}" Height="{Binding PhotoHeight}" />
+              <Rectangle Canvas.Left="{Binding FaceLeft}" Canvas.Top="{Binding FaceTop}" Width="{Binding FaceWidth}" Height="{Binding FaceHeight}"
+                         Stroke="{DynamicResource PF.Brush.Accent}" StrokeThickness="{Binding FaceStroke}" />
+            </Canvas>
+          </Viewbox>
+          <TextBlock Grid.Row="2" Classes="micro secondary" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="16,8,16,12" Text="{l:Tr People.PhotoHint}" />
+        </Grid>
+      </Border>
     </Grid>
 
     <Border Grid.Column="1" Background="{DynamicResource PF.Brush.Panel}" BorderBrush="{DynamicResource PF.Brush.Border}" BorderThickness="1,0,0,0" Padding="16">
