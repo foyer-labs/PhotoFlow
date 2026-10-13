@@ -6,8 +6,8 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 
 | Voce | Valore |
 |---|---|
-| Fase corrente | 2 — Raffiche, Revisione completa, Persone: **completata** (report in [docs/reports/fase-2.md](reports/fase-2.md)); prossima: fase 3 (tag, vocabolario, ricerca, duplicati) |
-| Branch | `phase/2-review-people` (PR verso `main`) |
+| Fase corrente | 3 — Tag, vocabolario, Consultazione, Duplicati: **completata** (report in [docs/reports/fase-3.md](reports/fase-3.md)); prossima: fase 4 (OCR motorsport, elenco iscritti, vista Numeri) |
+| Branch | `phase/3-tags-search` (PR verso `main`) |
 | Remoto | https://github.com/foyer-labs/PhotoFlow.git (pubblico) |
 | Autore dei commit | Foyer Labs <foyerlabs@gmail.com> (config locale del repository) |
 | Ultimo aggiornamento | 2026-10-13 |
@@ -75,6 +75,9 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 
 | 2026-10-13 | Fase 2 (tappe 2.0-2.12), decisioni prese in autonomia oltre a F2-1..F2-6 del piano: regole delle sequenze (bracketing ≥ 3 scatti su ≥ 0,3 EV di compensazione o ≥ 1 EV di EV100; timelapse ≥ 10 scatti a intervallo ≥ 1 s entro ±10%); soglie del riconoscimento (ArcFace 0,45, SFace 0,363, margine 0,05, fascia di suggerimento 0,10, 5 campioni per persona per anno, impronte da 48 px); regioni MWG scritte come struttura completa con exiftool conservando quelle di altri programmi, RAW con le persone del gemello; profili personalizzati come file versionati `custom-<nome>.v<n>.json` e profilo mancante sostituito da Eventi; rianalisi solo se cambia la chiave di misura del profilo, in parallelo (modalità automatica sul set locale da 95 s a 52 s); suggerimento della soglia di mosso da ≥ 30 correzioni (peso 3 agli scarti sbagliati); benchmark con VRAM da `nvidia-smi` e modelli che restano caricati; tasti di un carattere disattivati mentre si scrive in un campo. Scostamenti dalle tavole nel backlog (Ctrl Z e selezione a rettangolo in Persone, "Apri foto" dalla pagina persona, eliminazione dei profili personalizzati, caricamento dei modelli fase per fase). spec §5, §6, §7, §17 aggiornate |
 
+| 2026-10-13 | Fase 2 unita in `main` (PR #4) dopo la CI verde |
+| 2026-10-13 | Fase 3 (tappe 3.0-3.9), decisioni prese in autonomia: F3-1 RAM++ fp32 (`CannotFindObject/RAM_ONNX`, parità 52/52 con PyTorch, la int8 esce); F3-2 etichette italiane dei 4.585 tag preparate con un LLM durante lo sviluppo e incluse, tutte da rivedere (al posto dell'LLM locale della tavola 5c); F3-3 categorie predefinite e lista nera minima; F3-4 ricerca FTS5 + scansione esatta degli embedding, indice testuale aggiornato da trigger; F3-5 quasi-duplicati CLIP ≥ 0,95 + hash percettivo ≤ 10 bit; F3-6 copie esatte solo nella stessa libreria (tra librerie sono backup); keyword scritte da PhotoFlow ricordate in `XmpSync` per toglierle senza toccare quelle altrui; gerarchia in italiano una volta rivisto. Misure: ricerca su 60.000 foto < 0,27 s; analisi con RAM++ 4,15 foto/s. Scostamenti dalle tavole nel backlog (DataGrid del Vocabolario, zoom sincronizzato e "Mostra esclusi" in Duplicati, menu Evento e selezione multipla in Consultazione). spec §4, §5, §8, §10, §17 aggiornate |
+
 ## Problemi aperti
 
 | # | Tema | Sintesi |
@@ -93,4 +96,4 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 
 ## Prossimo passo
 
-Fase 2 completata (report in `docs/reports/fase-2.md`, verifiche manuali elencate lì): PR da unire dopo la CI verde, poi piano della fase 3 (in autonomia, come concordato).
+Fase 3 completata (report in `docs/reports/fase-3.md`, verifiche manuali elencate lì): PR da unire dopo la CI verde, poi piano della fase 4 (in autonomia, come concordato).

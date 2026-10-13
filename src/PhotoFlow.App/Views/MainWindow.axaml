@@ -31,6 +31,9 @@
     <DataTemplate DataType="vm:PeopleViewModel"><v:PeopleView /></DataTemplate>
     <DataTemplate DataType="vm:PersonPageViewModel"><v:PersonPageView /></DataTemplate>
     <DataTemplate DataType="vm:ProfilesViewModel"><v:ProfilesView /></DataTemplate>
+    <DataTemplate DataType="vm:BrowseViewModel"><v:BrowseView /></DataTemplate>
+    <DataTemplate DataType="vm:DuplicatesViewModel"><v:DuplicatesView /></DataTemplate>
+    <DataTemplate DataType="vm:VocabularyViewModel"><v:VocabularyView /></DataTemplate>
     <DataTemplate DataType="vm:PlaceholderPageViewModel"><v:PlaceholderView /></DataTemplate>
   </Window.DataTemplates>
 
@@ -60,7 +63,10 @@
         <TextBlock Classes="label tertiary" Text="{Binding LibraryName}" />
       </StackPanel>
       <TextBox x:Name="SearchBox" Grid.Column="2" Classes="search" Width="420"
-               PlaceholderText="{l:Tr TitleBar.Search}">
+               PlaceholderText="{l:Tr TitleBar.Search}" Text="{Binding GlobalSearchText}">
+        <TextBox.KeyBindings>
+          <KeyBinding Gesture="Enter" Command="{Binding SearchEverywhereCommand}" />
+        </TextBox.KeyBindings>
         <TextBox.InnerRightContent>
           <TextBlock Classes="micro tertiary" Margin="8,0" VerticalAlignment="Center" Text="{Binding SearchShortcut}" />
         </TextBox.InnerRightContent>

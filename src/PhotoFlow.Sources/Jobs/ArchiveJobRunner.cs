@@ -6,6 +6,7 @@ using PhotoFlow.Core.Catalog;
 using PhotoFlow.Core.IO;
 using PhotoFlow.Core.Metadata;
 using PhotoFlow.Core.Pipeline;
+using PhotoFlow.Core.Tagging;
 using PhotoFlow.Core.Sources;
 using PhotoFlow.Sources.Ingest;
 using PhotoFlow.Sources.Scanning;
@@ -298,7 +299,7 @@ public sealed class ArchiveJobRunner : IJobRunner
                 {
                     result = await owner._processor.ProcessAsync(
                         new PhotoInput(analyzed.Item.SourcePath, asset?.FullHash ?? asset?.QuickHash, asset?.Exif),
-                        new ProcessingOptions(settings.ProfileId, settings.Faces), ct).ConfigureAwait(false);
+                        new ProcessingOptions(settings.ProfileId, settings.Faces, (settings.Tags ?? TagLevels.Default).HasFlag(TagLevels.Tagger)), ct).ConfigureAwait(false);
                 }
                 catch (Exception e) when (e is not OperationCanceledException)
                 {
@@ -312,6 +313,11 @@ public sealed class ArchiveJobRunner : IJobRunner
                 if (result.Embedding is { } embedding)
                 {
                     await catalog.Analysis.SaveEmbeddingAsync(analyzed.AssetId, embedding.ModelVersion, embedding.Vector, done).ConfigureAwait(false);
+                }
+
+                if (result.Tags is { } tags)
+                {
+                    await catalog.Tags.ReplaceAutomaticAsync(analyzed.AssetId, TagSource.RamPlus, tags.FirstOrDefault()?.ModelVersion, tags.Select(t => (t.TagKey, (double?)t.Confidence)).ToList(), done).ConfigureAwait(false);
                 }
 
                 foreach (var id in members.Select(m => m.AssetId).Distinct())

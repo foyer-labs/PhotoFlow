@@ -46,7 +46,7 @@ public sealed class SettingsTests : IDisposable
 
             // 5g: phase 1 models can be downloaded, later ones are shown and disabled; nothing accepted for the user.
             Assert.Contains(settings.Models, m => m.Model.Id == "insightface-buffalo-l" && m.IsAvailable && m.RequiresAcceptance && !m.LicenseAccepted);
-            Assert.Contains(settings.Models, m => m.Model.Id == "ramplus-int8" && !m.IsAvailable && !m.CanInstall);
+            Assert.Contains(settings.Models, m => m.Model.Id == "ramplus-fp32" && m.IsAvailable && !m.RequiresAcceptance);
             settings.SelectedTab = SettingsViewModel.ModelsTab;
             Save(window, "5g-settings-models");
             var buffalo = settings.Models.Single(m => m.Model.Id == "insightface-buffalo-l");

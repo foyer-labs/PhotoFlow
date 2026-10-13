@@ -149,6 +149,28 @@ internal sealed class AssetStore(SqliteCatalog catalog) : IAssetStore
         .Select(r => new AssetLocation(r.Id, r.AssetId, r.LibraryId, r.RelativePath, Db.Instant(r.LastSeenMs)!.Value))
         .ToList();
 
+    public async Task<IReadOnlyDictionary<long, Asset>> GetManyAsync(IReadOnlyCollection<long> ids, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(ids);
+        var result = new Dictionary<long, Asset>(ids.Count);
+        foreach (var chunk in ids.Distinct().Chunk(500))
+        {
+            foreach (var id in chunk)
+            {
+                if (await GetAsync(id, ct).ConfigureAwait(false) is { } asset)
+                {
+                    result[id] = asset;
+                }
+            }
+        }
+
+        return result;
+    }
+
+    public async Task<IReadOnlyList<string>> ListCamerasAsync(CancellationToken ct) =>
+        (await catalog.RunAsync(c => c.QueryAsync<string>(new CommandDefinition(
+            "SELECT DISTINCT CameraModel FROM Assets WHERE CameraModel IS NOT NULL ORDER BY CameraModel;", cancellationToken: ct)), ct).ConfigureAwait(false)).ToList();
+
     public async Task<long?> GetTwinAsync(long assetId, CancellationToken ct) =>
         (await catalog.RunAsync(c => c.QueryAsync<long>(new CommandDefinition(
             "SELECT CASE WHEN RawAssetId = @assetId THEN JpegAssetId ELSE RawAssetId END FROM AssetPairs WHERE RawAssetId = @assetId OR JpegAssetId = @assetId LIMIT 1;",
@@ -484,8 +506,12 @@ internal sealed class XmpSyncStore(SqliteCatalog catalog) : IXmpSyncStore
 {
     public async Task<XmpSyncState?> GetAsync(long assetId, CancellationToken ct) =>
         (await catalog.RunAsync(c => c.QueryAsync<Row>(new CommandDefinition(
-            "SELECT AssetId, LastWrittenMs, XmpSignature, WritePending, LastError FROM XmpSync WHERE AssetId = @assetId;", new { assetId }, cancellationToken: ct)), ct).ConfigureAwait(false))
-        .Select(r => new XmpSyncState(r.AssetId, Db.Instant(r.LastWrittenMs), r.XmpSignature, r.WritePending, r.LastError))
+            "SELECT AssetId, LastWrittenMs, XmpSignature, WritePending, LastError, WrittenFlatJson, WrittenHierarchicalJson FROM XmpSync WHERE AssetId = @assetId;", new { assetId }, cancellationToken: ct)), ct).ConfigureAwait(false))
+        .Select(r => new XmpSyncState(r.AssetId, Db.Instant(r.LastWrittenMs), r.XmpSignature, r.WritePending, r.LastError)
+        {
+            WrittenFlat = r.WrittenFlatJson is { } flat ? System.Text.Json.JsonSerializer.Deserialize<string[]>(flat) ?? [] : [],
+            WrittenHierarchical = r.WrittenHierarchicalJson is { } hierarchical ? System.Text.Json.JsonSerializer.Deserialize<string[]>(hierarchical) ?? [] : [],
+        })
         .FirstOrDefault();
 
     public Task MarkPendingAsync(long assetId, string? error, CancellationToken ct) =>
@@ -496,13 +522,20 @@ internal sealed class XmpSyncStore(SqliteCatalog catalog) : IXmpSyncStore
             """,
             new { assetId, error }, cancellationToken: ct)), ct);
 
-    public Task MarkWrittenAsync(long assetId, string signature, CancellationToken ct) =>
+    public Task MarkWrittenAsync(long assetId, string signature, CancellationToken ct, IReadOnlyList<string>? flatKeywords = null, IReadOnlyList<string>? hierarchicalKeywords = null) =>
         catalog.RunAsync(c => c.ExecuteAsync(new CommandDefinition(
             """
-            INSERT INTO XmpSync (AssetId, LastWrittenMs, XmpSignature, WritePending, LastError) VALUES (@assetId, @now, @signature, 0, NULL)
-            ON CONFLICT (AssetId) DO UPDATE SET LastWrittenMs = excluded.LastWrittenMs, XmpSignature = excluded.XmpSignature, WritePending = 0, LastError = NULL;
+            INSERT INTO XmpSync (AssetId, LastWrittenMs, XmpSignature, WritePending, LastError, WrittenFlatJson, WrittenHierarchicalJson)
+            VALUES (@assetId, @now, @signature, 0, NULL, @flat, @hierarchical)
+            ON CONFLICT (AssetId) DO UPDATE SET LastWrittenMs = excluded.LastWrittenMs, XmpSignature = excluded.XmpSignature, WritePending = 0, LastError = NULL,
+                WrittenFlatJson = excluded.WrittenFlatJson, WrittenHierarchicalJson = excluded.WrittenHierarchicalJson;
             """,
-            new { assetId, signature, now = Db.Now() }, cancellationToken: ct)), ct);
+            new
+            {
+                assetId, signature, now = Db.Now(),
+                flat = System.Text.Json.JsonSerializer.Serialize(flatKeywords ?? []),
+                hierarchical = System.Text.Json.JsonSerializer.Serialize(hierarchicalKeywords ?? []),
+            }, cancellationToken: ct)), ct);
 
     public async Task<IReadOnlyList<long>> ListPendingAsync(CancellationToken ct) =>
         (await catalog.RunAsync(c => c.QueryAsync<long>(new CommandDefinition(
@@ -519,6 +552,10 @@ internal sealed class XmpSyncStore(SqliteCatalog catalog) : IXmpSyncStore
         public bool WritePending { get; set; }
 
         public string? LastError { get; set; }
+
+        public string? WrittenFlatJson { get; set; }
+
+        public string? WrittenHierarchicalJson { get; set; }
     }
 }
 

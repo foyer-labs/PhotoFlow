@@ -25,6 +25,13 @@ public interface ICatalog : IAsyncDisposable
 
     ILabelStore Labels { get; }
 
+    ITagStore Tags { get; }
+
+    IDuplicateStore Duplicates { get; }
+
+    /// <summary>Search over the photos of the catalog (spec §3: only through this interface).</summary>
+    Search.ISearchIndex Search { get; }
+
     /// <summary>Consistent copy of the open catalog into <paramref name="backupsDirectory"/> (spec §9); returns its path.</summary>
     Task<string> BackupAsync(string backupsDirectory, string reason, CancellationToken ct);
 }
@@ -55,6 +62,12 @@ public interface IAssetStore
     Task<long> AddAsync(Asset asset, CancellationToken ct);
 
     Task<Asset?> GetAsync(long id, CancellationToken ct);
+
+    /// <summary>Several assets at once (missing ids are skipped).</summary>
+    Task<IReadOnlyDictionary<long, Asset>> GetManyAsync(IReadOnlyCollection<long> ids, CancellationToken ct);
+
+    /// <summary>Camera models in the catalog, for the EXIF filter.</summary>
+    Task<IReadOnlyList<string>> ListCamerasAsync(CancellationToken ct);
 
     /// <summary>"Already imported" identity: quick hash plus capture time (spec §4).</summary>
     Task<Asset?> FindByIdentityAsync(string quickHash, DateTimeOffset? capturedAt, CancellationToken ct);
@@ -129,7 +142,8 @@ public interface IXmpSyncStore
 
     Task MarkPendingAsync(long assetId, string? error, CancellationToken ct);
 
-    Task MarkWrittenAsync(long assetId, string signature, CancellationToken ct);
+    /// <param name="flatKeywords">Keywords PhotoFlow wrote (recorded to remove them later if their tag goes away).</param>
+    Task MarkWrittenAsync(long assetId, string signature, CancellationToken ct, IReadOnlyList<string>? flatKeywords = null, IReadOnlyList<string>? hierarchicalKeywords = null);
 
     Task<IReadOnlyList<long>> ListPendingAsync(CancellationToken ct);
 }
@@ -167,6 +181,9 @@ public interface IAnalysisStore
 
     /// <summary>Embeddings of a model version for the given assets (assets without one are absent).</summary>
     Task<IReadOnlyDictionary<long, float[]>> GetEmbeddingsAsync(IReadOnlyCollection<long> assetIds, string modelVersion, CancellationToken ct);
+
+    /// <summary>Photos with an embedding of this model.</summary>
+    Task<IReadOnlyList<long>> ListEmbeddedAssetsAsync(string modelVersion, CancellationToken ct);
 }
 
 /// <summary>Groups of a job (spec §9 <c>Groups</c>, <c>GroupMembers</c>).</summary>
@@ -261,3 +278,66 @@ public interface ILabelStore
 public sealed class CatalogLockedException(string message) : IOException(message);
 
 public sealed class CatalogCorruptException(string message) : IOException(message);
+
+/// <summary>
+/// Tags and their assignments (spec §8, §9). I5: an analysis replaces only the automatic tags of its own source; manual
+/// tags are never removed by it, and a tag the user removed stays suppressed until the user adds it again.
+/// </summary>
+public interface ITagStore
+{
+    /// <summary>Adds the entries not yet in the catalog; existing tags (and the user's edits) are left as they are.</summary>
+    Task SeedVocabularyAsync(IReadOnlyList<VocabularyEntry> entries, TagSource source, CancellationToken ct);
+
+    Task<Tag?> FindAsync(string key, CancellationToken ct);
+
+    /// <summary>The tag with this key, created with these values when missing.</summary>
+    Task<long> EnsureAsync(string key, TagSource source, string? category, string? italian, bool reviewed, CancellationToken ct);
+
+    /// <summary>Every tag with the number of photos where it is active.</summary>
+    Task<IReadOnlyList<Tag>> ListAsync(CancellationToken ct);
+
+    /// <summary>The automatic tags of <paramref name="source"/> on the photo become <paramref name="tags"/> (I5 above).</summary>
+    Task ReplaceAutomaticAsync(long assetId, TagSource source, string? modelVersion, IReadOnlyList<(string Key, double? Confidence)> tags, CancellationToken ct);
+
+    /// <summary>The user's tag (created as a manual tag when the key is new); a suppressed tag becomes active again.</summary>
+    Task AddManualAsync(long assetId, string key, CancellationToken ct);
+
+    /// <summary>The user removes a tag from the photo: it stays as "suppressed" so that no analysis adds it again.</summary>
+    Task SuppressAsync(long assetId, long tagId, CancellationToken ct);
+
+    /// <summary>Tags of the photo, active and suppressed.</summary>
+    Task<IReadOnlyList<AssetTagInfo>> GetForAssetAsync(long assetId, CancellationToken ct);
+
+    /// <summary>Active tags of several photos.</summary>
+    Task<IReadOnlyDictionary<long, IReadOnlyList<Tag>>> GetActiveForAssetsAsync(IReadOnlyCollection<long> assetIds, CancellationToken ct);
+
+    /// <summary>Vocabulary review (board 5c): Italian label, reviewed, category, blacklist.</summary>
+    Task UpdateAsync(long tagId, string? italian, bool reviewed, string? category, bool blacklisted, CancellationToken ct);
+
+    /// <summary>Photos where the tag is active with the lowest confidence (board 5c: the doubtful examples above the threshold).</summary>
+    Task<IReadOnlyList<(long AssetId, double? Confidence)>> ListExamplesAsync(long tagId, int count, CancellationToken ct);
+
+    /// <summary>Photos with at least one active automatic tag (P15: the core vocabulary forms after 1,000).</summary>
+    Task<int> CountTaggedAssetsAsync(CancellationToken ct);
+
+    Task<IReadOnlyList<(Tag Tag, CustomTag Custom)>> ListCustomAsync(CancellationToken ct);
+
+    /// <summary>Creates or updates a personal CLIP tag (board 5d); returns its id.</summary>
+    Task<long> SaveCustomAsync(string key, string italian, string? category, string clipDescription, double threshold, double margin, CancellationToken ct);
+}
+
+/// <summary>What the duplicate search keeps between runs (spec §12 view 7, P5).</summary>
+public interface IDuplicateStore
+{
+    /// <summary>Copies of the same content in several folders of the same library (exact duplicates, F3-6).</summary>
+    Task<IReadOnlyList<IReadOnlyList<AssetLocation>>> ListExactCopiesAsync(CancellationToken ct);
+
+    Task<IReadOnlyDictionary<long, ulong>> GetHashesAsync(IReadOnlyCollection<long> assetIds, CancellationToken ct);
+
+    Task SetHashAsync(long assetId, ulong hash, CancellationToken ct);
+
+    /// <summary>Groups marked "not duplicates" by the user, by key.</summary>
+    Task<IReadOnlySet<string>> ListExclusionsAsync(CancellationToken ct);
+
+    Task ExcludeAsync(string key, CancellationToken ct);
+}

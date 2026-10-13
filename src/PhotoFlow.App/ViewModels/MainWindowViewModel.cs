@@ -91,6 +91,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IShellNaviga
             ({ } host, SectionCatalog.Libraries) => new LibrariesViewModel(host, this),
             ({ } host, SectionCatalog.People) => new PeopleViewModel(host, this),
             ({ } host, SectionCatalog.Profiles) => new ProfilesViewModel(host),
+            ({ } host, SectionCatalog.Browse) => new BrowseViewModel(host),
+            ({ } host, SectionCatalog.Duplicates) => new DuplicatesViewModel(host),
+            ({ } host, SectionCatalog.Vocabulary) => new VocabularyViewModel(host),
             ({ } host, SectionCatalog.Settings) => new SettingsViewModel(host),
             _ => new PlaceholderPageViewModel(section, PlaceholderPageViewModel.Phases.GetValueOrDefault(section.Id, "1")),
         };
@@ -213,7 +216,35 @@ public sealed partial class MainWindowViewModel : ObservableObject, IShellNaviga
     }
 
     [RelayCommand]
-    private void FocusSearch() => SearchFocusRequested?.Invoke(this, EventArgs.Empty);
+    private void FocusSearch()
+    {
+        // In Consultazione Ctrl K goes to its own search field (tokens, board 4d).
+        if (CurrentPage is BrowseViewModel browse)
+        {
+            browse.RequestSearchFocus();
+        }
+        else
+        {
+            SearchFocusRequested?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    /// <summary>Text of the search field in the title bar ("Cerca ovunque").</summary>
+    [ObservableProperty]
+    private string? _globalSearchText;
+
+    /// <summary>Enter in the title bar: Consultazione with that text.</summary>
+    [RelayCommand]
+    private async Task SearchEverywhereAsync()
+    {
+        var text = GlobalSearchText;
+        GlobalSearchText = null;
+        ShowSection(SectionCatalog.Browse);
+        if (CurrentPage is BrowseViewModel browse && !string.IsNullOrWhiteSpace(text))
+        {
+            await browse.SearchTextAsync(text);
+        }
+    }
 
     [RelayCommand]
     private void OpenSettings() => Navigate(SectionCatalog.Settings);

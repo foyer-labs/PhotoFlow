@@ -88,6 +88,11 @@ public sealed partial class ImportWizardViewModel : PageViewModel
         CanAutomaticProfile = setup.Embedder is not null;
         _faces = defaults.Faces == FaceMode.Off ? FaceMode.Off : defaults.Faces == FaceMode.Recognize && CanRecognize ? FaceMode.Recognize : FaceMode.DetectOnly;
         _automaticProfile = defaults.AutomaticProfile && CanAutomaticProfile;
+        CanTagA = setup.Embedder is not null;
+        CanTagB = host.Models.IsInstalled(PhotoFlowHost.RamPlusModelId);
+        var levels = defaults.Tags ?? (setup.Backend == Core.Inference.ExecutionBackend.Cuda ? Core.Tagging.TagLevels.Default : Core.Tagging.TagLevels.ZeroShot);
+        _tagsA = CanTagA && levels.HasFlag(Core.Tagging.TagLevels.ZeroShot);
+        _tagsB = CanTagB && levels.HasFlag(Core.Tagging.TagLevels.Tagger);
         _xmpPolicy = defaults.XmpPolicy;
         RecentEvents = defaults.RecentEvents;
         _eventName = string.Empty;
@@ -166,6 +171,20 @@ public sealed partial class ImportWizardViewModel : PageViewModel
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SummaryFaces), nameof(FacesOff), nameof(FacesDetect), nameof(FacesRecognize))]
     private FaceMode _faces;
+
+    public bool CanTagA { get; }
+
+    public bool CanTagB { get; }
+
+    /// <summary>Level A: personal CLIP tags (needs CLIP).</summary>
+    [ObservableProperty]
+    private bool _tagsA;
+
+    /// <summary>Level B: RAM++ (on CPU only it is off by default: about a second per photo, spec §5).</summary>
+    [ObservableProperty]
+    private bool _tagsB;
+
+    public Core.Tagging.TagLevels TagLevels => (TagsA ? Core.Tagging.TagLevels.ZeroShot : 0) | (TagsB ? Core.Tagging.TagLevels.Tagger : 0);
 
     /// <summary>A face recognition model is installed (SFace, or buffalo_l with its license accepted).</summary>
     public bool CanRecognize { get; }
@@ -437,7 +456,7 @@ public sealed partial class ImportWizardViewModel : PageViewModel
         var date = EventDate is { } d ? DateOnly.FromDateTime(d.Date) : _plan.ProposedEventDate;
         var plan = await _host.Planner.PlanAsync(_scanned, name, date, _host.PathTemplate, CancellationToken.None);
         var destinations = Destinations.Select(v => v.Destination).ToList();
-        var jobId = await ImportJobs.CreateAsync(_host.Catalog, plan, Selection, _sourceRoot, destinations, name, date, SelectedProfile.Profile.Id, Faces, CancellationToken.None);
+        var jobId = await ImportJobs.CreateAsync(_host.Catalog, plan, Selection, _sourceRoot, destinations, name, date, SelectedProfile.Profile.Id, Faces, CancellationToken.None, TagLevels);
         if (AutomaticProfile)
         {
             await _host.Catalog.Jobs.SetAutomaticProfileAsync(jobId, true, SelectedProfile.Profile.Id, CancellationToken.None);
@@ -449,6 +468,7 @@ public sealed partial class ImportWizardViewModel : PageViewModel
             {
                 ProfileId = SelectedProfile.Profile.Id,
                 AutomaticProfile = AutomaticProfile,
+                Tags = TagLevels,
                 Faces = Faces,
                 XmpPolicy = XmpPolicy,
                 SecondaryRoots = destinations.Where(x => x.Kind == DestinationKind.Secondary).Select(x => x.RootPath).ToList(),

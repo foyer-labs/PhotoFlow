@@ -35,6 +35,11 @@ public sealed record AppSettings
     /// <summary>exiftool chosen by the user instead of the bundled one (board 5i); applied at the next start.</summary>
     public string? ExifToolPath { get; init; }
 
+    public TaggingSettings Tagging { get; init; } = new();
+
+    /// <summary>"Apri in Photoshop" (Ctrl E, board 4d): the editor's executable, chosen by the user.</summary>
+    public string? PhotoshopPath { get; init; }
+
     /// <summary>Last in-app benchmark (board 5f), shown in the settings and used for the estimates.</summary>
     public BenchmarkResult? Benchmark { get; init; }
 }
@@ -58,6 +63,9 @@ public sealed record ImportDefaults
     public string ProfileId { get; init; } = "events";
 
     public FaceMode Faces { get; init; } = FaceMode.Recognize;
+
+    /// <summary>Tagging levels of the last import; null: by hardware (B only with a GPU, spec §5).</summary>
+    public Core.Tagging.TagLevels? Tags { get; init; }
 
     /// <summary>Profile chosen per group by CLIP, with <see cref="ProfileId"/> as fallback (D8).</summary>
     public bool AutomaticProfile { get; init; }
@@ -148,4 +156,11 @@ public sealed class SettingsStore(IFileSystem fileSystem, IAppPaths paths)
             fileSystem.Move(temp, FilePath);
         }
     }
+}
+
+/// <summary>Tagging preferences (spec §8, board 5c).</summary>
+public sealed record TaggingSettings
+{
+    /// <summary>"Regolatore globale": added to every RAM++ threshold (positive: fewer tags); applied at the next start.</summary>
+    public double ThresholdAdjustment { get; init; }
 }

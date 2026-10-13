@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Verify the community RAM++ ONNX int8 export against the original PyTorch RAM++ ("verifica RAM++", spec §13).
+"""Verify a RAM++ ONNX export (int8 or fp32) against the original PyTorch RAM++ ("verifica RAM++", spec §13).
 
 Both models receive the same input tensor (official transform: 384x384 resize, ImageNet normalization), so
 the comparison isolates the export/quantization. For each image: max |Δ probability| and the tag sets at the
@@ -9,7 +9,7 @@ Requires the optional dependencies:  uv sync --extra ram
 Downloads the original weights (3.0 GB, SHA-256 verified) into PHOTOFLOW_TESTDATA/hf-cache.
 
 Usage:
-    uv run python verify_ramplus.py --images E:/path/outside/repo/photos
+    uv run --extra ram python verify_ramplus.py --images E:/path/outside/repo/photos [--model ramplus-fp32 --onnx ram_plus.onnx]
 Output: PHOTOFLOW_TESTDATA/lab/ramplus/<timestamp>/report.md + report.json
 """
 
@@ -66,6 +66,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--images", type=Path, required=True)
     parser.add_argument("--limit", type=int, default=0)
+    parser.add_argument("--model", default="ramplus-fp32", help="model folder under PHOTOFLOW_TESTDATA/models")
+    parser.add_argument("--onnx", default="ram_plus.onnx", help="ONNX file in the model folder")
+    parser.add_argument("--provider", default="CPUExecutionProvider")
     args = parser.parse_args()
 
     testdata = lc.testdata_root()
@@ -86,13 +89,13 @@ def main() -> None:
     deleted = set(int(i) for i in getattr(model, "delete_tag_index", []))
     tags = list(model.tag_list)
 
-    onnx_model = lc.model_file("ramplus-int8", "ram_plus_int8.onnx")
-    session = ort.InferenceSession(str(onnx_model), providers=["CPUExecutionProvider"])
+    onnx_model = lc.model_file(args.model, args.onnx)
+    session = ort.InferenceSession(str(onnx_model), providers=[args.provider])
     input_name = session.get_inputs()[0].name
 
     # The community files must describe the same tags/thresholds as the original package.
-    onnx_tags = (lc.model_dir("ramplus-int8") / "ram_tag_list.txt").read_text(encoding="utf-8").splitlines()
-    onnx_thresholds = np.array([float(v) for v in (lc.model_dir("ramplus-int8") / "ram_tag_list_threshold.txt").read_text(encoding="utf-8").split()])
+    onnx_tags = (lc.model_dir(args.model) / "ram_tag_list.txt").read_text(encoding="utf-8").splitlines()
+    onnx_thresholds = np.array([float(v) for v in (lc.model_dir(args.model) / "ram_tag_list_threshold.txt").read_text(encoding="utf-8").split()])
     files_consistent = onnx_tags == tags and np.allclose(onnx_thresholds, thresholds)
 
     rows = []
@@ -114,7 +117,7 @@ def main() -> None:
     report = {
         "started": datetime.now().isoformat(timespec="seconds"),
         "original": {"repo": WEIGHTS_REPO, "revision": WEIGHTS_REVISION, "file": WEIGHTS_FILE, "device": device},
-        "onnx": {"file": str(onnx_model), "provider": "CPUExecutionProvider"},
+        "onnx": {"file": str(onnx_model), "provider": args.provider},
         "tag_files_consistent_with_original": bool(files_consistent),
         "images": len(rows),
         "mean_jaccard": round(statistics.fmean(r["jaccard"] for r in rows), 4),
@@ -125,7 +128,7 @@ def main() -> None:
     }
     out_dir = lc.output_dir("lab", "ramplus", datetime.now().strftime("%Y%m%d-%H%M%S"))
     (out_dir / "report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
-    lines = [f"# RAM++ int8 ONNX vs original PyTorch — {report['started']}", "",
+    lines = [f"# RAM++ ONNX ({args.model}/{args.onnx}) vs original PyTorch — {report['started']}", "",
              f"Images: {report['images']}; identical tag sets: {report['identical_sets']}; "
              f"mean Jaccard: {report['mean_jaccard']}; max |Δ probability|: {report['max_abs_diff_probability']}; "
              f"tag/threshold files consistent: {report['tag_files_consistent_with_original']}", "",

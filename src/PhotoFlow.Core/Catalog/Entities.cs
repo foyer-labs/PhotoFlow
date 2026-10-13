@@ -267,8 +267,25 @@ public sealed record Correction(
 
 // --- Tags ---
 
-/// <summary>Stable internal English key, labels per language.</summary>
-public sealed record Tag(long Id, string Key, string? Category, TagSource Source, bool Reviewed, bool Blacklisted);
+/// <summary>
+/// Stable internal English key (spec §8), with its Italian label: written only once <see cref="Reviewed"/> (the English
+/// key is always written). Blacklisted tags are never written. <see cref="PhotoCount"/>: photos where it is active.
+/// </summary>
+public sealed record Tag(long Id, string Key, string? Category, TagSource Source, bool Reviewed, bool Blacklisted)
+{
+    public string? Italian { get; init; }
+
+    public int PhotoCount { get; init; }
+
+    /// <summary>The English label: the key, without the prefix of custom and event tags.</summary>
+    public string English => Key.Contains(':', StringComparison.Ordinal) ? Key[(Key.IndexOf(':', StringComparison.Ordinal) + 1)..] : Key;
+}
+
+/// <summary>A tag of a photo with its assignment (active or suppressed).</summary>
+public sealed record AssetTagInfo(Tag Tag, AssetTag Assignment);
+
+/// <summary>A tag of a shipped vocabulary (RAM++): key, Italian label to review, default category, blacklisted at first start.</summary>
+public sealed record VocabularyEntry(string Key, string Italian, string? Category, bool Blacklisted = false);
 
 public enum TagSource
 {
@@ -291,7 +308,27 @@ public enum AssetTagState
     Suppressed,
 }
 
+/// <summary>A personal tag recognized by CLIP zero-shot (level A, board 5d): English description for the model, threshold, margin over the second candidate.</summary>
 public sealed record CustomTag(long TagId, string ClipDescription, double Threshold, double Margin);
+
+// --- Duplicates ---
+
+public enum DuplicateKind
+{
+    /// <summary>Same content (same hash) in several folders of a library.</summary>
+    Exact,
+
+    /// <summary>Different files of the same picture: exports, resized or cropped copies (F3-5).</summary>
+    Near,
+}
+
+/// <summary>A copy in a duplicate group: the asset and the file.</summary>
+public sealed record DuplicateMember(long AssetId, AssetLocation Location);
+
+/// <param name="Key">Stable key of the group (its files), used to remember "not duplicates".</param>
+/// <param name="Similarity">CLIP cosine for near duplicates, 1 for exact ones.</param>
+/// <param name="Recommended">The copy proposed to keep.</param>
+public sealed record DuplicateGroup(string Key, DuplicateKind Kind, IReadOnlyList<DuplicateMember> Members, double Similarity, int Recommended);
 
 // --- Faces ---
 
@@ -356,7 +393,13 @@ public sealed record EntryListItem(
 
 // --- Sync and system ---
 
-public sealed record XmpSyncState(long AssetId, DateTimeOffset? LastWrittenAt, string? XmpSignature, bool WritePending, string? LastError);
+public sealed record XmpSyncState(long AssetId, DateTimeOffset? LastWrittenAt, string? XmpSignature, bool WritePending, string? LastError)
+{
+    /// <summary>Keywords written by PhotoFlow at the last write (flat, then hierarchical).</summary>
+    public IReadOnlyList<string> WrittenFlat { get; init; } = [];
+
+    public IReadOnlyList<string> WrittenHierarchical { get; init; } = [];
+}
 
 public sealed record UndoLogEntry(long Id, DateTimeOffset At, string Operation, string PayloadJson);
 

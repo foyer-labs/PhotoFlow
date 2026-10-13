@@ -976,7 +976,7 @@ public sealed partial class ReviewViewModel : PageViewModel, IDisposable
             try
             {
                 var preview = await _host.Previews.GetPreviewAsync(path, CullingSignals.ReferenceLongSide, CancellationToken.None);
-                bitmap = await Task.Run(() => ToBitmap(preview.Image));
+                bitmap = await Task.Run(() => UiBitmaps.FromImage(preview.Image));
             }
             catch (Exception e) when (e is IOException or InvalidOperationException)
             {
@@ -985,30 +985,6 @@ public sealed partial class ReviewViewModel : PageViewModel, IDisposable
         }
 
         item.Preview = bitmap ?? (item.Photo.ThumbnailPath is { } thumb ? await Task.Run(() => LoadBitmap(thumb)) : null);
-    }
-
-    private static Bitmap ToBitmap(RgbImage image)
-    {
-        var pixels = image.Pixels.Span;
-        var bgra = new byte[image.Width * image.Height * 4];
-        for (int s = 0, d = 0; s < pixels.Length; s += 3, d += 4)
-        {
-            bgra[d] = pixels[s + 2];
-            bgra[d + 1] = pixels[s + 1];
-            bgra[d + 2] = pixels[s];
-            bgra[d + 3] = 255;
-        }
-
-        var handle = System.Runtime.InteropServices.GCHandle.Alloc(bgra, System.Runtime.InteropServices.GCHandleType.Pinned);
-        try
-        {
-            return new Bitmap(Avalonia.Platform.PixelFormat.Bgra8888, Avalonia.Platform.AlphaFormat.Opaque, handle.AddrOfPinnedObject(),
-                new PixelSize(image.Width, image.Height), new Vector(96, 96), image.Width * 4);
-        }
-        finally
-        {
-            handle.Free();
-        }
     }
 
     [RelayCommand]

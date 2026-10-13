@@ -655,8 +655,128 @@
   <data name="Settings.Benchmark.Stage.Culling" xml:space="preserve"><value>Culling (segnali + soggetti)</value></data>
   <data name="Settings.Benchmark.Stage.Faces" xml:space="preserve"><value>Volti (rilevamento + impronte)</value></data>
   <data name="Settings.Benchmark.Stage.Embedding" xml:space="preserve"><value>CLIP (raffiche e profilo)</value></data>
-  <data name="Settings.Benchmark.Stage.Tags" xml:space="preserve"><value>Tag A + B</value></data>
+  <data name="Settings.Benchmark.Stage.Tags" xml:space="preserve"><value>Tag B (RAM++)</value></data>
   <data name="Settings.Benchmark.Stage.Captions" xml:space="preserve"><value>Didascalie C</value></data>
   <data name="Settings.Benchmark.Estimates" xml:space="preserve"><value>Import di 1.000 scatti: {0} di analisi · archivio di {1} foto: {2} in bassa priorità ({3} ms/foto con {4} foto in parallelo; copia esclusa).</value></data>
   <data name="Settings.Benchmark.Note" xml:space="preserve"><value>Circa 50 foto delle tue librerie, in sola lettura: nulla viene scritto. La VRAM è letta dal driver NVIDIA (tutti i processi); senza, si mostra solo la RAM di PhotoFlow.</value></data>
+  <data name="Import.Tags.NoModel" xml:space="preserve"><value>I tag generici richiedono il modello RAM++ (Impostazioni › Modelli); su sola CPU serve circa un secondo per foto.</value></data>
+  <data name="Browse.Kind.Person" xml:space="preserve"><value>Persona</value></data>
+  <data name="Browse.Kind.Tag" xml:space="preserve"><value>Tag</value></data>
+  <data name="Browse.Kind.Event" xml:space="preserve"><value>Evento</value></data>
+  <data name="Browse.PhotosCount" xml:space="preserve"><value>{0} foto</value></data>
+  <data name="Browse.Results.Meaning" xml:space="preserve"><value>{0} foto · per pertinenza · {1} s</value></data>
+  <data name="Browse.Results.Date" xml:space="preserve"><value>{0} foto · dalle più recenti · {1} s</value></data>
+  <data name="Browse.Results.Similar" xml:space="preserve"><value>{0} foto simili</value></data>
+  <data name="Browse.Coverage" xml:space="preserve"><value>Ricerca per significato disponibile su {0} di {1} foto. Tag, persone, date ed EXIF funzionano già su tutto; l'analisi dell'archivio è in corso.</value></data>
+  <data name="Browse.NoClip" xml:space="preserve"><value>La ricerca per significato richiede il modello CLIP (Impostazioni › Modelli): ora si cercano solo le parole in nomi e tag.</value></data>
+  <data name="Browse.Empty.Title" xml:space="preserve"><value>Nessuna foto per {0}</value></data>
+  <data name="Browse.Empty.Without" xml:space="preserve"><value>Togli "{0}" → {1} foto</value></data>
+  <data name="Browse.Filter.RatingValue" xml:space="preserve"><value>Rating ≥ {0}</value></data>
+  <data name="Browse.Filter.Date" xml:space="preserve"><value>Data</value></data>
+  <data name="Browse.Filter.Any" xml:space="preserve"><value>Qualsiasi</value></data>
+  <data name="Browse.Filter.Camera" xml:space="preserve"><value>EXIF</value></data>
+  <data name="Browse.Filter.Rating" xml:space="preserve"><value>Rating</value></data>
+  <data name="Browse.Filter.Outcome" xml:space="preserve"><value>Esito</value></data>
+  <data name="Browse.Reset" xml:space="preserve"><value>Azzera</value></data>
+  <data name="Browse.Meaning" xml:space="preserve"><value>SIGNIFICATO</value></data>
+  <data name="Browse.Placeholder" xml:space="preserve"><value>Persone, tag, eventi, oppure descrivi la foto…</value></data>
+  <data name="Browse.MeaningOnly" xml:space="preserve"><value>Cerca solo per significato su tutto l'archivio</value></data>
+  <data name="Browse.ShowMore" xml:space="preserve"><value>Mostra altre</value></data>
+  <data name="Browse.Detail.NotFound" xml:space="preserve"><value>File non raggiungibile ora (disco o NAS scollegato?)</value></data>
+  <data name="Browse.Detail.Taken" xml:space="preserve"><value>Scatto</value></data>
+  <data name="Browse.Detail.Event" xml:space="preserve"><value>Evento</value></data>
+  <data name="Browse.Detail.Exposure" xml:space="preserve"><value>Esposiz.</value></data>
+  <data name="Browse.Detail.Rating" xml:space="preserve"><value>Valutaz.</value></data>
+  <data name="Browse.Detail.People" xml:space="preserve"><value>Persone</value></data>
+  <data name="Browse.Detail.Tags" xml:space="preserve"><value>Tag</value></data>
+  <data name="Browse.AddTag" xml:space="preserve"><value>Aggiungi tag</value></data>
+  <data name="Browse.Command.Navigate" xml:space="preserve"><value>Naviga</value></data>
+  <data name="Browse.Command.Photoshop" xml:space="preserve"><value>Apri in Photoshop</value></data>
+  <data name="Browse.Command.Default" xml:space="preserve"><value>Apri con app predefinita</value></data>
+  <data name="Browse.Command.Explorer" xml:space="preserve"><value>Mostra in Esplora risorse</value></data>
+  <data name="Browse.Command.Tag" xml:space="preserve"><value>Tag</value></data>
+  <data name="Browse.Command.Similar" xml:space="preserve"><value>Trova simili</value></data>
+  <data name="Browse.Command.Stars" xml:space="preserve"><value>Stelle</value></data>
+  <data name="Browse.Command.Preview" xml:space="preserve"><value>Anteprima grande</value></data>
+  <data name="Browse.XmpFailed" xml:space="preserve"><value>Salvato nel catalogo; l'XMP non è stato scritto (nuovo tentativo al prossimo avvio).</value></data>
+  <data name="Browse.NoPhotoshop" xml:space="preserve"><value>Scegli l'editor in Impostazioni › Generali (Photoshop).</value></data>
+  <data name="Browse.LaunchFailed" xml:space="preserve"><value>Impossibile aprire: {0}</value></data>
+  <data name="Settings.Editor" xml:space="preserve"><value>Editor per "Apri in Photoshop" (Ctrl E)</value></data>
+  <data name="Settings.Editor.None" xml:space="preserve"><value>Non scelto</value></data>
+  <data name="Settings.Editor.Choose" xml:space="preserve"><value>Scegli il programma…</value></data>
+  <data name="Settings.Editor.Clear" xml:space="preserve"><value>Rimuovi</value></data>
+  <data name="Duplicates.Keep" xml:space="preserve"><value>Da tenere</value></data>
+  <data name="Duplicates.Move" xml:space="preserve"><value>Da spostare</value></data>
+  <data name="Duplicates.Scanning" xml:space="preserve"><value>Confronto delle foto… {0} / {1}</value></data>
+  <data name="Duplicates.GroupTitle" xml:space="preserve"><value>{0} · {1} copie</value></data>
+  <data name="Duplicates.GroupTitleNear" xml:space="preserve"><value>{0} · {1} versioni</value></data>
+  <data name="Duplicates.SameContent" xml:space="preserve"><value>stesso contenuto · cartelle diverse</value></data>
+  <data name="Duplicates.Similarity" xml:space="preserve"><value>somiglianza {0}</value></data>
+  <data name="Duplicates.Exact" xml:space="preserve"><value>Esatti · {0} gruppi</value></data>
+  <data name="Duplicates.Near" xml:space="preserve"><value>Quasi-duplicati · {0} gruppi</value></data>
+  <data name="Duplicates.LastScan" xml:space="preserve"><value>Ultimo controllo alle {0} · {1} foto confrontate · {2} gruppi segnati "non duplicati" restano esclusi</value></data>
+  <data name="Duplicates.NoClip" xml:space="preserve"><value>I quasi-duplicati richiedono il modello CLIP (Impostazioni › Modelli): ora si cercano solo le copie esatte.</value></data>
+  <data name="Duplicates.ExactDetail" xml:space="preserve"><value>Gruppo {0} di {1} · copie esatte</value></data>
+  <data name="Duplicates.NearDetail" xml:space="preserve"><value>Gruppo {0} di {1} · quasi-duplicati · somiglianza {2}</value></data>
+  <data name="Duplicates.ManualTags" xml:space="preserve"><value>{0} tag manuali</value></data>
+  <data name="Duplicates.NoTags" xml:space="preserve"><value>nessun tag manuale</value></data>
+  <data name="Duplicates.Sidecar" xml:space="preserve"><value>sidecar XMP</value></data>
+  <data name="Duplicates.Recommended" xml:space="preserve"><value>Consigliata: tenere {0} ({1}) — l'originale, la più grande, con i tuoi tag.</value></data>
+  <data name="Duplicates.RecommendedBadge" xml:space="preserve"><value>Consigliata</value></data>
+  <data name="Duplicates.MoveNote" xml:space="preserve"><value>Le altre non vengono eliminate: si spostano in _duplicati nella stessa libreria, con il loro sidecar.</value></data>
+  <data name="Duplicates.Moved" xml:space="preserve"><value>{0} file spostati in _duplicati, {1} lasciati dove sono (sola lettura o non trovati).</value></data>
+  <data name="Duplicates.Ignored" xml:space="preserve"><value>Segnati come non duplicati: non verranno più proposti.</value></data>
+  <data name="Duplicates.None" xml:space="preserve"><value>Nessun duplicato</value></data>
+  <data name="Duplicates.Command.Group" xml:space="preserve"><value>Gruppo</value></data>
+  <data name="Duplicates.Command.Choose" xml:space="preserve"><value>Scegli quale tenere</value></data>
+  <data name="Duplicates.Command.Confirm" xml:space="preserve"><value>Tieni questa, sposta le altre</value></data>
+  <data name="Duplicates.Command.Ignore" xml:space="preserve"><value>Non sono duplicati</value></data>
+  <data name="Duplicates.Command.Rescan" xml:space="preserve"><value>Controlla di nuovo</value></data>
+  <data name="Vocabulary.State.Blacklisted" xml:space="preserve"><value>lista nera</value></data>
+  <data name="Vocabulary.State.Reviewed" xml:space="preserve"><value>rivisto</value></data>
+  <data name="Vocabulary.State.ToReview" xml:space="preserve"><value>da rivedere</value></data>
+  <data name="Vocabulary.Command.Row" xml:space="preserve"><value>Riga</value></data>
+  <data name="Vocabulary.Command.Approve" xml:space="preserve"><value>Approva e avanti</value></data>
+  <data name="Vocabulary.Command.Edit" xml:space="preserve"><value>Modifica</value></data>
+  <data name="Vocabulary.Command.Blacklist" xml:space="preserve"><value>Lista nera</value></data>
+  <data name="Vocabulary.Command.Category" xml:space="preserve"><value>Categoria</value></data>
+  <data name="Vocabulary.Command.Undo" xml:space="preserve"><value>Annulla</value></data>
+  <data name="Vocabulary.Command.New" xml:space="preserve"><value>Nuovo tag personalizzato</value></data>
+  <data name="Vocabulary.Command.Trial" xml:space="preserve"><value>Prova sull'archivio</value></data>
+  <data name="Vocabulary.Command.Save" xml:space="preserve"><value>Salva e rianalizza</value></data>
+  <data name="Vocabulary.CoreNotReady" xml:space="preserve"><value>{0} foto con tag: il nucleo ne richiede almeno {1} per scegliere i 500 più frequenti. Tag personalizzati e lista nera funzionano già.</value></data>
+  <data name="Vocabulary.CoreNotReady.Title" xml:space="preserve"><value>Il nucleo si forma dopo la prima analisi</value></data>
+  <data name="Vocabulary.Tab.Core" xml:space="preserve"><value>Nucleo da rivedere {0}</value></data>
+  <data name="Vocabulary.Tab.All" xml:space="preserve"><value>Tutti {0}</value></data>
+  <data name="Vocabulary.Tab.Custom" xml:space="preserve"><value>Personalizzati {0}</value></data>
+  <data name="Vocabulary.Tab.Blacklist" xml:space="preserve"><value>Lista nera {0}</value></data>
+  <data name="Vocabulary.Tab.Categories" xml:space="preserve"><value>Categorie {0}</value></data>
+  <data name="Vocabulary.Summary" xml:space="preserve"><value>Nucleo: i 500 tag più frequenti del tuo archivio · etichette italiane preparate con un LLM, da rivedere · {0} / {1} rivisti</value></data>
+  <data name="Vocabulary.NeverWritten" xml:space="preserve"><value>In lista nera: mai scritto.</value></data>
+  <data name="Vocabulary.WrittenAs" xml:space="preserve"><value>Verrà scritto come dc:subject {0}</value></data>
+  <data name="Vocabulary.Hierarchy" xml:space="preserve"><value>lr:hierarchicalSubject {0}</value></data>
+  <data name="Vocabulary.Threshold" xml:space="preserve"><value>Fonte RAM++ · soglia ufficiale {0} · regolatore globale {1}</value></data>
+  <data name="Vocabulary.Undone" xml:space="preserve"><value>Modifica a "{0}" annullata.</value></data>
+  <data name="Vocabulary.AdjustmentNext" xml:space="preserve"><value>Il regolatore globale vale per le prossime analisi (dopo il riavvio).</value></data>
+  <data name="Vocabulary.Custom.Incomplete" xml:space="preserve"><value>Un tag personalizzato richiede un'etichetta italiana e una descrizione inglese per il modello.</value></data>
+  <data name="Vocabulary.Custom.NoClip" xml:space="preserve"><value>I tag personalizzati richiedono il modello CLIP (Impostazioni › Modelli).</value></data>
+  <data name="Vocabulary.Custom.Trial" xml:space="preserve"><value>Prova sull'archivio · {0} foto sopra soglia</value></data>
+  <data name="Vocabulary.Custom.Saved" xml:space="preserve"><value>Salvato; ora {0} foto hanno tag personalizzati.</value></data>
+  <data name="Vocabulary.Custom.SavedNoClip" xml:space="preserve"><value>Salvato; verrà assegnato quando il modello CLIP sarà installato.</value></data>
+  <data name="Vocabulary.Column.Id" xml:space="preserve"><value>ID (inglese)</value></data>
+  <data name="Vocabulary.Column.Italian" xml:space="preserve"><value>Italiano</value></data>
+  <data name="Vocabulary.Column.Category" xml:space="preserve"><value>Categoria</value></data>
+  <data name="Vocabulary.Column.Photos" xml:space="preserve"><value>Foto</value></data>
+  <data name="Vocabulary.Column.State" xml:space="preserve"><value>Stato</value></data>
+  <data name="Vocabulary.Custom.New" xml:space="preserve"><value>Nuovo tag personalizzato</value></data>
+  <data name="Vocabulary.Examples" xml:space="preserve"><value>Esempi con confidenza più bassa sopra soglia</value></data>
+  <data name="Vocabulary.EnglishUntilReviewed" xml:space="preserve"><value>Finché non è rivisto, si scrive solo la chiave inglese.</value></data>
+  <data name="Vocabulary.Adjustment" xml:space="preserve"><value>Regolatore globale</value></data>
+  <data name="Vocabulary.Custom.Title" xml:space="preserve"><value>Tag personalizzato (CLIP)</value></data>
+  <data name="Vocabulary.Custom.Label" xml:space="preserve"><value>Etichetta (italiano)</value></data>
+  <data name="Vocabulary.Custom.Description" xml:space="preserve"><value>Descrizione per il modello (inglese)</value></data>
+  <data name="Vocabulary.Custom.Threshold" xml:space="preserve"><value>Soglia</value></data>
+  <data name="Vocabulary.Custom.Margin" xml:space="preserve"><value>Margine sul 2° candidato</value></data>
+  <data name="Vocabulary.Custom.TrialButton" xml:space="preserve"><value>Prova</value></data>
+  <data name="Vocabulary.Custom.Save" xml:space="preserve"><value>Salva e rianalizza</value></data>
 </root>

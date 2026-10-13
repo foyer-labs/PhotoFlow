@@ -655,8 +655,128 @@
   <data name="Settings.Benchmark.Stage.Culling" xml:space="preserve"><value>Culling (signals + subjects)</value></data>
   <data name="Settings.Benchmark.Stage.Faces" xml:space="preserve"><value>Faces (detection + fingerprints)</value></data>
   <data name="Settings.Benchmark.Stage.Embedding" xml:space="preserve"><value>CLIP (bursts and profile)</value></data>
-  <data name="Settings.Benchmark.Stage.Tags" xml:space="preserve"><value>Tags A + B</value></data>
+  <data name="Settings.Benchmark.Stage.Tags" xml:space="preserve"><value>Tags B (RAM++)</value></data>
   <data name="Settings.Benchmark.Stage.Captions" xml:space="preserve"><value>Captions C</value></data>
   <data name="Settings.Benchmark.Estimates" xml:space="preserve"><value>Import of 1,000 shots: {0} of analysis · archive of {1} photos: {2} at low priority ({3} ms/photo with {4} photos in parallel; copy excluded).</value></data>
   <data name="Settings.Benchmark.Note" xml:space="preserve"><value>About 50 photos of your libraries, read only: nothing is written. VRAM is read from the NVIDIA driver (all processes); without it only the RAM of PhotoFlow is shown.</value></data>
+  <data name="Import.Tags.NoModel" xml:space="preserve"><value>Generic tags need the RAM++ model (Settings › Models); on CPU only it takes about a second per photo.</value></data>
+  <data name="Browse.Kind.Person" xml:space="preserve"><value>Person</value></data>
+  <data name="Browse.Kind.Tag" xml:space="preserve"><value>Tag</value></data>
+  <data name="Browse.Kind.Event" xml:space="preserve"><value>Event</value></data>
+  <data name="Browse.PhotosCount" xml:space="preserve"><value>{0} photos</value></data>
+  <data name="Browse.Results.Meaning" xml:space="preserve"><value>{0} photos · by relevance · {1} s</value></data>
+  <data name="Browse.Results.Date" xml:space="preserve"><value>{0} photos · newest first · {1} s</value></data>
+  <data name="Browse.Results.Similar" xml:space="preserve"><value>{0} similar photos</value></data>
+  <data name="Browse.Coverage" xml:space="preserve"><value>Search by meaning available on {0} of {1} photos. Tags, people, dates and EXIF already work on all of them; the analysis of the archive is in progress.</value></data>
+  <data name="Browse.NoClip" xml:space="preserve"><value>Search by meaning needs the CLIP model (Settings › Models): now only words in names and tags are searched.</value></data>
+  <data name="Browse.Empty.Title" xml:space="preserve"><value>No photos for {0}</value></data>
+  <data name="Browse.Empty.Without" xml:space="preserve"><value>Remove "{0}" → {1} photos</value></data>
+  <data name="Browse.Filter.RatingValue" xml:space="preserve"><value>Rating ≥ {0}</value></data>
+  <data name="Browse.Filter.Date" xml:space="preserve"><value>Date</value></data>
+  <data name="Browse.Filter.Any" xml:space="preserve"><value>Any</value></data>
+  <data name="Browse.Filter.Camera" xml:space="preserve"><value>EXIF</value></data>
+  <data name="Browse.Filter.Rating" xml:space="preserve"><value>Rating</value></data>
+  <data name="Browse.Filter.Outcome" xml:space="preserve"><value>Outcome</value></data>
+  <data name="Browse.Reset" xml:space="preserve"><value>Reset</value></data>
+  <data name="Browse.Meaning" xml:space="preserve"><value>MEANING</value></data>
+  <data name="Browse.Placeholder" xml:space="preserve"><value>People, tags, events, or describe the photo…</value></data>
+  <data name="Browse.MeaningOnly" xml:space="preserve"><value>Search by meaning only, on the whole archive</value></data>
+  <data name="Browse.ShowMore" xml:space="preserve"><value>Show more</value></data>
+  <data name="Browse.Detail.NotFound" xml:space="preserve"><value>File not reachable now (disk or NAS disconnected?)</value></data>
+  <data name="Browse.Detail.Taken" xml:space="preserve"><value>Taken</value></data>
+  <data name="Browse.Detail.Event" xml:space="preserve"><value>Event</value></data>
+  <data name="Browse.Detail.Exposure" xml:space="preserve"><value>Exposure</value></data>
+  <data name="Browse.Detail.Rating" xml:space="preserve"><value>Rating</value></data>
+  <data name="Browse.Detail.People" xml:space="preserve"><value>People</value></data>
+  <data name="Browse.Detail.Tags" xml:space="preserve"><value>Tags</value></data>
+  <data name="Browse.AddTag" xml:space="preserve"><value>Add tag</value></data>
+  <data name="Browse.Command.Navigate" xml:space="preserve"><value>Navigate</value></data>
+  <data name="Browse.Command.Photoshop" xml:space="preserve"><value>Open in Photoshop</value></data>
+  <data name="Browse.Command.Default" xml:space="preserve"><value>Open with default app</value></data>
+  <data name="Browse.Command.Explorer" xml:space="preserve"><value>Show in Explorer</value></data>
+  <data name="Browse.Command.Tag" xml:space="preserve"><value>Tag</value></data>
+  <data name="Browse.Command.Similar" xml:space="preserve"><value>Find similar</value></data>
+  <data name="Browse.Command.Stars" xml:space="preserve"><value>Stars</value></data>
+  <data name="Browse.Command.Preview" xml:space="preserve"><value>Large preview</value></data>
+  <data name="Browse.XmpFailed" xml:space="preserve"><value>Saved in the catalog; the XMP could not be written (retried at the next start).</value></data>
+  <data name="Browse.NoPhotoshop" xml:space="preserve"><value>Choose the editor in Settings › General (Photoshop).</value></data>
+  <data name="Browse.LaunchFailed" xml:space="preserve"><value>Could not open: {0}</value></data>
+  <data name="Settings.Editor" xml:space="preserve"><value>Editor for "Open in Photoshop" (Ctrl E)</value></data>
+  <data name="Settings.Editor.None" xml:space="preserve"><value>Not chosen</value></data>
+  <data name="Settings.Editor.Choose" xml:space="preserve"><value>Choose the program…</value></data>
+  <data name="Settings.Editor.Clear" xml:space="preserve"><value>Remove</value></data>
+  <data name="Duplicates.Keep" xml:space="preserve"><value>To keep</value></data>
+  <data name="Duplicates.Move" xml:space="preserve"><value>To move</value></data>
+  <data name="Duplicates.Scanning" xml:space="preserve"><value>Comparing photos… {0} / {1}</value></data>
+  <data name="Duplicates.GroupTitle" xml:space="preserve"><value>{0} · {1} copies</value></data>
+  <data name="Duplicates.GroupTitleNear" xml:space="preserve"><value>{0} · {1} versions</value></data>
+  <data name="Duplicates.SameContent" xml:space="preserve"><value>same content · different folders</value></data>
+  <data name="Duplicates.Similarity" xml:space="preserve"><value>similarity {0}</value></data>
+  <data name="Duplicates.Exact" xml:space="preserve"><value>Exact · {0} groups</value></data>
+  <data name="Duplicates.Near" xml:space="preserve"><value>Near duplicates · {0} groups</value></data>
+  <data name="Duplicates.LastScan" xml:space="preserve"><value>Last check at {0} · {1} photos compared · {2} groups marked "not duplicates" stay out</value></data>
+  <data name="Duplicates.NoClip" xml:space="preserve"><value>Near duplicates need the CLIP model (Settings › Models): now only exact copies are looked for.</value></data>
+  <data name="Duplicates.ExactDetail" xml:space="preserve"><value>Group {0} of {1} · exact copies</value></data>
+  <data name="Duplicates.NearDetail" xml:space="preserve"><value>Group {0} of {1} · near duplicates · similarity {2}</value></data>
+  <data name="Duplicates.ManualTags" xml:space="preserve"><value>{0} manual tags</value></data>
+  <data name="Duplicates.NoTags" xml:space="preserve"><value>no manual tags</value></data>
+  <data name="Duplicates.Sidecar" xml:space="preserve"><value>XMP sidecar</value></data>
+  <data name="Duplicates.Recommended" xml:space="preserve"><value>Proposed: keep {0} ({1}) — the original, the largest, with your tags.</value></data>
+  <data name="Duplicates.RecommendedBadge" xml:space="preserve"><value>Recommended</value></data>
+  <data name="Duplicates.MoveNote" xml:space="preserve"><value>The others are not deleted: they move into _duplicati in the same library, with their sidecar.</value></data>
+  <data name="Duplicates.Moved" xml:space="preserve"><value>{0} files moved into _duplicati, {1} left in place (read-only or not found).</value></data>
+  <data name="Duplicates.Ignored" xml:space="preserve"><value>Marked as not duplicates: it will not be proposed again.</value></data>
+  <data name="Duplicates.None" xml:space="preserve"><value>No duplicates</value></data>
+  <data name="Duplicates.Command.Group" xml:space="preserve"><value>Group</value></data>
+  <data name="Duplicates.Command.Choose" xml:space="preserve"><value>Choose which to keep</value></data>
+  <data name="Duplicates.Command.Confirm" xml:space="preserve"><value>Keep it, move the others</value></data>
+  <data name="Duplicates.Command.Ignore" xml:space="preserve"><value>Not duplicates</value></data>
+  <data name="Duplicates.Command.Rescan" xml:space="preserve"><value>Check again</value></data>
+  <data name="Vocabulary.State.Blacklisted" xml:space="preserve"><value>blacklist</value></data>
+  <data name="Vocabulary.State.Reviewed" xml:space="preserve"><value>reviewed</value></data>
+  <data name="Vocabulary.State.ToReview" xml:space="preserve"><value>to review</value></data>
+  <data name="Vocabulary.Command.Row" xml:space="preserve"><value>Row</value></data>
+  <data name="Vocabulary.Command.Approve" xml:space="preserve"><value>Approve and next</value></data>
+  <data name="Vocabulary.Command.Edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="Vocabulary.Command.Blacklist" xml:space="preserve"><value>Blacklist</value></data>
+  <data name="Vocabulary.Command.Category" xml:space="preserve"><value>Category</value></data>
+  <data name="Vocabulary.Command.Undo" xml:space="preserve"><value>Undo</value></data>
+  <data name="Vocabulary.Command.New" xml:space="preserve"><value>New personal tag</value></data>
+  <data name="Vocabulary.Command.Trial" xml:space="preserve"><value>Try on the archive</value></data>
+  <data name="Vocabulary.Command.Save" xml:space="preserve"><value>Save and re-analyze</value></data>
+  <data name="Vocabulary.CoreNotReady" xml:space="preserve"><value>{0} photos with tags: the core needs at least {1} to choose the 500 most frequent. Personal tags and the blacklist already work.</value></data>
+  <data name="Vocabulary.CoreNotReady.Title" xml:space="preserve"><value>The core forms after the first analysis</value></data>
+  <data name="Vocabulary.Tab.Core" xml:space="preserve"><value>Core to review {0}</value></data>
+  <data name="Vocabulary.Tab.All" xml:space="preserve"><value>All {0}</value></data>
+  <data name="Vocabulary.Tab.Custom" xml:space="preserve"><value>Personal {0}</value></data>
+  <data name="Vocabulary.Tab.Blacklist" xml:space="preserve"><value>Blacklist {0}</value></data>
+  <data name="Vocabulary.Tab.Categories" xml:space="preserve"><value>Categories {0}</value></data>
+  <data name="Vocabulary.Summary" xml:space="preserve"><value>Core: the 500 most frequent tags of your archive · Italian labels prepared with an LLM, to review · {0} / {1} reviewed</value></data>
+  <data name="Vocabulary.NeverWritten" xml:space="preserve"><value>In the blacklist: never written.</value></data>
+  <data name="Vocabulary.WrittenAs" xml:space="preserve"><value>Written as dc:subject {0}</value></data>
+  <data name="Vocabulary.Hierarchy" xml:space="preserve"><value>lr:hierarchicalSubject {0}</value></data>
+  <data name="Vocabulary.Threshold" xml:space="preserve"><value>Source RAM++ · official threshold {0} · global adjustment {1}</value></data>
+  <data name="Vocabulary.Undone" xml:space="preserve"><value>Change to "{0}" undone.</value></data>
+  <data name="Vocabulary.AdjustmentNext" xml:space="preserve"><value>The global adjustment applies to the next analyses (after a restart).</value></data>
+  <data name="Vocabulary.Custom.Incomplete" xml:space="preserve"><value>A personal tag needs an Italian label and an English description for the model.</value></data>
+  <data name="Vocabulary.Custom.NoClip" xml:space="preserve"><value>Personal tags need the CLIP model (Settings › Models).</value></data>
+  <data name="Vocabulary.Custom.Trial" xml:space="preserve"><value>Trial on the archive · {0} photos above the threshold</value></data>
+  <data name="Vocabulary.Custom.Saved" xml:space="preserve"><value>Saved; {0} photos have personal tags now.</value></data>
+  <data name="Vocabulary.Custom.SavedNoClip" xml:space="preserve"><value>Saved; it will be assigned when the CLIP model is installed.</value></data>
+  <data name="Vocabulary.Column.Id" xml:space="preserve"><value>ID (English)</value></data>
+  <data name="Vocabulary.Column.Italian" xml:space="preserve"><value>Italian</value></data>
+  <data name="Vocabulary.Column.Category" xml:space="preserve"><value>Category</value></data>
+  <data name="Vocabulary.Column.Photos" xml:space="preserve"><value>Photos</value></data>
+  <data name="Vocabulary.Column.State" xml:space="preserve"><value>State</value></data>
+  <data name="Vocabulary.Custom.New" xml:space="preserve"><value>New personal tag</value></data>
+  <data name="Vocabulary.Examples" xml:space="preserve"><value>Examples with the lowest confidence above the threshold</value></data>
+  <data name="Vocabulary.EnglishUntilReviewed" xml:space="preserve"><value>Until it is reviewed, only the English key is written.</value></data>
+  <data name="Vocabulary.Adjustment" xml:space="preserve"><value>Global adjustment</value></data>
+  <data name="Vocabulary.Custom.Title" xml:space="preserve"><value>Personal tag (CLIP)</value></data>
+  <data name="Vocabulary.Custom.Label" xml:space="preserve"><value>Label (Italian)</value></data>
+  <data name="Vocabulary.Custom.Description" xml:space="preserve"><value>Description for the model (English)</value></data>
+  <data name="Vocabulary.Custom.Threshold" xml:space="preserve"><value>Threshold</value></data>
+  <data name="Vocabulary.Custom.Margin" xml:space="preserve"><value>Margin over the 2nd candidate</value></data>
+  <data name="Vocabulary.Custom.TrialButton" xml:space="preserve"><value>Try</value></data>
+  <data name="Vocabulary.Custom.Save" xml:space="preserve"><value>Save and re-analyze</value></data>
 </root>

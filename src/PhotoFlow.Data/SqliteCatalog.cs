@@ -36,6 +36,9 @@ public sealed class SqliteCatalog : ICatalog
         Groups = new GroupStore(this);
         People = new PeopleStore(this);
         Labels = new LabelStore(this);
+        Tags = new TagStore(this);
+        Search = new SqliteSearchIndex(this);
+        Duplicates = new DuplicateStore(this);
     }
 
     public ILibraryStore Libraries { get; }
@@ -57,6 +60,12 @@ public sealed class SqliteCatalog : ICatalog
     public IPeopleStore People { get; }
 
     public ILabelStore Labels { get; }
+
+    public ITagStore Tags { get; }
+
+    public Core.Search.ISearchIndex Search { get; }
+
+    public IDuplicateStore Duplicates { get; }
 
     public static async Task<SqliteCatalog> OpenAsync(CatalogOpenOptions options, CancellationToken ct)
     {

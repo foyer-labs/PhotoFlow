@@ -71,6 +71,7 @@ public enum SettingsPick
 {
     OfflinePackage,
     ExifTool,
+    Editor,
 }
 
 /// <summary>
@@ -301,7 +302,6 @@ public sealed partial class SettingsViewModel : PageViewModel
                 stage.PeakVramBytes is { } vram ? Formats.Bytes(vram) : "—"));
         }
 
-        BenchmarkRows.Add(new BenchmarkRow(Strings.Get("Settings.Benchmark.Stage.Tags"), Strings.Get("Common.ComesWithPhase3"), "—", "—"));
         BenchmarkRows.Add(new BenchmarkRow(Strings.Get("Settings.Benchmark.Stage.Captions"), Strings.Get("Common.ComesWithPhase5"), "—", "—"));
         BenchmarkTitle = Strings.Format("Settings.Benchmark.Title", result.Photos, result.At.ToLocalTime().ToString("d MMM yyyy", CultureInfo.CurrentCulture), result.Backend);
         var archive = 0;
@@ -631,6 +631,26 @@ public sealed partial class SettingsViewModel : PageViewModel
         {
             Message = Strings.Format("Settings.ExifTool.Invalid", e.Message);
         }
+    }
+
+    // Editor for "Apri in Photoshop" (board 4d, Ctrl E)
+
+    public string EditorText => _host.Settings.PhotoshopPath ?? Strings.Get("Settings.Editor.None");
+
+    [RelayCommand]
+    private void RequestEditor() => PickRequested?.Invoke(this, SettingsPick.Editor);
+
+    public async Task UseEditorAsync(string path)
+    {
+        await _host.UpdateSettingsAsync(s => s with { PhotoshopPath = path }, CancellationToken.None);
+        OnPropertyChanged(nameof(EditorText));
+    }
+
+    [RelayCommand]
+    private async Task ClearEditorAsync()
+    {
+        await _host.UpdateSettingsAsync(s => s with { PhotoshopPath = null }, CancellationToken.None);
+        OnPropertyChanged(nameof(EditorText));
     }
 
     [RelayCommand]

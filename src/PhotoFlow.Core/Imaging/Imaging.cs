@@ -22,6 +22,9 @@ public interface IThumbnailStore
 {
     bool Exists(string contentHash);
 
+    /// <summary>Where the thumbnail of this content is (it may not exist).</summary>
+    string PathFor(string contentHash);
+
     Task<string> StoreAsync(string contentHash, RgbImage preview, CancellationToken ct);
 }
 

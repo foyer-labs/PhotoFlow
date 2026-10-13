@@ -5,6 +5,7 @@ using PhotoFlow.Core.Catalog;
 using PhotoFlow.Core.Ingest;
 using PhotoFlow.Core.Metadata;
 using PhotoFlow.Core.Pipeline;
+using PhotoFlow.Core.Tagging;
 using PhotoFlow.Sources.Ingest;
 
 namespace PhotoFlow.Sources.Jobs;
@@ -26,7 +27,8 @@ public static class ImportJobs
         DateOnly eventDate,
         string profileId,
         FaceMode? faces,
-        CancellationToken ct)
+        CancellationToken ct,
+        TagLevels? tags = null)
     {
         ArgumentNullException.ThrowIfNull(catalog);
         ArgumentNullException.ThrowIfNull(plan);
@@ -39,7 +41,7 @@ public static class ImportJobs
             new Library(0, Path.GetFileName(Path.TrimEndingDirectorySeparator(primary.RootPath)) is { Length: > 0 } name ? name : primary.RootPath,
                 primary.RootPath, WritePolicy.EmbeddedForNonRaw, false, LibraryOrigin.Import, null), ct).ConfigureAwait(false);
 
-        var settings = new ImportJobSettings(libraryId, sourceRoot, destinations, profileId, Faces: faces);
+        var settings = new ImportJobSettings(libraryId, sourceRoot, destinations, profileId, Faces: faces, Tags: tags);
         var jobId = await catalog.Jobs.CreateAsync(new Job(
             0, JobType.Import, sourceRoot, eventName, eventDate, profileId, false, null, JobState.Pending, JobPriority.Normal,
             ImportJobRunner.SerializeSettings(settings), DateTimeOffset.UtcNow), ct).ConfigureAwait(false);

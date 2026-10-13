@@ -1,20 +1,47 @@
 // SPDX-License-Identifier: Apache-2.0
 
+using PhotoFlow.Core.Catalog;
+
 namespace PhotoFlow.Core.Search;
 
 /// <summary>
-/// Full-text and vector search, isolated for a future PostgreSQL backend.
-/// Provisional members: to be finalized in the phase 3 plan.
+/// Search over the catalog (spec §3, §8, P14; decision F3-4): exact filters (people, tags, dates, camera, rating,
+/// outcome), free text matched on names and labels (full text) and ordered by meaning (CLIP text embedding against the
+/// image embeddings), and "find similar". Behind this interface so that a PostgreSQL implementation can replace SQLite.
 /// </summary>
 public interface ISearchIndex
 {
-    Task IndexTextAsync(long assetId, string text, CancellationToken ct);
+    Task<SearchResults> SearchAsync(SearchQuery query, CancellationToken ct);
 
-    Task<IReadOnlyList<SearchHit>> SearchTextAsync(string query, int limit, CancellationToken ct);
+    /// <summary>Photos with an embedding of <paramref name="embeddingModelVersion"/> and photos in the catalog (4e2: index being built).</summary>
+    Task<(int Embedded, int Total)> CoverageAsync(string embeddingModelVersion, CancellationToken ct);
+}
 
-    Task UpsertVectorAsync(long assetId, string modelVersion, ReadOnlyMemory<float> vector, CancellationToken ct);
-
-    Task<IReadOnlyList<SearchHit>> SearchSimilarAsync(ReadOnlyMemory<float> vector, int limit, CancellationToken ct);
+/// <param name="PersonIds">Exact filter: every person on the photo.</param>
+/// <param name="TagIds">Exact filter: every tag active on the photo (events are tags too).</param>
+/// <param name="Text">Free text: full-text words (prefixes) on file names, folders, tags, people, and meaning when <paramref name="TextEmbedding"/> is given.</param>
+/// <param name="TextEmbedding">CLIP embedding of <paramref name="Text"/> (L2-normalized), computed by the caller.</param>
+/// <param name="SimilarTo">"Trova simili": ordered by similarity to this photo's embedding.</param>
+/// <param name="EmbeddingModelVersion">Embeddings to use for meaning and similarity.</param>
+public sealed record SearchQuery(
+    IReadOnlyList<long> PersonIds,
+    IReadOnlyList<long> TagIds,
+    string? Text = null,
+    float[]? TextEmbedding = null,
+    long? SimilarTo = null,
+    DateTimeOffset? From = null,
+    DateTimeOffset? To = null,
+    string? Camera = null,
+    int? MinRating = null,
+    CullingOutcome? Outcome = null,
+    string? EmbeddingModelVersion = null,
+    int Limit = 5000)
+{
+    public static SearchQuery Empty { get; } = new([], []);
 }
 
 public sealed record SearchHit(long AssetId, double Score);
+
+/// <param name="Total">Photos matching, before <see cref="SearchQuery.Limit"/>.</param>
+/// <param name="ByMeaning">The order is by meaning (free text with an embedding, or similar photos).</param>
+public sealed record SearchResults(IReadOnlyList<SearchHit> Hits, int Total, bool ByMeaning, TimeSpan Elapsed);

@@ -192,6 +192,8 @@ Default per le librerie create da un import: `EmbeddedForNonRaw`, perché l'uten
 
 Nomi di persone, eventi e piloti non si traducono. Tag "non rivisti": solo inglese.
 
+Tag (fase 3, 13 ott 2026): `dc:subject` riceve la chiave inglese di ogni tag attivo e l'etichetta italiana una volta rivista; `lr:hierarchicalSubject` riceve `Categoria|Etichetta` (italiana se rivista, altrimenti inglese); l'evento del job è un tag (`Eventi|Nome`); la lista nera non si scrive mai. `XmpSync` ricorda le keyword scritte da PhotoFlow: un tag tolto più tardi (soppresso, in lista nera, non più trovato) esce dal file, mentre le keyword scritte da altri programmi o dall'utente non vengono mai toccate.
+
 Scrittura in fase 1 (12 ott 2026), solo dopo la conferma in Revisione e con la politica della libreria: le stelle dell'utente diventano `xmp:Rating`; uno scarto `xmp:Rating = -1` (prudente: etichetta rossa); da rivedere etichetta rossa. Le foto senza nulla da dire (tenute, simili, migliori senza stelle) non vengono toccate; se erano già state scritte, rating ed etichetta vengono azzerati. Le coppie RAW+JPEG ricevono gli stessi campi (sidecar per il RAW). Una scrittura non riuscita resta in sospeso in `XmpSync` e non blocca le altre.
 
 ### Sincronizzazione con modifiche esterne
@@ -215,7 +217,7 @@ Tutti i modelli girano in ONNX Runtime; ogni funzione ha un modello attivo selez
 | Rilevamento oggetti | D-FINE S (CPU) / M (GPU), pesi `obj2coco` fp32 | RF-DETR Nano-Large | 10-19M parametri | Conversioni `onnx-community` fissate per commit + SHA-256, verificate con test di parità contro il nostro export (`tools/lab`); riserva: nostro export su GitHub Releases |
 | Volti (rilevamento, landmark, impronte) | InsightFace buffalo\_l | buffalo\_s; YuNet/SFace (Apache 2.0) | 326 MB | Nativo |
 | Embedding (raffiche, ricerca, duplicati, zero-shot) | CLIP ViT-B/32 fp32 (F2-1) | — | 606 MB (immagine 352 MB + testo 254 MB) | Disponibile (Xenova, fissato per commit + SHA-256); la conversione quantizzata è esclusa (coseno 0,87-0,97 con l'originale) |
-| Tagger | RAM++ int8 | RAM++ fp32 | 873 MB / 1,86 GB | Export della community |
+| Tagger | RAM++ fp32 (F3-1) | — | 1,86 GB | Export `CannotFindObject/RAM_ONNX` fissato per commit + SHA-256 (mirror `imagent/ram-plus-onnx`); stessi tag dell'originale su 52/52 foto; la int8 è esclusa |
 | Didascalie | Florence-2 base | Florence-2 large | \~0,5 / \~1,5 GB | Florence2-Sharp (NuGet) |
 | VLM (livello D) | Qwen2.5-VL | — | 3-5 GB circa | ONNX Runtime GenAI (C#) |
 | OCR | PaddleOCR PP-OCRv5 (latin) | Taglie server | \~15 MB | RapidOcrNet (NuGet) |
@@ -235,6 +237,8 @@ Note dal laboratorio (fase 0, 12 ott 2026): RAM++ int8 e CLIP quantizzato non ac
 | B | RAM++ | Attivo |
 | C | Didascalie Florence-2 | Opzionale |
 | D | Didascalie VLM | Opzionale, solo GPU |
+
+Fase 3 (13 ott 2026): il livello A non richiede inferenza in più (usa gli embedding CLIP già salvati); il livello B (RAM++ Swin-L, 384×384: sul set locale con RTX 3090 l'analisi completa passa da 6,9 a 4,2 foto/s; su sola CPU il costo si misura con il benchmark in-app) è attivo per default solo con la GPU, altrimenti si propone A soltanto; la scelta è per job (procedura d'import) e ricordata.
 
 ### Selezione hardware
 
@@ -463,12 +467,16 @@ I dati EXIF non diventano keyword: sono già ricercabili nel catalogo.
 
 Categorie gerarchiche: `Persone`, `Luoghi`, `Natura`, `Veicoli`, `Eventi`, `Animali`, tramite tabella di mappatura sul nucleo.
 
+Fase 3 (13 ott 2026, F3-2, F3-3): le etichette italiane e una categoria predefinita di tutti i 4.585 tag RAM++ sono preparate durante lo sviluppo con un LLM e incluse nell'applicazione (`vocabulary/ramplus.tsv`), tutte "non riviste" (la tavola 5c parla di LLM locale: un modello locale richiederebbe gigabyte e GPU per poche centinaia di parole, con risultati non riproducibili). Una piccola lista nera predefinita (image, photo, picture, snapshot, file photo, screenshot, stock) si applica solo al primo inserimento del tag; le modifiche dell'utente non vengono mai sovrascritte. Il nucleo sono i 500 tag RAM++ più frequenti, mostrato dopo 1.000 foto con tag (P15); revisione a righe (Invio approva, F2 modifica, B lista nera, K categoria, Ctrl Z annulla).
+
 ### Soglie
 
 | Fonte | Soglia |
 | --- | --- |
 | RAM++ | Soglie ufficiali per tag + regolatore globale |
 | CLIP | Soglia per tag + margine minimo sul secondo candidato |
+
+Fase 3: RAM++ usa le soglie ufficiali per classe più un regolatore globale (Vocabolario, applicato dalle analisi successive). Un tag personalizzato CLIP (tavola 5d) si assegna quando il coseno tra immagine e descrizione inglese raggiunge la sua soglia e supera di almeno il suo margine il miglior altro tag personalizzato; "Prova sull'archivio" conta le foto senza salvare, "Salva e rianalizza" riassegna i tag personalizzati su tutte le foto con embedding.
 
 ### Provenienza
 
@@ -477,6 +485,8 @@ Categorie gerarchiche: `Persone`, `Luoghi`, `Natura`, `Veicoli`, `Eventi`, `Anim
 | Fonte e confidenza registrate | Filtri e rimozioni mirate |
 | Tag manuali mai rimossi da una rianalisi | Lavoro dell'utente protetto |
 | Tag automatici rimossi dall'utente → soppressi | Non vengono reinseriti |
+
+Fase 3: una riga per foto e tag (`AssetTags`) con fonte, confidenza, versione del modello e stato; ogni fonte (RAM++, CLIP, evento) sostituisce solo i propri tag automatici; un tag manuale non viene mai tolto da un'analisi; qualsiasi tag tolto dall'utente (anche manuale) resta "soppresso" finché l'utente non lo aggiunge di nuovo (test `TagInvariantTests`, scritti prima del codice).
 
 ### Didascalie
 
@@ -614,6 +624,8 @@ Ambito di I4 (decisione B1, 12 ott 2026): "file dell'utente" sono foto, RAW, sid
 | Griglia | Scorrimento fluido con 60.000 miniature |
 | Ricerca | < 1 s su 60.000 foto |
 | Duplicati | Confronto embedding su 60.000 foto: secondi su GPU, minuti su CPU |
+
+Misure della fase 3 (13 ott 2026, F3-4): su un catalogo sintetico di 60.000 foto (8 tag, 0-3 volti, embedding 512-d ciascuna) ogni ricerca richiede meno di 0,26 s (filtri esatti 50-115 ms, parole 0,2 s, significato e simili 0,25 s); l'indice testuale si costruisce una volta (~1,5 s a 60.000 foto) e poi si aggiorna foto per foto dalle modifiche segnate da trigger (ricerca dopo una persona rinominata e 400 tag cambiati: 0,26 s). Ricerca testuale FTS5 su nomi file e cartelle, etichette dei tag nelle due lingue e nomi delle persone; significato e "trova simili" con scansione esatta degli embedding in memoria. Duplicati (F3-5, F3-6): copie esatte = stesso contenuto due volte nella stessa libreria (le copie tra librerie sono backup e non vengono proposte); quasi-duplicati = coseno CLIP ≥ 0,95 su tutte le coppie (scansione esatta in parallelo) confermato da un hash percettivo della miniatura (≤ 10 bit su 64); gemelli RAW+JPEG e file già spostati in `_duplicati`/`_scarti` esclusi.
 
 ## 11. Installazione e aggiornamenti
 
@@ -1121,6 +1133,10 @@ Decisioni emerse in Design (confermate), funzioni rinviate a dopo la stabilizzaz
 | Modelli caricati e scaricati fase per fase (tavola 5f: "bastano 4-6 GB di VRAM"); oggi restano caricati per tutta la sessione | Tappa 2.11 |
 | Portachiavi Mac/Linux per la chiave delle impronte (oggi password) | F2-3 |
 | Eliminare un profilo personalizzato (oggi si può solo smettere di usarlo; i file restano nella cartella dei profili) | Tappa 2.10 |
+| Duplicati: zoom sincronizzato nel confronto e "Mostra esclusi" (tavola 4f, 4g) | Tappa 3.7 |
+| Consultazione: filtro "Evento ▾" a tendina (oggi l'evento è un gettone del campo di ricerca) e selezione multipla nella griglia | Tappa 3.6 |
+| Vocabolario: DataGrid con modifica in cella (oggi elenco a colonne con modifica nel pannello) | Tappa 3.8 |
+| Quando una keyword scritta da PhotoFlow c'era già nel file prima (scritta da un altro programma), toglierla solo se l'altro programma non la usa più: serve la sincronizzazione della fase 5 | Tappa 3.4 |
 | Scritture del catalogo per foto in un'unica transazione (oggi ~11 commit per foto: il catalogo regge ~45 foto/s, oltre il bisogno con i modelli) | Tappa 1b.7 |
 | Accelerazione SIMD del ricampionamento e dei segnali (oggi l'analisi è limitata dalla CPU: 8 foto in parallelo su 24 thread) | Tappa 1.10 |
 | Cambio di politica XMP di una libreria: unione dei sidecar esistenti negli incorporati (o viceversa) | D21, fase 5 (sincronizzazione) |
