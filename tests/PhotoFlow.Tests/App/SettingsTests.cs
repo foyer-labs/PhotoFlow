@@ -194,6 +194,32 @@ public sealed class SettingsTests : IDisposable
         Assert.Equal((null, ThemePreference.System), SettingsStore.LoadStartupPreferences(paths));
     }
 
+    [AvaloniaFact]
+    public async Task Normal_mode_stays_locked_without_metrics_and_the_password_opens_the_key()
+    {
+        var paths = new DefaultAppPaths(_temp.Sub("profile-culling"));
+        await using var host = await PhotoFlowHost.StartAsync(paths, CancellationToken.None);
+        var settings = new SettingsViewModel(host);
+        await Settle(settings.ActivateAsync());
+
+        // D23: no labelled set, no normal mode.
+        Assert.False(settings.NormalModeAllowed);
+        Assert.Equal(3, settings.CullingMetrics.Count);
+        await Settle(settings.SetCullingModeCommand.ExecuteAsync("Normal"));
+        Assert.True(host.Settings.PrudentMode);
+        Assert.NotNull(settings.Message);
+
+        // D12: a password is checked, then wraps the key for other accounts or PCs.
+        settings.EncryptionPassword = "correct horse";
+        settings.EncryptionConfirm = "correct hors";
+        await Settle(settings.SetEncryptionPasswordCommand.ExecuteAsync(null));
+        Assert.False(host.FingerprintKeys.HasPassword);
+        settings.EncryptionConfirm = "correct horse";
+        await Settle(settings.SetEncryptionPasswordCommand.ExecuteAsync(null));
+        Assert.True(host.FingerprintKeys.HasPassword);
+        Assert.Empty(settings.EncryptionPassword);
+    }
+
     public void Dispose() => _temp.Dispose();
 
     private static void Save(Avalonia.Controls.Window window, string name)

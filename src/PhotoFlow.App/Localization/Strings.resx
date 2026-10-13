@@ -572,4 +572,24 @@
   <data name="People.CoverSet" xml:space="preserve"><value>Cover set.</value></data>
   <data name="People.MoveTo" xml:space="preserve"><value>Move to</value></data>
   <data name="People.Moved" xml:space="preserve"><value>{0} faces moved to {1}.</value></data>
+  <data name="Import.Profile.AutomaticNote" xml:space="preserve"><value>CLIP picks the profile of each group; below 50 % confidence the profile selected above is used.</value></data>
+  <data name="Import.Profile.NoClip" xml:space="preserve"><value>The automatic profile needs the CLIP model (Settings › Models).</value></data>
+  <data name="Import.Faces.NoRecognizer" xml:space="preserve"><value>Recognition needs a face recognition model (Settings › Models).</value></data>
+  <data name="Import.Summary.AutomaticProfile" xml:space="preserve"><value>Automatic · fallback {0}</value></data>
+  <data name="Settings.Culling.Locked" xml:space="preserve"><value>The normal mode unlocks when all three metrics are within target.</value></data>
+  <data name="Settings.Culling.Metrics" xml:space="preserve"><value>Metrics of the labelled set (95 % interval)</value></data>
+  <data name="Settings.Culling.Metric" xml:space="preserve"><value>{0}: {1} · {2} · {3}</value></data>
+  <data name="Settings.Culling.Allowed" xml:space="preserve"><value>{0} labelled photos: the normal mode is available.</value></data>
+  <data name="Settings.Culling.NotYet" xml:space="preserve"><value>{0} labelled photos: label more in Review › Labelling (L) until all three intervals are within target.</value></data>
+  <data name="Settings.Encryption.Locked" xml:space="preserve"><value>Key locked: open it with its password in People, or recompute the fingerprints.</value></data>
+  <data name="Settings.Encryption.None" xml:space="preserve"><value>No key yet: it is created with the first fingerprint, tied to this Windows account.</value></data>
+  <data name="Settings.Encryption.AccountOnly" xml:space="preserve"><value>Tied to this Windows account only (no password).</value></data>
+  <data name="Settings.Encryption.WithPassword" xml:space="preserve"><value>Tied to this Windows account, and openable with the password on other accounts or PCs.</value></data>
+  <data name="Settings.Encryption.Note" xml:space="preserve"><value>A password lets you open the catalog on another account or PC without recomputing the fingerprints. It is never stored: losing it only means recomputing.</value></data>
+  <data name="Settings.Encryption.Confirm" xml:space="preserve"><value>Repeat password</value></data>
+  <data name="Settings.Encryption.SetPassword" xml:space="preserve"><value>Set password</value></data>
+  <data name="Settings.Encryption.TooShort" xml:space="preserve"><value>The password needs at least 8 characters.</value></data>
+  <data name="Settings.Encryption.Mismatch" xml:space="preserve"><value>The two passwords differ.</value></data>
+  <data name="Settings.Encryption.LockedHint" xml:space="preserve"><value>The key is locked: open it first in People.</value></data>
+  <data name="Settings.Encryption.PasswordSet" xml:space="preserve"><value>Password set.</value></data>
 </root>

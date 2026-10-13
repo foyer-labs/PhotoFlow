@@ -10,8 +10,10 @@ using CommunityToolkit.Mvvm.Input;
 using PhotoFlow.App.Commands;
 using PhotoFlow.App.Localization;
 using PhotoFlow.App.Services;
+using PhotoFlow.Analysis.Quality;
 using PhotoFlow.Core.Inference;
 using PhotoFlow.Core.Pipeline;
+using PhotoFlow.Faces.Protection;
 using PhotoFlow.Inference.Gpu;
 using PhotoFlow.Inference.Models;
 using PhotoFlow.Metadata.ExifTool;
@@ -245,6 +247,108 @@ public sealed partial class SettingsViewModel : PageViewModel
 
     public bool PrudentMode => _host.Settings.PrudentMode;
 
+    public bool NormalMode => !_host.Settings.PrudentMode;
+
+    /// <summary>All three metrics of the labelled set are within target (D23).</summary>
+    [ObservableProperty]
+    private bool _normalModeAllowed;
+
+    public ObservableCollection<string> CullingMetrics { get; } = [];
+
+    [ObservableProperty]
+    private string _cullingNote = string.Empty;
+
+    [RelayCommand]
+    private async Task SetCullingModeAsync(string? mode)
+    {
+        var prudent = mode != "Normal";
+        if (!prudent && !NormalModeAllowed)
+        {
+            Message = Strings.Get("Settings.Culling.Locked");
+            OnPropertyChanged(nameof(PrudentMode));
+            OnPropertyChanged(nameof(NormalMode));
+            return;
+        }
+
+        await _host.UpdateSettingsAsync(s => s with { PrudentMode = prudent }, CancellationToken.None);
+        OnPropertyChanged(nameof(PrudentMode));
+        OnPropertyChanged(nameof(NormalMode));
+    }
+
+    private async Task RefreshCullingAsync()
+    {
+        var metrics = await LabelingViewModel.ComputeMetricsAsync(_host.Catalog);
+        NormalModeAllowed = metrics.NormalModeAllowed;
+        CullingMetrics.Clear();
+        foreach (var metric in new[] { metrics.WrongDiscards, metrics.Intercepted, metrics.ToReview })
+        {
+            var (low, high) = metric.Proportion.Interval;
+            CullingMetrics.Add(Strings.Format("Settings.Culling.Metric",
+                Strings.Get("Metric." + metric.Key),
+                metric.Proportion.Total == 0 ? "—" : $"{low.ToString("P1", CultureInfo.CurrentCulture)} – {high.ToString("P1", CultureInfo.CurrentCulture)}",
+                Strings.Format(metric.LowerIsBetter ? "Metric.TargetBelow" : "Metric.TargetAbove", metric.Target.ToString("P0", CultureInfo.CurrentCulture)),
+                Strings.Get("Metric.Verdict." + metric.Verdict)));
+        }
+
+        CullingNote = Strings.Format(metrics.NormalModeAllowed ? "Settings.Culling.Allowed" : "Settings.Culling.NotYet", metrics.Labeled.ToString("N0", CultureInfo.CurrentCulture));
+    }
+
+    // Encryption of the face fingerprints (D12)
+
+    public string EncryptionState => _host.FingerprintKeys.State switch
+    {
+        FingerprintKeyState.Locked => Strings.Get("Settings.Encryption.Locked"),
+        FingerprintKeyState.None => Strings.Get("Settings.Encryption.None"),
+        _ => Strings.Get(_host.FingerprintKeys.HasPassword ? "Settings.Encryption.WithPassword" : "Settings.Encryption.AccountOnly"),
+    };
+
+    [ObservableProperty]
+    private string _encryptionPassword = string.Empty;
+
+    [ObservableProperty]
+    private string _encryptionConfirm = string.Empty;
+
+    /// <summary>Adds or replaces the password that opens the key on other accounts or PCs (PBKDF2, 600k iterations).</summary>
+    [RelayCommand]
+    private async Task SetEncryptionPasswordAsync()
+    {
+        if (EncryptionPassword.Length < 8)
+        {
+            Message = Strings.Get("Settings.Encryption.TooShort");
+            return;
+        }
+
+        if (EncryptionPassword != EncryptionConfirm)
+        {
+            Message = Strings.Get("Settings.Encryption.Mismatch");
+            return;
+        }
+
+        var keys = _host.FingerprintKeys;
+        if (keys.State == FingerprintKeyState.Locked)
+        {
+            Message = Strings.Get("Settings.Encryption.LockedHint");
+            return;
+        }
+
+        var password = EncryptionPassword;
+        await Task.Run(() =>
+        {
+            if (keys.State == FingerprintKeyState.None)
+            {
+                keys.Create(password);
+            }
+            else
+            {
+                keys.SetPassword(password);
+            }
+        });
+        EncryptionPassword = string.Empty;
+        EncryptionConfirm = string.Empty;
+        Message = Strings.Get("Settings.Encryption.PasswordSet");
+        OnPropertyChanged(nameof(EncryptionState));
+    }
+
     public override async Task ActivateAsync()
     {
         _loading = true;
@@ -271,6 +375,8 @@ public sealed partial class SettingsViewModel : PageViewModel
             ModelsFolderText = Strings.Format("Settings.Models.Folder", Formats.Bytes(installedBytes), _host.Paths.ModelsDirectory);
 
             await RefreshCatalogAsync();
+            await RefreshCullingAsync();
+            OnPropertyChanged(nameof(EncryptionState));
             await CheckExifToolAsync();
         }
         finally

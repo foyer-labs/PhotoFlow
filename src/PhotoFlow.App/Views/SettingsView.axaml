@@ -138,10 +138,14 @@
           </Border>
 
           <TextBlock Classes="overline" Text="{l:Tr Settings.Catalog.Encryption}" />
-          <StackPanel Spacing="4" Opacity="0.6">
-            <RadioButton IsEnabled="False" IsChecked="True" Content="{l:Tr Settings.Catalog.EncryptionWindows}" />
-            <RadioButton IsEnabled="False" Content="{l:Tr Settings.Catalog.EncryptionPassword}" />
-            <TextBlock Classes="micro tertiary" Text="{l:Tr Settings.Phase2}" />
+          <StackPanel Spacing="8">
+            <TextBlock Classes="label" Text="{Binding EncryptionState}" />
+            <TextBlock Classes="micro tertiary" TextWrapping="Wrap" Text="{l:Tr Settings.Encryption.Note}" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <TextBox Classes="field" Width="200" PasswordChar="•" Text="{Binding EncryptionPassword}" PlaceholderText="{l:Tr Settings.Catalog.EncryptionPassword}" />
+              <TextBox Classes="field" Width="200" PasswordChar="•" Text="{Binding EncryptionConfirm}" PlaceholderText="{l:Tr Settings.Encryption.Confirm}" />
+              <Button Classes="secondary" Command="{Binding SetEncryptionPasswordCommand}" Content="{l:Tr Settings.Encryption.SetPassword}" />
+            </StackPanel>
           </StackPanel>
 
           <TextBlock Classes="overline" Text="{l:Tr Settings.Catalog.Export}" />
@@ -200,13 +204,19 @@
         <!-- 5j Culling -->
         <StackPanel Spacing="16" IsVisible="{Binding IsCulling}">
           <TextBlock Classes="overline" Text="{l:Tr Settings.Culling.Mode}" />
-          <RadioButton GroupName="culling" IsChecked="{Binding PrudentMode, Mode=OneWay}" IsEnabled="False">
+          <RadioButton GroupName="culling" IsChecked="{Binding PrudentMode, Mode=OneWay}" Command="{Binding SetCullingModeCommand}" CommandParameter="Prudent">
             <StackPanel><TextBlock Text="{l:Tr Settings.Culling.Prudent}" /><TextBlock Classes="micro tertiary" TextWrapping="Wrap" Text="{l:Tr Settings.Culling.PrudentNote}" /></StackPanel>
           </RadioButton>
-          <RadioButton GroupName="culling" IsEnabled="False">
+          <RadioButton GroupName="culling" IsChecked="{Binding NormalMode, Mode=OneWay}" IsEnabled="{Binding NormalModeAllowed}" Command="{Binding SetCullingModeCommand}" CommandParameter="Normal">
             <StackPanel><TextBlock Text="{l:Tr Settings.Culling.Normal}" /><TextBlock Classes="micro tertiary" TextWrapping="Wrap" Text="{l:Tr Settings.Culling.NormalNote}" /></StackPanel>
           </RadioButton>
-          <TextBlock Classes="micro tertiary" Text="{l:Tr Settings.Phase2}" />
+          <TextBlock Classes="overline" Text="{l:Tr Settings.Culling.Metrics}" />
+          <ItemsControl ItemsSource="{Binding CullingMetrics}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="x:String"><TextBlock Classes="data" Text="{Binding}" /></DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <TextBlock Classes="label tertiary" TextWrapping="Wrap" Text="{Binding CullingNote}" />
         </StackPanel>
       </Panel>
     </ScrollViewer>

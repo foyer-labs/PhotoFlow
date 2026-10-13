@@ -56,6 +56,9 @@ public sealed record ImportDefaults
 
     public FaceMode Faces { get; init; } = FaceMode.Recognize;
 
+    /// <summary>Profile chosen per group by CLIP, with <see cref="ProfileId"/> as fallback (D8).</summary>
+    public bool AutomaticProfile { get; init; }
+
     public WritePolicy XmpPolicy { get; init; } = WritePolicy.EmbeddedForNonRaw;
 
     /// <summary>Destination path template (spec §4, board 5i).</summary>

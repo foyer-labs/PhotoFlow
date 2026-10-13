@@ -572,4 +572,24 @@
   <data name="People.CoverSet" xml:space="preserve"><value>Copertina impostata.</value></data>
   <data name="People.MoveTo" xml:space="preserve"><value>Sposta a</value></data>
   <data name="People.Moved" xml:space="preserve"><value>{0} volti spostati a {1}.</value></data>
+  <data name="Import.Profile.AutomaticNote" xml:space="preserve"><value>CLIP sceglie il profilo di ogni gruppo; sotto il 50 % di confidenza si usa il profilo selezionato sopra.</value></data>
+  <data name="Import.Profile.NoClip" xml:space="preserve"><value>Il profilo automatico richiede il modello CLIP (Impostazioni › Modelli).</value></data>
+  <data name="Import.Faces.NoRecognizer" xml:space="preserve"><value>Il riconoscimento richiede un modello di riconoscimento volti (Impostazioni › Modelli).</value></data>
+  <data name="Import.Summary.AutomaticProfile" xml:space="preserve"><value>Automatico · ripiego {0}</value></data>
+  <data name="Settings.Culling.Locked" xml:space="preserve"><value>La modalità normale si sblocca quando tutte e tre le metriche sono entro l'obiettivo.</value></data>
+  <data name="Settings.Culling.Metrics" xml:space="preserve"><value>Metriche del set etichettato (intervallo 95 %)</value></data>
+  <data name="Settings.Culling.Metric" xml:space="preserve"><value>{0}: {1} · {2} · {3}</value></data>
+  <data name="Settings.Culling.Allowed" xml:space="preserve"><value>{0} foto etichettate: la modalità normale è disponibile.</value></data>
+  <data name="Settings.Culling.NotYet" xml:space="preserve"><value>{0} foto etichettate: etichettane altre in Revisione › Etichettatura (L) finché i tre intervalli non sono entro l'obiettivo.</value></data>
+  <data name="Settings.Encryption.Locked" xml:space="preserve"><value>Chiave bloccata: aprila con la sua password in Persone, o ricalcola le impronte.</value></data>
+  <data name="Settings.Encryption.None" xml:space="preserve"><value>Ancora nessuna chiave: si crea alla prima impronta, legata a questo account Windows.</value></data>
+  <data name="Settings.Encryption.AccountOnly" xml:space="preserve"><value>Legata solo a questo account Windows (nessuna password).</value></data>
+  <data name="Settings.Encryption.WithPassword" xml:space="preserve"><value>Legata a questo account Windows, e apribile con la password su altri account o PC.</value></data>
+  <data name="Settings.Encryption.Note" xml:space="preserve"><value>Una password permette di aprire il catalogo su un altro account o PC senza ricalcolare le impronte. Non viene salvata: perderla significa solo ricalcolare.</value></data>
+  <data name="Settings.Encryption.Confirm" xml:space="preserve"><value>Ripeti password</value></data>
+  <data name="Settings.Encryption.SetPassword" xml:space="preserve"><value>Imposta password</value></data>
+  <data name="Settings.Encryption.TooShort" xml:space="preserve"><value>La password deve avere almeno 8 caratteri.</value></data>
+  <data name="Settings.Encryption.Mismatch" xml:space="preserve"><value>Le due password sono diverse.</value></data>
+  <data name="Settings.Encryption.LockedHint" xml:space="preserve"><value>La chiave è bloccata: aprila prima in Persone.</value></data>
+  <data name="Settings.Encryption.PasswordSet" xml:space="preserve"><value>Password impostata.</value></data>
 </root>

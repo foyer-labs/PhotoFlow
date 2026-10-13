@@ -371,7 +371,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     /// </summary>
     public async Task<long> StartArchiveAnalysisAsync(long libraryId, string profileId, ArchiveOrder order, CancellationToken ct)
     {
-        var settings = new ArchiveJobSettings(libraryId, profileId, order, FaceMode.DetectOnly,
+        var settings = new ArchiveJobSettings(libraryId, profileId, order, Settings.Import.Faces,
             Math.Max(1, PipelineDefaults.DefaultAnalysisWorkers / 2));
         var jobId = await ArchiveJobRunner.CreateAsync(Catalog, FileSystem, settings, ct).ConfigureAwait(false);
         _ = Jobs.StartAsync(jobId, JobPriority.Low);

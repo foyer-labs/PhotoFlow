@@ -78,7 +78,11 @@ public sealed partial class ImportWizardViewModel : PageViewModel
         var defaults = host.Settings.Import;
         Profiles = BuiltInProfiles.All.Select(p => new ProfileChoice(p)).ToList();
         _selectedProfile = Profiles.FirstOrDefault(p => p.Profile.Id == defaults.ProfileId) ?? Profiles[0];
-        _faces = defaults.Faces == FaceMode.Off ? FaceMode.Off : FaceMode.DetectOnly;
+        var setup = host.DescribeAnalysis();
+        CanRecognize = setup.FaceRecognizer is not null;
+        CanAutomaticProfile = setup.Embedder is not null;
+        _faces = defaults.Faces == FaceMode.Off ? FaceMode.Off : defaults.Faces == FaceMode.Recognize && CanRecognize ? FaceMode.Recognize : FaceMode.DetectOnly;
+        _automaticProfile = defaults.AutomaticProfile && CanAutomaticProfile;
         _xmpPolicy = defaults.XmpPolicy;
         RecentEvents = defaults.RecentEvents;
         _eventName = string.Empty;
@@ -155,8 +159,19 @@ public sealed partial class ImportWizardViewModel : PageViewModel
     private ProfileChoice _selectedProfile;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(SummaryFaces), nameof(FacesOff), nameof(FacesDetect))]
+    [NotifyPropertyChangedFor(nameof(SummaryFaces), nameof(FacesOff), nameof(FacesDetect), nameof(FacesRecognize))]
     private FaceMode _faces;
+
+    /// <summary>A face recognition model is installed (SFace, or buffalo_l with its license accepted).</summary>
+    public bool CanRecognize { get; }
+
+    /// <summary>The CLIP model is installed: the profile can be chosen per group (D8).</summary>
+    public bool CanAutomaticProfile { get; }
+
+    /// <summary>Automatic profile per group; the selected profile is the fallback below the confidence threshold.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SummaryProfile))]
+    private bool _automaticProfile;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(PolicyEmbedded), nameof(PolicySidecar), nameof(PolicyCatalog))]
@@ -240,6 +255,18 @@ public sealed partial class ImportWizardViewModel : PageViewModel
         }
     }
 
+    public bool FacesRecognize
+    {
+        get => Faces == FaceMode.Recognize;
+        set
+        {
+            if (value && CanRecognize)
+            {
+                Faces = FaceMode.Recognize;
+            }
+        }
+    }
+
     public bool PolicyEmbedded
     {
         get => XmpPolicy == WritePolicy.EmbeddedForNonRaw;
@@ -284,7 +311,7 @@ public sealed partial class ImportWizardViewModel : PageViewModel
 
     public string SummaryEvent => $"{EventNameOrDefault} · {(EventDate ?? DateTime.Today).ToString("d MMM yyyy", CultureInfo.CurrentCulture)}";
 
-    public string SummaryProfile => SelectedProfile.Name;
+    public string SummaryProfile => AutomaticProfile ? Strings.Format("Import.Summary.AutomaticProfile", SelectedProfile.Name) : SelectedProfile.Name;
 
     public string SummaryFaces => Strings.Get("Import.Faces." + Faces);
 
@@ -406,11 +433,17 @@ public sealed partial class ImportWizardViewModel : PageViewModel
         var plan = await _host.Planner.PlanAsync(_scanned, name, date, _host.PathTemplate, CancellationToken.None);
         var destinations = Destinations.Select(v => v.Destination).ToList();
         var jobId = await ImportJobs.CreateAsync(_host.Catalog, plan, Selection, _sourceRoot, destinations, name, date, SelectedProfile.Profile.Id, Faces, CancellationToken.None);
+        if (AutomaticProfile)
+        {
+            await _host.Catalog.Jobs.SetAutomaticProfileAsync(jobId, true, SelectedProfile.Profile.Id, CancellationToken.None);
+        }
+
         await _host.UpdateSettingsAsync(s => s with
         {
             Import = s.Import.WithRecentEvent(name) with
             {
                 ProfileId = SelectedProfile.Profile.Id,
+                AutomaticProfile = AutomaticProfile,
                 Faces = Faces,
                 XmpPolicy = XmpPolicy,
                 SecondaryRoots = destinations.Where(x => x.Kind == DestinationKind.Secondary).Select(x => x.RootPath).ToList(),
