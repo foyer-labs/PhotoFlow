@@ -131,7 +131,8 @@ public interface IXmpSyncStore
 
     Task MarkPendingAsync(long assetId, string? error, CancellationToken ct);
 
-    Task MarkWrittenAsync(long assetId, string signature, CancellationToken ct);
+    /// <param name="flatKeywords">Keywords PhotoFlow wrote (recorded to remove them later if their tag goes away).</param>
+    Task MarkWrittenAsync(long assetId, string signature, CancellationToken ct, IReadOnlyList<string>? flatKeywords = null, IReadOnlyList<string>? hierarchicalKeywords = null);
 
     Task<IReadOnlyList<long>> ListPendingAsync(CancellationToken ct);
 }

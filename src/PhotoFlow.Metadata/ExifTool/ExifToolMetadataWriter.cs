@@ -81,6 +81,16 @@ public sealed class ExifToolMetadataWriter : IMetadataWriter
             args.Add("-XMP-xmp:Label=" + SingleLine(label));
         }
 
+        foreach (var keyword in (changes.RemovedFlatKeywords ?? []).Select(SingleLine).Except(changes.FlatKeywords.Select(SingleLine), StringComparer.Ordinal).Distinct(StringComparer.Ordinal))
+        {
+            args.Add("-XMP-dc:Subject-=" + keyword);
+        }
+
+        foreach (var keyword in (changes.RemovedHierarchicalKeywords ?? []).Select(SingleLine).Except(changes.HierarchicalKeywords.Select(SingleLine), StringComparer.Ordinal).Distinct(StringComparer.Ordinal))
+        {
+            args.Add("-XMP-lr:HierarchicalSubject-=" + keyword);
+        }
+
         foreach (var keyword in changes.FlatKeywords.Select(SingleLine).Distinct(StringComparer.Ordinal))
         {
             args.Add("-XMP-dc:Subject-=" + keyword);

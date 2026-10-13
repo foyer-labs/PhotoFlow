@@ -30,13 +30,16 @@ public enum WritePolicy
 }
 
 /// <param name="Regions">Named face regions (MWG), or null to leave the regions untouched.</param>
+/// <param name="RemovedFlatKeywords">Keywords PhotoFlow may have written before that no longer apply (tags removed by the user or blacklisted); other keywords are never touched.</param>
 public sealed record MetadataChanges(
     int? Rating,
     string? Label,
     IReadOnlyList<string> FlatKeywords,
     IReadOnlyList<string> HierarchicalKeywords,
     string? Description,
-    FaceRegions? Regions = null);
+    FaceRegions? Regions = null,
+    IReadOnlyList<string>? RemovedFlatKeywords = null,
+    IReadOnlyList<string>? RemovedHierarchicalKeywords = null);
 
 /// <summary>
 /// Face regions to write (spec §4, §7: MWG regions with the name). Regions already in the file with a name that is

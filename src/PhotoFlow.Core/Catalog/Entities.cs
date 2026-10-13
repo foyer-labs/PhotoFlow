@@ -374,7 +374,13 @@ public sealed record EntryListItem(
 
 // --- Sync and system ---
 
-public sealed record XmpSyncState(long AssetId, DateTimeOffset? LastWrittenAt, string? XmpSignature, bool WritePending, string? LastError);
+public sealed record XmpSyncState(long AssetId, DateTimeOffset? LastWrittenAt, string? XmpSignature, bool WritePending, string? LastError)
+{
+    /// <summary>Keywords written by PhotoFlow at the last write (flat, then hierarchical).</summary>
+    public IReadOnlyList<string> WrittenFlat { get; init; } = [];
+
+    public IReadOnlyList<string> WrittenHierarchical { get; init; } = [];
+}
 
 public sealed record UndoLogEntry(long Id, DateTimeOffset At, string Operation, string PayloadJson);
 

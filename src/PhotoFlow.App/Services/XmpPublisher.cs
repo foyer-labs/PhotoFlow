@@ -40,7 +40,7 @@ public sealed class XmpPublisher(ICatalog catalog, IMetadataWriter writer)
 
     public static string Signature(MetadataChanges changes) =>
         Convert.ToHexString(XxHash3.Hash(Encoding.UTF8.GetBytes(
-            $"{changes.Rating}|{changes.Label}|{string.Join(',', changes.FlatKeywords)}|"
+            $"{changes.Rating}|{changes.Label}|{string.Join(',', changes.FlatKeywords)}|-{string.Join(',', changes.RemovedFlatKeywords ?? [])}|"
             + string.Join(';', changes.Regions?.Regions.Select(r => FormattableString.Invariant($"{r.Name}:{r.CenterX:0.####},{r.CenterY:0.####}")) ?? []))));
 
     /// <summary>Adds the named people of the photo to the changes (or makes changes for them alone).</summary>
@@ -63,6 +63,53 @@ public sealed class XmpPublisher(ICatalog catalog, IMetadataWriter writer)
             HierarchicalKeywords = [.. baseChanges.HierarchicalKeywords, .. names.Select(n => $"{PeopleKeywordRoot}|{n}")],
             Regions = regions,
         };
+    }
+
+    /// <summary>
+    /// Adds the tags of the photo (spec §8): the English label always, the Italian one once reviewed, and
+    /// <c>Category|Label</c> in the hierarchy; blacklisted tags are never written. The keywords of tags the user removed
+    /// (or blacklisted) are taken out of the file by <see cref="WithRemovals"/>, only if PhotoFlow wrote them before.
+    /// </summary>
+    public static MetadataChanges? WithTags(MetadataChanges? changes, IReadOnlyList<AssetTagInfo> tags)
+    {
+        ArgumentNullException.ThrowIfNull(tags);
+        var active = tags.Where(t => t.Assignment.State == AssetTagState.Active && !t.Tag.Blacklisted).Select(t => t.Tag).ToList();
+        if (active.Count == 0)
+        {
+            return changes;
+        }
+
+        var baseChanges = changes ?? new MetadataChanges(null, null, [], [], null);
+        return baseChanges with
+        {
+            FlatKeywords = [.. baseChanges.FlatKeywords, .. active.SelectMany(Flat)],
+            HierarchicalKeywords = [.. baseChanges.HierarchicalKeywords, .. active.SelectMany(Hierarchical)],
+        };
+
+        static IEnumerable<string> Flat(Tag tag) =>
+            new[] { tag.English, tag.Reviewed ? tag.Italian : null }.OfType<string>().Distinct(StringComparer.Ordinal);
+
+        static IEnumerable<string> Hierarchical(Tag tag) => tag.Category is not { } category
+            ? []
+            : new[] { tag.English, tag.Reviewed ? tag.Italian : null }.OfType<string>().Distinct(StringComparer.Ordinal).Select(l => $"{category}|{Capitalize(l)}");
+
+        static string Capitalize(string label) => label.Length == 0 ? label : char.ToUpper(label[0], System.Globalization.CultureInfo.InvariantCulture) + label[1..];
+    }
+
+    /// <summary>The keywords PhotoFlow wrote last time that no longer apply are removed; nobody else's keywords are touched.</summary>
+    public static MetadataChanges? WithRemovals(MetadataChanges? changes, XmpSyncState? sync)
+    {
+        if (sync is null || (sync.WrittenFlat.Count == 0 && sync.WrittenHierarchical.Count == 0))
+        {
+            return changes;
+        }
+
+        var baseChanges = changes ?? new MetadataChanges(null, null, [], [], null);
+        var flat = sync.WrittenFlat.Except(baseChanges.FlatKeywords, StringComparer.Ordinal).ToList();
+        var hierarchical = sync.WrittenHierarchical.Except(baseChanges.HierarchicalKeywords, StringComparer.Ordinal).ToList();
+        return flat.Count == 0 && hierarchical.Count == 0 && changes is null
+            ? null
+            : baseChanges with { RemovedFlatKeywords = flat, RemovedHierarchicalKeywords = hierarchical };
     }
 
     public async Task<XmpWriteSummary> WriteAsync(IReadOnlyList<long> assetIds, bool prudentMode, IProgress<int>? progress, CancellationToken ct)
@@ -94,6 +141,15 @@ public sealed class XmpPublisher(ICatalog catalog, IMetadataWriter writer)
                     .Select(f => (persons[f.PersonId!.Value].Name!, f.Box))
                     .ToList();
                 changes = WithPeople(changes, people, asset.Width is { } w && asset.Height is { } h ? (w, h) : null, managed);
+
+                // Tags live on the analyzed photo too.
+                var tags = await catalog.Tags.GetForAssetAsync(assetId, ct).ConfigureAwait(false);
+                if (tags.Count == 0 && await catalog.Assets.GetTwinAsync(assetId, ct).ConfigureAwait(false) is { } tagTwin)
+                {
+                    tags = await catalog.Tags.GetForAssetAsync(tagTwin, ct).ConfigureAwait(false);
+                }
+
+                changes = WithRemovals(WithTags(changes, tags), sync);
             }
             if (asset is null || changes is null || (sync?.XmpSignature == Signature(changes) && !sync.WritePending))
             {
@@ -122,7 +178,7 @@ public sealed class XmpPublisher(ICatalog catalog, IMetadataWriter writer)
                 else
                 {
                     written++;
-                    await catalog.XmpSync.MarkWrittenAsync(assetId, Signature(changes), ct).ConfigureAwait(false);
+                    await catalog.XmpSync.MarkWrittenAsync(assetId, Signature(changes), ct, changes.FlatKeywords, changes.HierarchicalKeywords).ConfigureAwait(false);
                 }
             }
 
