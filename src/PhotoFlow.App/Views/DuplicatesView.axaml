@@ -23,6 +23,14 @@
       <Setter Property="Margin" Value="0,0,10,0" />
       <Setter Property="Width" Value="300" />
     </Style>
+    <Style Selector="Border.copy">
+      <Setter Property="Cursor" Value="Hand" />
+      <!-- Without a background the empty areas of the tile would not take the click. -->
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="Border.copy:pointerover">
+      <Setter Property="BorderBrush" Value="{DynamicResource PF.Brush.BorderStrong}" />
+    </Style>
     <Style Selector="Border.copy.kept">
       <Setter Property="BorderBrush" Value="{DynamicResource PF.Brush.Outcome.Best}" />
     </Style>
@@ -90,7 +98,7 @@
             <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="vm:DuplicateCopyViewModel">
-                <Border Classes="copy" Classes.kept="{Binding IsKept}">
+                <Border Classes="copy" Classes.kept="{Binding IsKept}" Tag="{Binding}" PointerPressed="OnCopyPressed" ToolTip.Tip="{l:Tr Duplicates.ClickToKeep}">
                   <StackPanel Spacing="6">
                     <Grid ColumnDefinitions="Auto,*">
                       <Border Classes="key"><TextBlock Text="{Binding Number}" /></Border>

@@ -974,4 +974,5 @@
   <data name="Browse.Command.Facets" xml:space="preserve"><value>Filters</value></data>
   <data name="Browse.Preview.Close" xml:space="preserve"><value>Close</value></data>
   <data name="Browse.Preview.Hint" xml:space="preserve"><value>Esc, Space or double click: back to the list · ← →: other photos</value></data>
+  <data name="Duplicates.ClickToKeep" xml:space="preserve"><value>Click (or press its number) to keep this copy</value></data>
 </root>
