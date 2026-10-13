@@ -109,7 +109,8 @@ public sealed record PhotoProcessingResult(
     DecisionProposal Decision,
     string DecisionVersion,
     ImageEmbedding? Embedding = null,
-    IReadOnlyList<Tagging.TagResult>? Tags = null);
+    IReadOnlyList<Tagging.TagResult>? Tags = null,
+    IReadOnlyList<OcrReading>? Readings = null);
 
 /// <summary>An L2-normalized image embedding and the model version that produced it.</summary>
 public sealed record ImageEmbedding(string ModelVersion, float[] Vector);

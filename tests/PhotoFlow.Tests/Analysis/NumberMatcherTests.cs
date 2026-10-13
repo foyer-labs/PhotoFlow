@@ -43,6 +43,11 @@ public sealed class NumberMatcherTests
         Assert.Null(sixNine.Number);
         Assert.Equal(["6", "9"], sixNine.Candidates.Select(c => c.Number).Order(StringComparer.Ordinal));
 
+        // A clear reading of a number in the list stays certain even when its confused twin is in the list too.
+        var nine = NumberMatcher.Choose([("9", 0.95)], List);
+        Assert.Equal((NumberState.Certain, "9"), (nine.State, nine.Number));
+        Assert.Contains(nine.Candidates, c => c.Number == "6");
+
         var oneSeven = NumberMatcher.Choose([("17", 0.6), ("11", 0.55)], List);
         Assert.Equal(NumberState.ToReview, oneSeven.State);
         Assert.Contains(oneSeven.Candidates, c => c.Number == "17");

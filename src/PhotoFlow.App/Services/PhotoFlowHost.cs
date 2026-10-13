@@ -27,6 +27,7 @@ using PhotoFlow.Sources.Jobs;
 using PhotoFlow.Sources.Scanning;
 using PhotoFlow.Core.Tagging;
 using PhotoFlow.Tagging.Clip;
+using PhotoFlow.Tagging.Ocr;
 using PhotoFlow.Tagging.RamPlus;
 using PhotoFlow.Tagging.Vocabulary;
 
@@ -35,7 +36,7 @@ namespace PhotoFlow.App.Services;
 /// <summary>Which models the analysis uses, for the status bar and the first run (3b).</summary>
 /// <summary>The loaded models of the analysis (null when not installed).</summary>
 public sealed record AnalysisComponents(IImageOperations Operations, IObjectDetector? Objects, IFaceDetector? Faces, IImageEmbedder? Embedder, IFaceEmbedder? Fingerprints,
-    IImageTagger? Tagger = null);
+    IImageTagger? Tagger = null, ITextReader? TextReader = null);
 
 public sealed record AnalysisSetup(string? ObjectDetector, string? FaceDetector, bool EyesAvailable, ExecutionBackend Backend, string? Embedder = null, string? FaceRecognizer = null);
 
@@ -56,6 +57,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
 
     public const string ClipModelId = "clip-vit-b32";
     public const string RamPlusModelId = "ramplus-fp32";
+    public const string OcrModelId = "ppocr-en";
     public const string SFaceModelId = "opencv-sface-2021dec";
 
     private readonly SemaphoreSlim _sessionsGate = new(1, 1);
@@ -251,6 +253,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
             new GroupDecisionStage(Catalog, Profiles.Get, new DecisionEngine()),
             new FacesStage(Catalog, () => FingerprintKeys.Protector),
             new TaggingStage(Catalog, GetCustomTagScanAsync),
+            new NumbersStage(Catalog),
         ];
     }
 
@@ -338,7 +341,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     {
         var c = await GetAnalysisComponentsAsync(ct).ConfigureAwait(false);
         var created = new CullingPhotoProcessor(Previews, new CullingAnalyzer(c.Operations, c.Objects, c.Faces), new DecisionEngine(), Profiles.Get, Thumbnails,
-            c.Embedder, c.Fingerprints, () => FingerprintKeys.Protector, c.Tagger);
+            c.Embedder, c.Fingerprints, () => FingerprintKeys.Protector, c.Tagger, c.TextReader);
         return Interlocked.CompareExchange(ref _processor, created, null) ?? created;
     }
 
@@ -389,7 +392,10 @@ public sealed class PhotoFlowHost : IAsyncDisposable
                 tagger = new RamPlusTagger(await Open(RamPlusModelId, RamPlusTagger.ModelFile).ConfigureAwait(false), operations, classes, Settings.Tagging.ThresholdAdjustment);
             }
 
-            _components = new AnalysisComponents(operations, objects, faces, embedder, fingerprints, tagger);
+            ITextReader? textReader = Models.IsInstalled(OcrModelId)
+                ? new PaddleOcr(await Open(OcrModelId, PaddleOcr.DetectorFile).ConfigureAwait(false), await Open(OcrModelId, PaddleOcr.RecognizerFile).ConfigureAwait(false), operations)
+                : null;
+            _components = new AnalysisComponents(operations, objects, faces, embedder, fingerprints, tagger, textReader);
             return _components;
         }
         finally

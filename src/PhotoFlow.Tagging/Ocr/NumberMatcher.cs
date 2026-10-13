@@ -17,6 +17,9 @@ public static partial class NumberMatcher
     public const double MinConfidence = 0.7;
     public const double Margin = 0.1;
     public const double ConfusionPenalty = 0.9;
+
+    /// <summary>Penalty of a confused variant when the number read is itself in the list: a candidate, not a rival.</summary>
+    public const double ListedConfusionPenalty = 0.5;
     public const double NoListConfidence = 0.85;
     public const int MaxDigits = 3;
 
@@ -60,7 +63,7 @@ public static partial class NumberMatcher
 
             foreach (var variant in Variants(number).Where(list.Contains))
             {
-                Keep(candidates, variant, confidence * ConfusionPenalty);
+                Keep(candidates, variant, confidence * (list.Contains(number) ? ListedConfusionPenalty : ConfusionPenalty));
             }
         }
 
