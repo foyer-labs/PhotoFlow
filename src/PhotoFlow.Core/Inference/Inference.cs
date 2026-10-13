@@ -17,6 +17,9 @@ public interface IInferenceSession : IDisposable
 
     ExecutionBackend Backend { get; }
 
+    /// <summary>Custom metadata of the model file (e.g. the dictionary of an OCR recognizer).</summary>
+    IReadOnlyDictionary<string, string> Metadata { get; }
+
     Task<IReadOnlyList<NamedTensor>> RunAsync(IReadOnlyList<NamedTensor> inputs, CancellationToken ct);
 }
 

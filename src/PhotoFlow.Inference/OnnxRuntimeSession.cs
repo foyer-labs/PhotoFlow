@@ -23,6 +23,8 @@ internal sealed class OnnxRuntimeSession : IInferenceSession
 
     public ExecutionBackend Backend { get; }
 
+    public IReadOnlyDictionary<string, string> Metadata => _session.ModelMetadata.CustomMetadataMap;
+
     public Task<IReadOnlyList<NamedTensor>> RunAsync(IReadOnlyList<NamedTensor> inputs, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(inputs);

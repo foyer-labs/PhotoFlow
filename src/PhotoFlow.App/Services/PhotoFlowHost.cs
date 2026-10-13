@@ -51,7 +51,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     /// <summary>Model adapters this version can run: only these models can be downloaded or chosen (board 5g).</summary>
     public static readonly IReadOnlySet<string> ImplementedAdapters = new HashSet<string>(StringComparer.Ordinal)
     {
-        "dfine-hf-v1", "insightface-buffalo-v1", "yunet-v1", "clip-hf-v1", "sface-v1", "ramplus-v1",
+        "dfine-hf-v1", "insightface-buffalo-v1", "yunet-v1", "clip-hf-v1", "sface-v1", "ramplus-v1", "ppocr-v1",
     };
 
     public const string ClipModelId = "clip-vit-b32";

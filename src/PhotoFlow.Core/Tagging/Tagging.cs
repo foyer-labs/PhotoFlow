@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+using PhotoFlow.Core.Analysis;
 using PhotoFlow.Core.Catalog;
 using PhotoFlow.Core.Imaging;
 
@@ -47,3 +48,14 @@ public enum TagLevels
 
 /// <param name="TagKey">Stable English key (spec §8).</param>
 public sealed record TagResult(string TagKey, TagSource Source, double Confidence, string ModelVersion);
+
+/// <summary>OCR (spec §8): the text lines of an image.</summary>
+public interface ITextReader
+{
+    string ModelVersion { get; }
+
+    Task<IReadOnlyList<TextReading>> ReadAsync(RgbImage image, CancellationToken ct);
+}
+
+/// <param name="Box">Normalized to the image read.</param>
+public sealed record TextReading(BoundingBox Box, string Text, double Confidence);

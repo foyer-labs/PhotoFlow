@@ -28,6 +28,7 @@ dependencies = [
     # Blur effect reference (Crete-Roffet et al. 2007) for the sharpness measure (spec §6).
     "scikit-image==0.25.2",
     "scikit-learn>=1.6",
+    "rapidocr-onnxruntime>=1.4",
 ]
 
 [project.optional-dependencies]
