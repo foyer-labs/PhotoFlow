@@ -150,6 +150,16 @@ public interface IXmpSyncStore
     Task MarkWrittenAsync(long assetId, string signature, CancellationToken ct, IReadOnlyList<string>? flatKeywords = null, IReadOnlyList<string>? hierarchicalKeywords = null);
 
     Task<IReadOnlyList<long>> ListPendingAsync(CancellationToken ct);
+
+    /// <summary>The state and content of the XMP file after a write or a sync (base of the next sync).</summary>
+    Task RecordFileAsync(long assetId, string? fileStampJson, string snapshotJson, CancellationToken ct);
+
+    /// <summary>Assets with a recorded XMP state (the ones a sync looks at).</summary>
+    Task<IReadOnlyList<long>> ListRecordedAsync(CancellationToken ct);
+
+    Task AddLogAsync(IReadOnlyList<XmpSyncLogEntry> entries, CancellationToken ct);
+
+    Task<IReadOnlyList<XmpSyncLogEntry>> ListLogAsync(long? assetId, CancellationToken ct);
 }
 
 /// <summary>Persistent queue of copies to deferred destinations (NAS), retried until verified.</summary>

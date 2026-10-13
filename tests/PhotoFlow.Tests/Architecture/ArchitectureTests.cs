@@ -15,7 +15,7 @@ public sealed class ArchitectureTests
     {
         ["PhotoFlow.Core"] = [],
         ["PhotoFlow.Sources"] = ["System.IO.Hashing"],
-        ["PhotoFlow.Metadata"] = [],
+        ["PhotoFlow.Metadata"] = ["System.IO.Hashing"],
         ["PhotoFlow.Analysis"] = [],
         ["PhotoFlow.Faces"] = ["System.Security.Cryptography.ProtectedData"],
         ["PhotoFlow.Tagging"] = [],

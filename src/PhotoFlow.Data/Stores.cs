@@ -444,10 +444,13 @@ internal sealed class DecisionStore(SqliteCatalog catalog) : IDecisionStore
 
     public async Task<Decision?> GetAsync(long assetId, CancellationToken ct) =>
         (await catalog.RunAsync(c => c.QueryAsync<Row>(new CommandDefinition(
-            "SELECT Id, AssetId, AutomaticOutcome, ReasonsJson, ModelVersion, UserOutcome, Rating, Label FROM Decisions WHERE AssetId = @assetId;",
+            "SELECT Id, AssetId, AutomaticOutcome, ReasonsJson, ModelVersion, UserOutcome, Rating, Label, UserUpdatedAtMs FROM Decisions WHERE AssetId = @assetId;",
             new { assetId }, cancellationToken: ct)), ct).ConfigureAwait(false))
         .Select(r => new Decision(r.Id, r.AssetId, Db.ParseOrNull<CullingOutcome>(r.AutomaticOutcome),
-            JsonSerializer.Deserialize<string[]>(r.ReasonsJson) ?? [], r.ModelVersion, Db.ParseOrNull<CullingOutcome>(r.UserOutcome), r.Rating, r.Label))
+            JsonSerializer.Deserialize<string[]>(r.ReasonsJson) ?? [], r.ModelVersion, Db.ParseOrNull<CullingOutcome>(r.UserOutcome), r.Rating, r.Label)
+        {
+            UserUpdatedAt = Db.Instant(r.UserUpdatedAtMs),
+        })
         .FirstOrDefault();
 
     public Task SetAutomaticAsync(long assetId, CullingOutcome outcome, IReadOnlyList<string> reasons, string modelVersion, CancellationToken ct) =>
@@ -463,9 +466,9 @@ internal sealed class DecisionStore(SqliteCatalog catalog) : IDecisionStore
     public Task SetUserAsync(long assetId, CullingOutcome? outcome, int? rating, string? label, CancellationToken ct) =>
         catalog.RunAsync(c => c.ExecuteAsync(new CommandDefinition(
             """
-            INSERT INTO Decisions (AssetId, UserOutcome, Rating, Label, UpdatedAtMs) VALUES (@assetId, @outcome, @rating, @label, @now)
+            INSERT INTO Decisions (AssetId, UserOutcome, Rating, Label, UpdatedAtMs, UserUpdatedAtMs) VALUES (@assetId, @outcome, @rating, @label, @now, @now)
             ON CONFLICT (AssetId) DO UPDATE SET UserOutcome = excluded.UserOutcome, Rating = excluded.Rating, Label = excluded.Label,
-                                                UpdatedAtMs = excluded.UpdatedAtMs;
+                                                UpdatedAtMs = excluded.UpdatedAtMs, UserUpdatedAtMs = excluded.UserUpdatedAtMs;
             """,
             new { assetId, outcome = Db.Name(outcome), rating, label, now = Db.Now() },
             cancellationToken: ct)), ct);
@@ -496,6 +499,8 @@ internal sealed class DecisionStore(SqliteCatalog catalog) : IDecisionStore
 
         public string? UserOutcome { get; set; }
 
+        public long? UserUpdatedAtMs { get; set; }
+
         public int? Rating { get; set; }
 
         public string? Label { get; set; }
@@ -506,9 +511,11 @@ internal sealed class XmpSyncStore(SqliteCatalog catalog) : IXmpSyncStore
 {
     public async Task<XmpSyncState?> GetAsync(long assetId, CancellationToken ct) =>
         (await catalog.RunAsync(c => c.QueryAsync<Row>(new CommandDefinition(
-            "SELECT AssetId, LastWrittenMs, XmpSignature, WritePending, LastError, WrittenFlatJson, WrittenHierarchicalJson FROM XmpSync WHERE AssetId = @assetId;", new { assetId }, cancellationToken: ct)), ct).ConfigureAwait(false))
+            "SELECT AssetId, LastWrittenMs, XmpSignature, WritePending, LastError, WrittenFlatJson, WrittenHierarchicalJson, FileStampJson, SnapshotJson FROM XmpSync WHERE AssetId = @assetId;", new { assetId }, cancellationToken: ct)), ct).ConfigureAwait(false))
         .Select(r => new XmpSyncState(r.AssetId, Db.Instant(r.LastWrittenMs), r.XmpSignature, r.WritePending, r.LastError)
         {
+            FileStampJson = r.FileStampJson,
+            SnapshotJson = r.SnapshotJson,
             WrittenFlat = r.WrittenFlatJson is { } flat ? System.Text.Json.JsonSerializer.Deserialize<string[]>(flat) ?? [] : [],
             WrittenHierarchical = r.WrittenHierarchicalJson is { } hierarchical ? System.Text.Json.JsonSerializer.Deserialize<string[]>(hierarchical) ?? [] : [],
         })
@@ -541,6 +548,39 @@ internal sealed class XmpSyncStore(SqliteCatalog catalog) : IXmpSyncStore
         (await catalog.RunAsync(c => c.QueryAsync<long>(new CommandDefinition(
             "SELECT AssetId FROM XmpSync WHERE WritePending = 1 ORDER BY AssetId;", cancellationToken: ct)), ct).ConfigureAwait(false)).ToList();
 
+    public Task RecordFileAsync(long assetId, string? fileStampJson, string snapshotJson, CancellationToken ct) =>
+        catalog.RunAsync(c => c.ExecuteAsync(new CommandDefinition(
+            """
+            INSERT INTO XmpSync (AssetId, FileStampJson, SnapshotJson) VALUES (@assetId, @fileStampJson, @snapshotJson)
+            ON CONFLICT (AssetId) DO UPDATE SET FileStampJson = excluded.FileStampJson, SnapshotJson = excluded.SnapshotJson;
+            """,
+            new { assetId, fileStampJson, snapshotJson }, cancellationToken: ct)), ct);
+
+    public async Task<IReadOnlyList<long>> ListRecordedAsync(CancellationToken ct) =>
+        (await catalog.RunAsync(c => c.QueryAsync<long>(new CommandDefinition(
+            "SELECT AssetId FROM XmpSync WHERE SnapshotJson IS NOT NULL ORDER BY AssetId;", cancellationToken: ct)), ct).ConfigureAwait(false)).ToList();
+
+    public Task AddLogAsync(IReadOnlyList<XmpSyncLogEntry> entries, CancellationToken ct) =>
+        catalog.RunAsync(async c =>
+        {
+            using var transaction = c.BeginTransaction();
+            foreach (var e in entries)
+            {
+                await c.ExecuteAsync(new CommandDefinition(
+                    "INSERT INTO XmpSyncLog (AssetId, AtMs, Field, Value, Winner, Note) VALUES (@AssetId, @at, @Field, @Value, @winner, @Note);",
+                    new { e.AssetId, at = e.At.ToUnixTimeMilliseconds(), e.Field, e.Value, winner = e.Winner.ToString(), e.Note }, transaction, cancellationToken: ct)).ConfigureAwait(false);
+            }
+
+            transaction.Commit();
+        }, ct);
+
+    public async Task<IReadOnlyList<XmpSyncLogEntry>> ListLogAsync(long? assetId, CancellationToken ct) =>
+        (await catalog.RunAsync(c => c.QueryAsync<(long AssetId, long AtMs, string Field, string? Value, string Winner, string? Note)>(new CommandDefinition(
+            "SELECT AssetId, AtMs, Field, Value, Winner, Note FROM XmpSyncLog WHERE @assetId IS NULL OR AssetId = @assetId ORDER BY Id;",
+            new { assetId }, cancellationToken: ct)), ct).ConfigureAwait(false))
+        .Select(r => new XmpSyncLogEntry(r.AssetId, DateTimeOffset.FromUnixTimeMilliseconds(r.AtMs), r.Field, r.Value, Db.Parse<XmpSyncWinner>(r.Winner), r.Note))
+        .ToList();
+
     private sealed class Row
     {
         public long AssetId { get; set; }
@@ -556,6 +596,10 @@ internal sealed class XmpSyncStore(SqliteCatalog catalog) : IXmpSyncStore
         public string? WrittenFlatJson { get; set; }
 
         public string? WrittenHierarchicalJson { get; set; }
+
+        public string? FileStampJson { get; set; }
+
+        public string? SnapshotJson { get; set; }
     }
 }
 

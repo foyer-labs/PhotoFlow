@@ -19,7 +19,9 @@ public sealed record XmpWriteSummary(int Written, int Skipped, IReadOnlyList<(st
 /// regions of other software are kept; unnamed groups and ignored people are not written.
 /// </summary>
 /// <param name="writeCaptions">Captions in <c>dc:description</c> (spec §8, off by default); the user's are written too.</param>
-public sealed class XmpPublisher(ICatalog catalog, IMetadataWriter writer, bool writeCaptions = false)
+/// <param name="reader">With a reader, the changes other programs made are imported before writing, and the state of
+/// the file is recorded after (spec §4, <see cref="ExternalXmpSync"/>).</param>
+public sealed class XmpPublisher(ICatalog catalog, IMetadataWriter writer, bool writeCaptions = false, IMetadataReader? reader = null)
 {
     public const string RedLabel = "Red";
 
@@ -135,6 +137,14 @@ public sealed class XmpPublisher(ICatalog catalog, IMetadataWriter writer, bool 
         var libraries = (await catalog.Libraries.ListAsync(ct).ConfigureAwait(false)).ToDictionary(l => l.Id);
         var persons = (await catalog.People.ListPersonsAsync(ct).ConfigureAwait(false)).Select(p => p.Person).ToDictionary(p => p.Id);
         var managed = persons.Values.Where(p => p.Name is not null).Select(p => p.Name!).ToHashSet(StringComparer.Ordinal);
+
+        // What other programs changed is imported first, so it is not overwritten.
+        var external = reader is null ? null : new ExternalXmpSync(catalog, reader);
+        if (external is not null)
+        {
+            await external.SyncAsync(assetIds, null, ct).ConfigureAwait(false);
+        }
+
         foreach (var assetId in assetIds)
         {
             ct.ThrowIfCancellationRequested();
@@ -183,6 +193,7 @@ public sealed class XmpPublisher(ICatalog catalog, IMetadataWriter writer, bool 
                 continue;
             }
 
+            var recorded = false;
             foreach (var location in await catalog.Assets.GetLocationsAsync(assetId, ct).ConfigureAwait(false))
             {
                 if (!libraries.TryGetValue(location.LibraryId, out var library))
@@ -203,6 +214,11 @@ public sealed class XmpPublisher(ICatalog catalog, IMetadataWriter writer, bool 
                 {
                     written++;
                     await catalog.XmpSync.MarkWrittenAsync(assetId, Signature(changes), ct, changes.FlatKeywords, changes.HierarchicalKeywords).ConfigureAwait(false);
+                    if (external is not null && !recorded && policy != WritePolicy.CatalogOnly)
+                    {
+                        await external.RecordAsync(assetId, new MetadataTarget(path, asset.Handler == "raw"), policy, ct).ConfigureAwait(false);
+                        recorded = true;
+                    }
                 }
             }
 

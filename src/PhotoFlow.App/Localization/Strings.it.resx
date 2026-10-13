@@ -844,4 +844,11 @@
   <data name="Browse.Caption.Yours" xml:space="preserve"><value>Scritta da te</value></data>
   <data name="Browse.Caption.Automatic" xml:space="preserve"><value>Automatica · {0}</value></data>
   <data name="Browse.Caption.Placeholder" xml:space="preserve"><value>Descrivi la foto; Invio salva, Esc annulla</value></data>
+  <data name="Settings.Xmp.SyncNote" xml:space="preserve"><value>Quando un altro programma (Bridge, Lightroom) cambia rating, etichetta, parole chiave o descrizione di una foto scritta da PhotoFlow, le modifiche vengono importate come tue all'avvio e prima di ogni scrittura. Su rating ed etichetta vince la modifica più recente.</value></data>
+  <data name="Settings.Xmp.SyncNow" xml:space="preserve"><value>Sincronizza ora</value></data>
+  <data name="Settings.Xmp.ImportPeople" xml:space="preserve"><value>Importa le persone nominate da altri programmi</value></data>
+  <data name="Settings.Xmp.Syncing" xml:space="preserve"><value>Lettura degli XMP cambiati da altri programmi…</value></data>
+  <data name="Settings.Xmp.SyncFailed" xml:space="preserve"><value>La sincronizzazione non è riuscita: vedi il log.</value></data>
+  <data name="Settings.Xmp.SyncResult" xml:space="preserve"><value>{0} file cambiati da altri programmi, {1} foto aggiornate; {2} valori tenuti da PhotoFlow (più recenti o tag manuali); {3} regioni volto nominate altrove.</value></data>
+  <data name="Settings.Xmp.PeopleImported" xml:space="preserve"><value>{0} persone create, {1} volti assegnati dalle regioni nominate da altri programmi.</value></data>
 </root>

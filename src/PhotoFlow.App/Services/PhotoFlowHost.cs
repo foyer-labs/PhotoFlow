@@ -67,6 +67,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     private CullingPhotoProcessor? _processor;
     private AnalysisComponents? _components;
     private Task _maintenance = Task.CompletedTask;
+    private readonly CancellationTokenSource _shutdown = new();
 
     private PhotoFlowHost(IAppPaths paths, IFileSystem fileSystem, SettingsStore settingsStore, AppSettings settings, SqliteCatalog catalog, ExifToolSession exifTool)
     {
@@ -78,6 +79,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
         ExifTool = exifTool;
         ExifReader = new ExifToolExifReader(exifTool);
         MetadataWriter = new ExifToolMetadataWriter(exifTool, fileSystem);
+        MetadataReader = new ExifToolMetadataReader(exifTool, fileSystem);
         Thumbnails = new ThumbnailCache(fileSystem, paths.ThumbnailsDirectory);
         Previews = new PreviewProvider(fileSystem, ImageHandlerRegistry.CreateDefault(fileSystem, new ExifToolPreviewSource(exifTool), new MagickRawDecoder()));
         Inference = new OnnxRuntimeInferenceProvider(new InferenceOptions(Path.Combine(paths.GpuRuntimeDirectory, GpuPackFolder)));
@@ -123,8 +125,34 @@ public sealed class PhotoFlowHost : IAsyncDisposable
 
     public IMetadataWriter MetadataWriter { get; }
 
-    /// <summary>The XMP writer with the current preferences (captions in <c>dc:description</c>).</summary>
-    public XmpPublisher CreatePublisher() => new(Catalog, MetadataWriter, Settings.Xmp.WriteCaptions);
+    public IMetadataReader MetadataReader { get; }
+
+    /// <summary>The XMP writer with the current preferences (captions in <c>dc:description</c>) and the sync of external changes.</summary>
+    public XmpPublisher CreatePublisher() => new(Catalog, MetadataWriter, Settings.Xmp.WriteCaptions, MetadataReader);
+
+    /// <summary>Imports the XMP changes made by other programs (spec §4).</summary>
+    public ExternalXmpSync CreateXmpSync() => new(Catalog, MetadataReader);
+
+    /// <summary>The last sync of the XMP changes made by other programs (at start, in the background, or asked).</summary>
+    public XmpSyncReport? LastXmpSync { get; private set; }
+
+    /// <summary>Imports the changes other programs made to the XMP written by PhotoFlow (all, or some photos).</summary>
+    public async Task<XmpSyncReport?> SyncExternalXmpAsync(IProgress<int>? progress, CancellationToken ct)
+    {
+        try
+        {
+            LastXmpSync = await CreateXmpSync().SyncAsync(null, progress, ct).ConfigureAwait(false);
+            return LastXmpSync;
+        }
+        catch (OperationCanceledException)
+        {
+            return null;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException or System.Data.Common.DbException)
+        {
+            return null;
+        }
+    }
 
     public ThumbnailCache Thumbnails { get; }
 
@@ -207,8 +235,12 @@ public sealed class PhotoFlowHost : IAsyncDisposable
         host.InterruptedJobs = await ImportJobRunner.RecoverInterruptedAsync(catalog, ct).ConfigureAwait(false);
         await catalog.Tags.SeedVocabularyAsync(RamPlusVocabulary.Entries, TagSource.RamPlus, ct).ConfigureAwait(false);
         host.Cards.Start();
-        host._maintenance = Task.Run(() => host.Maintenance.RunAtStartupAsync(
-            catalog, Path.Combine(paths.GpuRuntimeDirectory, "downloads"), host.GpuRuntime.IsInstalled, CancellationToken.None), CancellationToken.None);
+        host._maintenance = Task.Run(async () =>
+        {
+            await host.Maintenance.RunAtStartupAsync(catalog, Path.Combine(paths.GpuRuntimeDirectory, "downloads"), host.GpuRuntime.IsInstalled, CancellationToken.None)
+                .ConfigureAwait(false);
+            await host.SyncExternalXmpAsync(null, host._shutdown.Token).ConfigureAwait(false);
+        }, CancellationToken.None);
         return host;
     }
 
@@ -319,6 +351,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        await _shutdown.CancelAsync().ConfigureAwait(false);
         Cards.Dispose();
         await Jobs.DisposeAsync().ConfigureAwait(false);
         try
@@ -340,6 +373,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
         await ExifTool.DisposeAsync().ConfigureAwait(false);
         Http.Dispose();
         _sessionsGate.Dispose();
+        _shutdown.Dispose();
     }
 
     private async Task<IPhotoProcessor> GetProcessorAsync(CancellationToken ct)

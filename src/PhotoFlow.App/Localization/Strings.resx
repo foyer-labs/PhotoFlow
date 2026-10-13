@@ -844,4 +844,11 @@
   <data name="Browse.Caption.Yours" xml:space="preserve"><value>Written by you</value></data>
   <data name="Browse.Caption.Automatic" xml:space="preserve"><value>Automatic · {0}</value></data>
   <data name="Browse.Caption.Placeholder" xml:space="preserve"><value>Describe the photo; Enter saves, Esc cancels</value></data>
+  <data name="Settings.Xmp.SyncNote" xml:space="preserve"><value>When another program (Bridge, Lightroom) changes rating, label, keywords or description of a photo PhotoFlow wrote, the changes are imported as yours at start and before every write. On rating and label the most recent change wins.</value></data>
+  <data name="Settings.Xmp.SyncNow" xml:space="preserve"><value>Synchronize now</value></data>
+  <data name="Settings.Xmp.ImportPeople" xml:space="preserve"><value>Import people named by other programs</value></data>
+  <data name="Settings.Xmp.Syncing" xml:space="preserve"><value>Reading the XMP changed by other programs…</value></data>
+  <data name="Settings.Xmp.SyncFailed" xml:space="preserve"><value>The synchronization could not complete: see the log.</value></data>
+  <data name="Settings.Xmp.SyncResult" xml:space="preserve"><value>{0} files changed by other programs, {1} photos updated; {2} values kept from PhotoFlow (more recent or manual tags); {3} face regions named elsewhere.</value></data>
+  <data name="Settings.Xmp.PeopleImported" xml:space="preserve"><value>{0} people created, {1} faces assigned from the regions named by other programs.</value></data>
 </root>

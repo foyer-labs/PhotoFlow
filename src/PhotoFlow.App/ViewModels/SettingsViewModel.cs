@@ -636,6 +636,30 @@ public sealed partial class SettingsViewModel : PageViewModel
 
     public string EditorText => _host.Settings.PhotoshopPath ?? Strings.Get("Settings.Editor.None");
 
+    [ObservableProperty]
+    private string? _xmpSyncText;
+
+    /// <summary>"Sincronizza ora": imports the XMP changes made by other programs (spec §4).</summary>
+    [RelayCommand]
+    private async Task SyncXmpAsync()
+    {
+        XmpSyncText = Strings.Get("Settings.Xmp.Syncing");
+        var report = await Task.Run(() => _host.SyncExternalXmpAsync(null, CancellationToken.None));
+        XmpSyncText = report is null
+            ? Strings.Get("Settings.Xmp.SyncFailed")
+            : Strings.Format("Settings.Xmp.SyncResult", report.Read.ToString("N0", CultureInfo.CurrentCulture), report.Changed.ToString("N0", CultureInfo.CurrentCulture),
+                report.Log.Count(l => l.Winner == Core.Catalog.XmpSyncWinner.Catalog).ToString("N0", CultureInfo.CurrentCulture),
+                report.Log.Count(l => l.Field == "region").ToString("N0", CultureInfo.CurrentCulture));
+    }
+
+    /// <summary>Face regions named by other programs → people of the gallery (spec §4).</summary>
+    [RelayCommand]
+    private async Task ImportNamedRegionsAsync()
+    {
+        var (people, faces) = await Task.Run(() => _host.CreateXmpSync().ImportNamedRegionsAsync(CancellationToken.None));
+        XmpSyncText = Strings.Format("Settings.Xmp.PeopleImported", people.ToString(CultureInfo.CurrentCulture), faces.ToString(CultureInfo.CurrentCulture));
+    }
+
     /// <summary>Captions in <c>dc:description</c> (spec §8, off by default); applies to the next XMP writes.</summary>
     public bool WriteCaptions
     {
