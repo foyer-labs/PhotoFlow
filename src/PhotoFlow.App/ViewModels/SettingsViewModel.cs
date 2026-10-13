@@ -534,6 +534,14 @@ public sealed partial class SettingsViewModel : PageViewModel
             }
 
             await ShowBenchmarkAsync(_host.Settings.Benchmark);
+            if (_host.Updates.AvailableVersion is { } version)
+            {
+                ShowUpdate(version);
+            }
+            else if (!_host.Updates.IsInstalled)
+            {
+                UpdateText = Strings.Get("Settings.Updates.NotInstalled");
+            }
             OnPropertyChanged(nameof(EncryptionState));
             await CheckExifToolAsync();
         }
@@ -1244,6 +1252,86 @@ public sealed partial class SettingsViewModel : PageViewModel
             : location?.LastResult?.Split('|') is [var kind, var detail, var before]
                 ? Strings.Format("Settings.Catalog.Result." + kind, detail, before)
                 : null;
+    }
+
+    // Updates (spec §11)
+
+    public string VersionText => Strings.Format("Settings.Updates.Version", AppUpdates.CurrentVersion);
+
+    public bool CheckUpdates
+    {
+        get => _host.Settings.CheckUpdates;
+        set
+        {
+            if (value != _host.Settings.CheckUpdates)
+            {
+                _ = SaveAsync(s => s with { CheckUpdates = value }, null);
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    [ObservableProperty]
+    private string? _updateText;
+
+    [ObservableProperty]
+    private bool _canInstallUpdate;
+
+    [RelayCommand]
+    private async Task CheckUpdatesNowAsync()
+    {
+        if (!_host.Updates.IsInstalled)
+        {
+            UpdateText = Strings.Get("Settings.Updates.NotInstalled");
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            var version = await Task.Run(_host.Updates.CheckAsync);
+            ShowUpdate(version);
+        }
+        catch (Exception e) when (e is HttpRequestException or IOException or InvalidOperationException or TaskCanceledException)
+        {
+            UpdateText = Strings.Format("Settings.Updates.Failed", e.Message);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    /// <summary>Downloads the update and restarts PhotoFlow on the new version; never while a job runs.</summary>
+    [RelayCommand]
+    private async Task InstallUpdateAsync()
+    {
+        if (_host.Jobs.AnyRunning)
+        {
+            UpdateText = Strings.Get("Settings.Updates.JobRunning");
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            await _host.Updates.DownloadAsync(p => Avalonia.Threading.Dispatcher.UIThread.Post(() => UpdateText = Strings.Format("Settings.Updates.Downloading", p)), CancellationToken.None);
+            _host.Updates.ApplyAndRestart();
+        }
+        catch (Exception e) when (e is HttpRequestException or IOException or InvalidOperationException or TaskCanceledException)
+        {
+            UpdateText = Strings.Format("Settings.Updates.Failed", e.Message);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private void ShowUpdate(string? version)
+    {
+        CanInstallUpdate = version is not null;
+        UpdateText = version is null ? Strings.Get("Settings.Updates.UpToDate") : Strings.Format("Settings.Updates.Available", version);
     }
 
     private void UpdatePendingRestore() =>

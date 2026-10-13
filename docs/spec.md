@@ -698,7 +698,7 @@ Pacchetto self-contained con Velopack, modelli scaricati al primo uso; durante l
 | Aspetto | Specifica |
 | --- | --- |
 | Runtime .NET | Incluso (self-contained) |
-| Installer e aggiornamenti | Velopack; feed come file statici su qualsiasi server HTTP |
+| Installer e aggiornamenti | Velopack 1.2.161, id del pacchetto `FoyerLabs.PhotoFlow`: il programma sta in `%LOCALAPPDATA%\FoyerLabs.PhotoFlow`, separato dai dati in `%LOCALAPPDATA%\PhotoFlow` (Velopack alla disinstallazione cancella la propria cartella). Feed: le release `vX.Y.Z` del repository GitHub; le pre-release dei modelli non vengono mai proposte |
 | Release su GitHub | Versioni dell'app con tag `vX.Y.Z` (alle versioni di riferimento). I file dei modelli esportati da noi stanno in release `models-<modello>-<n>` dello stesso repository, marcate come pre-release e mai «Latest», con il titolo "Model file · …" (decisione dell'utente del 13 ott 2026) |
 | Varianti | Windows: CUDA (NVIDIA) + CPU, pacchetto GPU scaricato al primo uso; Mac: CoreML; Linux: CPU/CUDA |
 | Firma del codice | Nessuna per ora (avviso SmartScreen al primo avvio) |
@@ -733,7 +733,7 @@ Pacchetto self-contained con Velopack, modelli scaricati al primo uso; durante l
 
 ### Aggiornamenti dell'applicativo
 
-Controllo all'avvio in background; installazione solo dopo conferma e mai durante un job; migrazione del catalogo con backup preventivo; versione precedente disponibile per il ripristino.
+Controllo all'avvio in background; installazione solo dopo conferma e mai durante un job; migrazione del catalogo con backup preventivo; versione precedente disponibile per il ripristino. Fatto per la v0.1.0 (13 ott 2026): Impostazioni › Generali › Aggiornamenti (versione, "Cerca una nuova versione all'avvio" attivo per default, "Controlla ora", "Scarica, installa e riavvia" bloccato durante un job); avviso nella barra di stato. Alla disinstallazione si svuotano cache, miniature e temporanei; configurazione, catalogo, modelli, backup e log restano.
 
 ### Requisiti indicativi
 

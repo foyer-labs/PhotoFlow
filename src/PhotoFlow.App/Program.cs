@@ -2,14 +2,28 @@
 
 using Avalonia;
 using Avalonia.Styling;
+using PhotoFlow.App.Services;
+using PhotoFlow.Core.Paths;
+using Velopack;
 
 namespace PhotoFlow.App;
 
 internal static class Program
 {
     [STAThread]
-    public static int Main(string[] args) =>
-        BuildAvaloniaApp(ParseTheme(args)).StartWithClassicDesktopLifetime(args);
+    public static int Main(string[] args)
+    {
+        // Velopack first (spec §11): the install, update and uninstall steps run here and exit. At uninstall the caches
+        // go, the user's data stays.
+        var velopack = VelopackApp.Build();
+        if (OperatingSystem.IsWindows())
+        {
+            velopack = velopack.OnBeforeUninstallFastCallback(_ => UninstallCleanup.Run(new DefaultAppPaths()));
+        }
+
+        velopack.Run();
+        return BuildAvaloniaApp(ParseTheme(args)).StartWithClassicDesktopLifetime(args);
+    }
 
     // Parameterless overload used by the visual designer.
     public static AppBuilder BuildAvaloniaApp() => BuildAvaloniaApp(null);

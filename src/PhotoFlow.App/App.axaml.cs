@@ -116,6 +116,10 @@ public sealed class App : Application
             paths = location.Resolve();
             _host = await Task.Run(() => PhotoFlowHost.StartAsync(paths, CancellationToken.None));
             _host.CatalogLocation = location;
+            if (_host.Settings.CheckUpdates)
+            {
+                _ = CheckUpdatesAsync(_host, logger);
+            }
             var viewModel = new MainWindowViewModel(_host);
             viewModel.RefreshStatus();
             window.DataContext = viewModel;
@@ -137,6 +141,29 @@ public sealed class App : Application
         {
             logger.LogError(e, "Startup failed");
             ((MainWindowViewModel)window.DataContext!).StatusText = Strings.Format("Status.StartupFailed", e.Message);
+        }
+    }
+
+    /// <summary>In the background: a newer version is announced in the status bar (installed only from the settings).</summary>
+    private async Task CheckUpdatesAsync(PhotoFlowHost host, Microsoft.Extensions.Logging.ILogger logger)
+    {
+        try
+        {
+            if (await Task.Run(host.Updates.CheckAsync) is { } version)
+            {
+                logger.LogInformation("Update available: {Version}", version);
+                await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime { MainWindow.DataContext: MainWindowViewModel shell })
+                    {
+                        shell.RefreshStatus();
+                    }
+                });
+            }
+        }
+        catch (Exception e) when (e is HttpRequestException or IOException or InvalidOperationException or TaskCanceledException)
+        {
+            logger.LogWarning(e, "Update check failed"); // offline: nothing to say
         }
     }
 
