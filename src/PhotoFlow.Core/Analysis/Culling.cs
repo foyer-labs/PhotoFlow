@@ -29,6 +29,9 @@ public sealed record SceneProfile(
 {
     /// <summary>Burst and ranking parameters (P17); the defaults when the profile file has none.</summary>
     public GroupingParameters Grouping { get; init; } = GroupingParameters.Default;
+
+    /// <summary>The profile a custom profile was duplicated from (board 5e: its values are the grey marks).</summary>
+    public string? BasedOn { get; init; }
 }
 
 /// <summary>

@@ -592,4 +592,54 @@
   <data name="Settings.Encryption.Mismatch" xml:space="preserve"><value>The two passwords differ.</value></data>
   <data name="Settings.Encryption.LockedHint" xml:space="preserve"><value>The key is locked: open it first in People.</value></data>
   <data name="Settings.Encryption.PasswordSet" xml:space="preserve"><value>Password set.</value></data>
+  <data name="Profiles.BuiltIn" xml:space="preserve"><value>Built-in</value></data>
+  <data name="Profiles.Custom" xml:space="preserve"><value>Custom</value></data>
+  <data name="Profiles.Locked" xml:space="preserve"><value>LOCKED</value></data>
+  <data name="Profiles.Detail" xml:space="preserve"><value>from {0} · v{1}</value></data>
+  <data name="Profiles.From" xml:space="preserve"><value>custom · from {0}</value></data>
+  <data name="Profiles.Command.Duplicate" xml:space="preserve"><value>Duplicate selected</value></data>
+  <data name="Profiles.Command.Save" xml:space="preserve"><value>Save</value></data>
+  <data name="Profiles.Command.Revert" xml:space="preserve"><value>Undo changes</value></data>
+  <data name="Profiles.Revert" xml:space="preserve"><value>Undo changes</value></data>
+  <data name="Profiles.Usage" xml:space="preserve"><value>Used in {0} jobs · changes apply to the next jobs or with "re-analyze" in the review</value></data>
+  <data name="Profiles.UsageBuiltIn" xml:space="preserve"><value>Used in {0} jobs</value></data>
+  <data name="Profiles.LockedHint" xml:space="preserve"><value>Built-in profiles are read-only: duplicate one (Ctrl D) to change it.</value></data>
+  <data name="Profiles.Weights" xml:space="preserve"><value>Weights of the composite score</value></data>
+  <data name="Profiles.WeightsOk" xml:space="preserve"><value>sum {0} ✓</value></data>
+  <data name="Profiles.WeightsWrong" xml:space="preserve"><value>sum {0}: must be 100</value></data>
+  <data name="Profiles.Weight.Sharpness" xml:space="preserve"><value>Sharpness</value></data>
+  <data name="Profiles.Weight.Eyes" xml:space="preserve"><value>Eyes</value></data>
+  <data name="Profiles.Weight.Exposure" xml:space="preserve"><value>Exposure</value></data>
+  <data name="Profiles.Weight.Subject" xml:space="preserve"><value>Subject</value></data>
+  <data name="Profiles.Weight.Aesthetic" xml:space="preserve"><value>Aesthetics</value></data>
+  <data name="Profiles.Thresholds" xml:space="preserve"><value>Thresholds and analysis</value></data>
+  <data name="Profiles.BlurDiscard" xml:space="preserve"><value>Discard for blur below</value></data>
+  <data name="Profiles.BlurReview" xml:space="preserve"><value>To review below</value></data>
+  <data name="Profiles.AbsoluteSharpness" xml:space="preserve"><value>Absolute sharpness threshold</value></data>
+  <data name="Profiles.Exposure" xml:space="preserve"><value>Exposure</value></data>
+  <data name="Profiles.Exposure.Normal" xml:space="preserve"><value>Normal</value></data>
+  <data name="Profiles.Exposure.Tolerant" xml:space="preserve"><value>Tolerant</value></data>
+  <data name="Profiles.Exposure.Off" xml:space="preserve"><value>Not checked</value></data>
+  <data name="Profiles.Zone" xml:space="preserve"><value>Sharpness zone</value></data>
+  <data name="Profiles.BurstGap" xml:space="preserve"><value>Burst: max gap (s)</value></data>
+  <data name="Profiles.MinSimilarity" xml:space="preserve"><value>Burst: min similarity</value></data>
+  <data name="Profiles.TieMargin" xml:space="preserve"><value>Tie within</value></data>
+  <data name="Profiles.OriginWeights" xml:space="preserve"><value>Original profile: {0}</value></data>
+  <data name="Profiles.OriginBlur" xml:space="preserve"><value>Original profile: discard {0} · review {1}</value></data>
+  <data name="Profiles.OriginExposure" xml:space="preserve"><value>Original profile: exposure {0} · zone {1}</value></data>
+  <data name="Profiles.OriginGrouping" xml:space="preserve"><value>Original profile: burst {0} s · similarity {1} · tie {2}</value></data>
+  <data name="Profiles.File" xml:space="preserve"><value>Versioned JSON file · profiles\{0}</value></data>
+  <data name="Profiles.BuiltInFile" xml:space="preserve"><value>Built into the application (profiles folder of the repository)</value></data>
+  <data name="Profiles.ApplyNote" xml:space="preserve"><value>Saving writes a new version of the file; the previous versions stay.</value></data>
+  <data name="Profiles.Suggestion" xml:space="preserve"><value>From your {0} corrections on this profile: with the blur discard threshold at {1}, {2} wrong discards fewer and {3} discards caught more ({4} kept photos would be discarded, {5} discards missed).</value></data>
+  <data name="Profiles.ApplySuggestion" xml:space="preserve"><value>Apply suggestion</value></data>
+  <data name="Profiles.IgnoreSuggestion" xml:space="preserve"><value>Ignore</value></data>
+  <data name="Profiles.SuggestionApplied" xml:space="preserve"><value>Suggestion applied: save (Ctrl S) to keep it.</value></data>
+  <data name="Profiles.CopyName" xml:space="preserve"><value>{0} — copy</value></data>
+  <data name="Profiles.Duplicated" xml:space="preserve"><value>{0} duplicated: change and save it.</value></data>
+  <data name="Profiles.Saved" xml:space="preserve"><value>Saved as version {0}.</value></data>
+  <data name="Profiles.SaveFailed" xml:space="preserve"><value>Not saved: {0}</value></data>
+  <data name="Profiles.NameRequired" xml:space="preserve"><value>The profile needs a name.</value></data>
+  <data name="Profiles.Reverted" xml:space="preserve"><value>Changes undone.</value></data>
+  <data name="Profiles.LoadErrors" xml:space="preserve"><value>Profile files not read: {0}</value></data>
 </root>

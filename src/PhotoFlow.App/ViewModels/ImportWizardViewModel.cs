@@ -23,9 +23,14 @@ namespace PhotoFlow.App.ViewModels;
 /// <summary>A scene profile tile of step 2 ("Eventi · AF → volti").</summary>
 public sealed record ProfileChoice(SceneProfile Profile)
 {
-    public string Name => Strings.Get("Profile." + Profile.Id);
+    public string Name => NameOf(Profile);
 
-    public string Zone => Strings.Get("Profile." + Profile.Id + ".Zone");
+    public string Zone => Profile.IsBuiltIn ? Strings.Get("Profile." + Profile.Id + ".Zone")
+        : Strings.Format("Profiles.From", Profile.BasedOn is { } b ? Strings.Get("Profile." + b) : "—");
+
+    /// <summary>Built-in profiles take their name from the resources, custom ones have their own.</summary>
+    public static string NameOf(SceneProfile? profile) => profile is null ? string.Empty
+        : profile.IsBuiltIn ? Strings.Get("Profile." + profile.Id) : profile.Name;
 }
 
 /// <summary>A destination of step 3 with its space check (board 3f).</summary>
@@ -76,7 +81,7 @@ public sealed partial class ImportWizardViewModel : PageViewModel
         _card = card;
         _sourceRoot = card?.RootPath ?? folder ?? throw new ArgumentException("A card or a folder is required.");
         var defaults = host.Settings.Import;
-        Profiles = BuiltInProfiles.All.Select(p => new ProfileChoice(p)).ToList();
+        Profiles = host.Profiles.All.Select(p => new ProfileChoice(p)).ToList();
         _selectedProfile = Profiles.FirstOrDefault(p => p.Profile.Id == defaults.ProfileId) ?? Profiles[0];
         var setup = host.DescribeAnalysis();
         CanRecognize = setup.FaceRecognizer is not null;

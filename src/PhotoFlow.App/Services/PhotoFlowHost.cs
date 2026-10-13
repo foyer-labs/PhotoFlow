@@ -81,11 +81,18 @@ public sealed class PhotoFlowHost : IAsyncDisposable
         Maintenance = new MaintenanceService(paths, new InternalFileCleaner(paths), protectedBackup: () => Restore?.Pending);
         Restore = new CatalogRestoreService(paths);
         FingerprintKeys = new FingerprintKeyStore(Path.Combine(paths.ConfigDirectory, "face-key.json"));
+        Profiles = new ProfileLibrary(paths.ProfilesDirectory);
         FingerprintKeys.Open();
     }
 
     /// <summary>Key of the face fingerprints (D12): locked on another account or PC until the password or a recompute.</summary>
     public FingerprintKeyStore FingerprintKeys { get; }
+
+    /// <summary>Built-in and custom scene profiles (spec §6, board 5e).</summary>
+    public ProfileLibrary Profiles { get; }
+
+    /// <summary>Display name of a profile id (custom profiles have their own name).</summary>
+    public string ProfileName(string? id) => Profiles.Find(id) is { } p ? ViewModels.ProfileChoice.NameOf(p) : Localization.Strings.Get("Profile." + (id ?? ProfileLibrary.FallbackId));
 
     public IAppPaths Paths { get; }
 
@@ -225,10 +232,10 @@ public sealed class PhotoFlowHost : IAsyncDisposable
         var embedder = DescribeAnalysis().Embedder is { } clip ? $"{clip}@{Models.Get(clip).Version}" : null;
         return
         [
-            new GroupingStage(Catalog, BuiltInProfiles.Get, embedder),
+            new GroupingStage(Catalog, Profiles.Get, embedder),
             new ProfileStage(Catalog, embedder is null ? null : new LazySceneClassifier(this), embedder),
             new ReanalysisStage(Catalog, FileSystem, new LazyProcessor(this), null),
-            new GroupDecisionStage(Catalog, BuiltInProfiles.Get, new DecisionEngine()),
+            new GroupDecisionStage(Catalog, Profiles.Get, new DecisionEngine()),
             new FacesStage(Catalog, () => FingerprintKeys.Protector),
         ];
     }
@@ -243,7 +250,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
         var job = await Catalog.Jobs.GetAsync(jobId, ct).ConfigureAwait(false) ?? throw new InvalidOperationException($"Job {jobId} not found.");
         var context = new JobContext(jobId, job.Type, job.ProfileId ?? "events");
         await new ReanalysisStage(Catalog, FileSystem, new LazyProcessor(this), null).RunAsync(context, null, ct).ConfigureAwait(false);
-        await new GroupDecisionStage(Catalog, BuiltInProfiles.Get, new DecisionEngine()).RunAsync(context, null, ct).ConfigureAwait(false);
+        await new GroupDecisionStage(Catalog, Profiles.Get, new DecisionEngine()).RunAsync(context, null, ct).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -348,7 +355,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
                 SFaceModelId => new SFaceEmbedder(await Open(SFaceModelId, SFaceEmbedder.File).ConfigureAwait(false)),
                 _ => null,
             };
-            _processor = new CullingPhotoProcessor(Previews, new CullingAnalyzer(operations, objects, faces), new DecisionEngine(), BuiltInProfiles.Get, Thumbnails, embedder,
+            _processor = new CullingPhotoProcessor(Previews, new CullingAnalyzer(operations, objects, faces), new DecisionEngine(), Profiles.Get, Thumbnails, embedder,
                 fingerprints, () => FingerprintKeys.Protector);
             return _processor;
         }

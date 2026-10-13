@@ -346,7 +346,7 @@ public sealed partial class ReviewViewModel : PageViewModel, IDisposable
         await LoadGroupsAsync(jobId, job);
         JobTitle = string.IsNullOrWhiteSpace(job.EventName) ? Strings.Get("Job.Unnamed") : job.EventName;
         JobMeta = Strings.Format("Review.Meta", job.EventDate?.ToString("d MMM yyyy", CultureInfo.CurrentCulture) ?? string.Empty,
-            _all.Count.ToString("N0", CultureInfo.CurrentCulture), Strings.Get("Profile." + _profileId),
+            _all.Count.ToString("N0", CultureInfo.CurrentCulture), _host.ProfileName(_profileId),
             Strings.Get(PrudentMode ? "Review.Mode.Prudent" : "Review.Mode.Normal"));
         NewPeopleGroups = await CountNewPeopleAsync(items.Select(i => i.AssetId!.Value).ToHashSet());
         Rebuild();
@@ -370,7 +370,7 @@ public sealed partial class ReviewViewModel : PageViewModel, IDisposable
 
             var first = photos[0].AnalyzedAssetId;
             var profile = profiles.GetValueOrDefault(first)?.ProfileId ?? group.ProfileId ?? job.ProfileId ?? "events";
-            var view = new ReviewGroupViewModel(group, ++number, photos, profile);
+            var view = new ReviewGroupViewModel(group, ++number, photos, profile) { NameOfProfile = _host.ProfileName };
             if (profiles.GetValueOrDefault(first) is { SuggestedProfileId: { } suggested, SuggestedConfidence: { } confidence })
             {
                 view.Suggestion = (suggested, confidence);
@@ -443,7 +443,7 @@ public sealed partial class ReviewViewModel : PageViewModel, IDisposable
         }
 
         var profileId = value.Group?.ProfileId ?? _profileId;
-        var profile = BuiltInProfiles.All.FirstOrDefault(p => p.Id == profileId) ?? BuiltInProfiles.All[0];
+        var profile = _host.Profiles.Get(profileId);
         if (value.Signals is { } s)
         {
             var t = profile.Thresholds;
@@ -772,15 +772,15 @@ public sealed partial class ReviewViewModel : PageViewModel, IDisposable
         }
 
         var profile = group.Suggestion?.ProfileId ?? NextProfile(group.ProfileId);
-        StatusMessage = Strings.Format("Review.Reanalyzing", group.Title, Strings.Get("Profile." + profile));
+        StatusMessage = Strings.Format("Review.Reanalyzing", group.Title, _host.ProfileName(profile));
         await _host.ReanalyzeAsync(jobId, group.Members.SelectMany(m => m.AssetIds).ToList(), profile, CancellationToken.None);
-        StatusMessage = Strings.Format("Review.Reanalyzed", group.Title, Strings.Get("Profile." + profile));
+        StatusMessage = Strings.Format("Review.Reanalyzed", group.Title, _host.ProfileName(profile));
         await ActivateAsync();
     }
 
-    private static string NextProfile(string current)
+    private string NextProfile(string current)
     {
-        var scenes = BuiltInProfiles.All.Where(p => p.Id != "archive").Select(p => p.Id).ToList();
+        var scenes = _host.Profiles.All.Where(p => p.Id != "archive").Select(p => p.Id).ToList();
         return scenes[(scenes.IndexOf(current) + 1) % scenes.Count];
     }
 

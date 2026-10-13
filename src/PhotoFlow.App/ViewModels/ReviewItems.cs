@@ -161,7 +161,7 @@ public sealed partial class ReviewGroupViewModel(AssetGroup group, int number, I
     public bool HasSuggestion => Suggestion is not null;
 
     public string SuggestionText => Suggestion is { } s
-        ? Strings.Format("Review.Group.Suggestion", Strings.Get("Profile." + s.ProfileId), s.Confidence.ToString("P0", CultureInfo.CurrentCulture))
+        ? Strings.Format("Review.Group.Suggestion", NameOfProfile(s.ProfileId), s.Confidence.ToString("P0", CultureInfo.CurrentCulture))
         : string.Empty;
 
     public string Title => Strings.Format("Review.Group." + Group.Type, Number);
@@ -178,7 +178,10 @@ public sealed partial class ReviewGroupViewModel(AssetGroup group, int number, I
         }
     }
 
-    public string ProfileText => Strings.Get("Profile." + ProfileId);
+    /// <summary>Display name of a profile id (custom profiles have their own name).</summary>
+    public Func<string, string> NameOfProfile { get; init; } = id => Strings.Get("Profile." + id);
+
+    public string ProfileText => NameOfProfile(ProfileId);
 
     /// <summary>"First two tied: choose the best" when the ranking ended in a tie (P17).</summary>
     public string Note => Group.Type switch

@@ -209,7 +209,7 @@ public sealed partial class JobsViewModel : PageViewModel, IDisposable
         Stages[0].Label = Strings.Get(job.Type == JobType.AnalyzeInPlace ? "Stage.Read" : "Stage.Copy");
         var items = await _host.Catalog.Jobs.GetItemsAsync(job.Id, CancellationToken.None);
         SelectedDetail = Strings.Format("Jobs.Detail", Strings.Get("JobType." + job.Type), job.CreatedAt.ToLocalTime().ToString("HH:mm", CultureInfo.CurrentCulture),
-            items.Count.ToString("N0", CultureInfo.CurrentCulture), Strings.Get("Profile." + (job.ProfileId ?? "events")));
+            items.Count.ToString("N0", CultureInfo.CurrentCulture), _host.ProfileName(job.ProfileId));
         if (Selected != selected)
         {
             return; // another job was selected meanwhile

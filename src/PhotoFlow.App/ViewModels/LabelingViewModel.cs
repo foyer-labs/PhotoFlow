@@ -123,7 +123,7 @@ public sealed partial class LabelingViewModel : PageViewModel
 
     public bool IsBurst => Burst.Count > 1;
 
-    public string CurrentName => Current is { } c ? $"{c.Name} · {Strings.Get("Profile." + c.ProfileId)}{(IsBurst ? " · " + Strings.Format("Labeling.BurstOf", Burst.Count) : string.Empty)}" : string.Empty;
+    public string CurrentName => Current is { } c ? $"{c.Name} · {_host.ProfileName(c.ProfileId)}{(IsBurst ? " · " + Strings.Format("Labeling.BurstOf", Burst.Count) : string.Empty)}" : string.Empty;
 
     public string Verdict => IsBlind || Current?.Automatic is not { } a ? string.Empty : Strings.Format("Labeling.Verdict", Strings.Get("Outcome." + a));
 
@@ -171,7 +171,7 @@ public sealed partial class LabelingViewModel : PageViewModel
                 var decision = await catalog.Decisions.GetAsync(assetId, CancellationToken.None);
                 var item = items.First(i => i.AssetId == assetId);
                 candidates.Add(new LabelingPhoto(assetId, Path.GetFileName(item.SourcePath), asset is null ? null : new[] { asset.FullHash, asset.QuickHash }.OfType<string>().Select(_host.Thumbnails.PathFor).FirstOrDefault(File.Exists),
-                    decision?.AutomaticOutcome, result.ProfileId, groups.TryGetValue(assetId, out var g) ? g : null, Priority(result)));
+                    decision?.AutomaticOutcome, result.ProfileId, groups.TryGetValue(assetId, out var g) ? g : null, Priority(result, _host.Profiles)));
             }
         }
 
@@ -184,12 +184,12 @@ public sealed partial class LabelingViewModel : PageViewModel
     }
 
     /// <summary>1 at a threshold, falling to 0 a few hundredths away (sharpness, eyes).</summary>
-    private static double Priority(AnalyzerResultRecord result)
+    private static double Priority(AnalyzerResultRecord result, ProfileLibrary profiles)
     {
         try
         {
             var s = CullingScores.FromScores(result.Scores);
-            var t = (BuiltInProfiles.All.FirstOrDefault(p => p.Id == result.ProfileId) ?? BuiltInProfiles.All[0]).Thresholds;
+            var t = profiles.Get(result.ProfileId).Thresholds;
             var sharpness = Math.Max(Near(s.ZoneSharpness, t.BlurReview), Near(s.ZoneSharpness, t.BlurDiscard));
             var eyes = s.MainFaceLeftEyeRatio is { } l && s.MainFaceRightEyeRatio is { } r ? Near(Math.Min(l, r), t.EyesClosed) : 0;
             return Math.Max(sharpness, eyes);
@@ -350,9 +350,9 @@ public sealed partial class LabelingViewModel : PageViewModel
         }
 
         PerProfile.Clear();
-        foreach (var profile in BuiltInProfiles.All.Where(p => p.Id != "archive"))
+        foreach (var profile in _host.Profiles.All.Where(p => p.Id != "archive"))
         {
-            PerProfile.Add($"{Strings.Get("Profile." + profile.Id)} {metrics.PerProfile.GetValueOrDefault(profile.Id).ToString(CultureInfo.CurrentCulture)}");
+            PerProfile.Add($"{ProfileChoice.NameOf(profile)} {metrics.PerProfile.GetValueOrDefault(profile.Id).ToString(CultureInfo.CurrentCulture)}");
         }
 
         LabeledText = Strings.Format("Labeling.Labeled", metrics.Labeled.ToString("N0", CultureInfo.CurrentCulture));
