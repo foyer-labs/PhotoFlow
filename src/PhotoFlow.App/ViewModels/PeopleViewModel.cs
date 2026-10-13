@@ -579,6 +579,12 @@ public sealed record FaceYearViewModel(string Title, IReadOnlyList<FaceTileViewM
 /// delete the person with all its fingerprints (the photos stay). Nothing is written in the photos until the review
 /// is confirmed.
 /// </summary>
+/// <summary>A person to move faces to; <see cref="Id"/> null is "new person".</summary>
+public sealed record PersonChoice(long? Id, string Label)
+{
+    public override string ToString() => Label;
+}
+
 public sealed partial class PersonPageViewModel : PageViewModel
 {
     private static readonly CommandTable Table = new(
@@ -663,7 +669,25 @@ public sealed partial class PersonPageViewModel : PageViewModel
 
     public bool IsEditing => EditText is not null;
 
-    public string EditLabel => Strings.Get(IsMoving ? "People.MoveTo" : "People.Rename");
+    public string EditLabel => Strings.Get("People.Rename");
+
+    /// <summary>The people faces can be moved to (named, by name), "new person" first.</summary>
+    public ObservableCollection<PersonChoice> MoveTargets { get; } = [];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsNewPerson), nameof(CanConfirmMove))]
+    private PersonChoice? _moveTarget;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanConfirmMove))]
+    private string? _newPersonName;
+
+    public bool IsNewPerson => MoveTarget is { Id: null };
+
+    public bool CanConfirmMove => MoveTarget is { Id: not null } || (IsNewPerson && !string.IsNullOrWhiteSpace(NewPersonName));
+
+    /// <summary>The faces the actions apply to: the selected ones, or the focused one alone.</summary>
+    public int ActionCount => _faces.Count(f => f.IsSelected) is var n and > 0 ? n : Focused is null ? 0 : 1;
 
     [ObservableProperty]
     private string? _message;
@@ -671,7 +695,12 @@ public sealed partial class PersonPageViewModel : PageViewModel
     [ObservableProperty]
     private bool _isConfirmingDelete;
 
-    public string SelectionText => Strings.Format("People.FacesSelected", _faces.Count(f => f.IsSelected));
+    public string SelectionText => ActionCount switch
+    {
+        0 => Strings.Get("People.NoFaceChosen"),
+        _ when _faces.Any(f => f.IsSelected) => Strings.Format("People.FacesSelected", ActionCount),
+        _ => Strings.Get("People.OneFaceChosen"),
+    };
 
     public string MetadataText => Strings.Format("People.Metadata", Name);
 
@@ -743,6 +772,9 @@ public sealed partial class PersonPageViewModel : PageViewModel
         {
             newValue.IsFocused = true;
         }
+
+        OnPropertyChanged(nameof(SelectionText));
+        OnPropertyChanged(nameof(ActionCount));
     }
 
     [RelayCommand]
@@ -765,6 +797,7 @@ public sealed partial class PersonPageViewModel : PageViewModel
             face.IsSelected = !face.IsSelected;
             _anchor = Flat().IndexOf(face);
             OnPropertyChanged(nameof(SelectionText));
+            OnPropertyChanged(nameof(ActionCount));
         }
     }
 
@@ -855,17 +888,63 @@ public sealed partial class PersonPageViewModel : PageViewModel
         EditText = Name.StartsWith(Strings.Format("People.Unnamed", string.Empty).Trim(), StringComparison.Ordinal) ? string.Empty : Name;
     }
 
+    /// <summary>Ctrl M: the list of the people to move the chosen faces to.</summary>
     [RelayCommand]
-    private void StartMoveTo()
+    private async Task StartMoveToAsync()
     {
+        if (ActionCount == 0)
+        {
+            Message = Strings.Get("People.NoFaceChosen");
+            return;
+        }
+
+        EditText = null;
+        MoveTargets.Clear();
+        MoveTargets.Add(new PersonChoice(null, Strings.Get("People.NewPerson")));
+        foreach (var person in (await _host.Catalog.People.ListPersonsAsync(CancellationToken.None))
+                     .Where(p => p.Person.Id != _personId && p.Person.Name is not null && !p.Person.Ignored)
+                     .OrderBy(p => p.Person.Name, StringComparer.CurrentCulture))
+        {
+            MoveTargets.Add(new PersonChoice(person.Person.Id, Strings.Format("People.ChoiceLabel", person.Person.Name!, person.FaceCount)));
+        }
+
+        MoveTarget = null;
+        NewPersonName = null;
         IsMoving = true;
-        EditText = string.Empty;
     }
 
-    /// <summary>Enter: applies the rename or the move being typed.</summary>
+    /// <summary>Moves the chosen faces to the person picked in the list (or a new one with the name typed).</summary>
+    [RelayCommand]
+    private async Task ConfirmMoveAsync()
+    {
+        if (!IsMoving || !CanConfirmMove)
+        {
+            return;
+        }
+
+        var name = MoveTarget!.Id is null ? NewPersonName!.Trim() : null;
+        var target = MoveTarget.Id ?? await _host.Catalog.People.CreatePersonAsync(name, CancellationToken.None);
+        var label = name ?? (await _host.Catalog.People.GetPersonAsync(target, CancellationToken.None))?.Name ?? string.Empty;
+        var faces = SelectedFaces();
+        IsMoving = false;
+        await _host.Catalog.People.AssignManualAsync(faces, target, CancellationToken.None);
+        await RefreshAsync(target);
+        Message = Strings.Format("People.Moved", faces.Count, label);
+    }
+
+    [RelayCommand]
+    private void CancelMove() => IsMoving = false;
+
+    /// <summary>Enter: applies the move chosen in the list, or the rename being typed.</summary>
     [RelayCommand]
     private async Task ApplyAsync()
     {
+        if (IsMoving)
+        {
+            await ConfirmMoveAsync();
+            return;
+        }
+
         if (EditText is not { } text || text.Trim().Length == 0)
         {
             EditText = null;
@@ -876,15 +955,6 @@ public sealed partial class PersonPageViewModel : PageViewModel
         EditText = null;
         var people = await _host.Catalog.People.ListPersonsAsync(CancellationToken.None);
         var existing = people.FirstOrDefault(p => string.Equals(p.Person.Name, name, StringComparison.CurrentCultureIgnoreCase))?.Person.Id;
-        if (IsMoving)
-        {
-            var target = existing ?? await _host.Catalog.People.CreatePersonAsync(name, CancellationToken.None);
-            var faces = SelectedFaces();
-            await _host.Catalog.People.AssignManualAsync(faces, target, CancellationToken.None);
-            await RefreshAsync(target);
-            Message = Strings.Format("People.Moved", faces.Count, name);
-            return;
-        }
 
         if (existing is { } other && other != _personId)
         {
@@ -925,7 +995,11 @@ public sealed partial class PersonPageViewModel : PageViewModel
     [RelayCommand]
     private void Back()
     {
-        if (EditText is not null)
+        if (IsMoving)
+        {
+            IsMoving = false;
+        }
+        else if (EditText is not null)
         {
             EditText = null;
         }

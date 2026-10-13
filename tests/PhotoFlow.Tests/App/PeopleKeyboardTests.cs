@@ -104,12 +104,64 @@ public sealed class PeopleKeyboardTests : IDisposable
         Assert.Contains(persons, p => p.Person.Name is null && p.FaceCount == 1);
         Assert.Equal(5, persons.Single(p => p.Person.Id == mia.Person.Id).FaceCount);
 
+        // Ctrl M: a list of the people (new person first); a new one by name, then an existing one from the list.
+        Assert.Equal(1, page.ActionCount); // the focused face, clearly marked
+        Press(window, PhysicalKey.M, RawInputModifiers.Control);
+        await WaitAsync(() => page.IsMoving && page.MoveTargets.Count > 0);
+        Assert.Null(page.MoveTargets[0].Id);
+        Assert.DoesNotContain(page.MoveTargets, t => t.Id == mia.Person.Id);
+        page.MoveTarget = page.MoveTargets[0];
+        Assert.False(page.CanConfirmMove); // a new person needs a name
+        page.NewPersonName = "Luca Neri";
+        SaveFrame(window, "people-move");
+        await page.ConfirmMoveCommand.ExecuteAsync(null);
+        await WaitAsync(() => page.Years.Sum(y => y.Faces.Count) == 4 && !page.IsMoving);
+        var luca = (await host.Catalog.People.ListPersonsAsync(ct)).Single(p => p.Person.Name == "Luca Neri");
+        Assert.Equal(1, luca.FaceCount);
+
+        Focus<PersonPageView>(window);
+        Press(window, PhysicalKey.M, RawInputModifiers.Control);
+        await WaitAsync(() => page.IsMoving && page.MoveTargets.Any(t => t.Id == luca.Person.Id));
+        page.MoveTarget = page.MoveTargets.Single(t => t.Id == luca.Person.Id);
+        await page.ConfirmMoveCommand.ExecuteAsync(null);
+        await WaitAsync(() => page.Years.Sum(y => y.Faces.Count) == 3);
+        Assert.Equal(2, (await host.Catalog.People.ListPersonsAsync(ct)).Single(p => p.Person.Id == luca.Person.Id).FaceCount);
+
+        // F2 then a name typed letter by letter: every letter stays (a refocus at each letter used to keep only one).
+        Focus<PersonPageView>(window);
+        Press(window, PhysicalKey.F2);
+        Assert.True(page.IsEditing);
+        foreach (var letter in "Anna")
+        {
+            window.KeyTextInput(letter.ToString());
+            for (var i = 0; i < 10; i++)
+            {
+                Dispatcher.UIThread.RunJobs();
+                Thread.Sleep(5);
+            }
+        }
+
+        Assert.EndsWith("Anna", page.EditText, StringComparison.Ordinal);
+        page.BackCommand.Execute(null); // leave the rename
+
         // Esc goes back to the list.
+        Focus<PersonPageView>(window);
         Press(window, PhysicalKey.Escape);
         Assert.IsType<PeopleViewModel>(shell.CurrentPage);
     }
 
     public void Dispose() => _temp.Dispose();
+
+    private static void SaveFrame(Window window, string name)
+    {
+        Dispatcher.UIThread.RunJobs();
+        var frame = window.CaptureRenderedFrame();
+        if (frame is not null && Environment.GetEnvironmentVariable("PHOTOFLOW_SCREENSHOTS") is { Length: > 0 } folder)
+        {
+            Directory.CreateDirectory(folder);
+            frame.Save(Path.Combine(folder, name + ".png"), new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
+        }
+    }
 
     private static void Focus<TView>(Window window)
         where TView : Control

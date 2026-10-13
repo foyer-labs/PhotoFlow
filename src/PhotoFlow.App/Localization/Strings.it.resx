@@ -975,4 +975,11 @@
   <data name="Browse.Preview.Close" xml:space="preserve"><value>Chiudi</value></data>
   <data name="Browse.Preview.Hint" xml:space="preserve"><value>Esc, Spazio o doppio clic: torna all'elenco · ← →: altre foto</value></data>
   <data name="Duplicates.ClickToKeep" xml:space="preserve"><value>Clic (o il suo numero) per tenere questa copia</value></data>
+  <data name="People.NewPerson" xml:space="preserve"><value>+ Nuova persona…</value></data>
+  <data name="People.NewPersonName" xml:space="preserve"><value>Nome della nuova persona</value></data>
+  <data name="People.ChoosePerson" xml:space="preserve"><value>Scegli la persona…</value></data>
+  <data name="People.ChoiceLabel" xml:space="preserve"><value>{0} ({1})</value></data>
+  <data name="People.MoveConfirm" xml:space="preserve"><value>Sposta</value></data>
+  <data name="People.NoFaceChosen" xml:space="preserve"><value>Nessun volto scelto: fai clic su uno (Ctrl+clic per più volti)</value></data>
+  <data name="People.OneFaceChosen" xml:space="preserve"><value>1 volto scelto · Ctrl+clic per aggiungerne altri</value></data>
 </root>

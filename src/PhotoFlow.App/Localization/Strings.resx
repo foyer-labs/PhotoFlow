@@ -975,4 +975,11 @@
   <data name="Browse.Preview.Close" xml:space="preserve"><value>Close</value></data>
   <data name="Browse.Preview.Hint" xml:space="preserve"><value>Esc, Space or double click: back to the list · ← →: other photos</value></data>
   <data name="Duplicates.ClickToKeep" xml:space="preserve"><value>Click (or press its number) to keep this copy</value></data>
+  <data name="People.NewPerson" xml:space="preserve"><value>+ New person…</value></data>
+  <data name="People.NewPersonName" xml:space="preserve"><value>Name of the new person</value></data>
+  <data name="People.ChoosePerson" xml:space="preserve"><value>Choose the person…</value></data>
+  <data name="People.ChoiceLabel" xml:space="preserve"><value>{0} ({1})</value></data>
+  <data name="People.MoveConfirm" xml:space="preserve"><value>Move</value></data>
+  <data name="People.NoFaceChosen" xml:space="preserve"><value>No face chosen: click one (Ctrl+click for more)</value></data>
+  <data name="People.OneFaceChosen" xml:space="preserve"><value>1 face chosen · Ctrl+click to add more</value></data>
 </root>

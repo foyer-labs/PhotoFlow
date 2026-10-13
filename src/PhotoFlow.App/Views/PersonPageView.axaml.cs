@@ -11,6 +11,7 @@ namespace PhotoFlow.App.Views;
 public sealed partial class PersonPageView : UserControl
 {
     private PersonPageViewModel? _viewModel;
+    private bool _wasEditing;
 
     public PersonPageView()
     {
@@ -31,13 +32,45 @@ public sealed partial class PersonPageView : UserControl
         };
     }
 
-    /// <summary>F2 / Ctrl M move the focus into the name field; Enter or Esc gives it back to the page.</summary>
+    /// <summary>F2 moves the focus into the name field, Ctrl M opens the list of the people; Enter or Esc gives it back to the page.</summary>
     private void OnViewModelChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName != nameof(PersonPageViewModel.IsEditing) || _viewModel is null)
+        if (_viewModel is null)
         {
             return;
         }
+
+        if (e.PropertyName == nameof(PersonPageViewModel.IsMoving))
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (_viewModel.IsMoving)
+                {
+                    MoveBox.Focus();
+                    MoveBox.IsDropDownOpen = true;
+                }
+                else
+                {
+                    Focus();
+                }
+            });
+            return;
+        }
+
+        if (e.PropertyName == nameof(PersonPageViewModel.IsNewPerson) && _viewModel.IsNewPerson)
+        {
+            Dispatcher.UIThread.Post(() => NewPersonBox.Focus());
+            return;
+        }
+
+        // Only when the rename starts or ends: the property is raised at every letter typed, and focusing the field
+        // again selected its text, so the next letter replaced the name (one letter at most).
+        if (e.PropertyName != nameof(PersonPageViewModel.IsEditing) || _viewModel.IsEditing == _wasEditing)
+        {
+            return;
+        }
+
+        _wasEditing = _viewModel.IsEditing;
 
         Dispatcher.UIThread.Post(() =>
         {

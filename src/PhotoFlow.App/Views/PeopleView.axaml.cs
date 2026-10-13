@@ -31,14 +31,19 @@ public sealed partial class PeopleView : UserControl
         };
     }
 
+    private bool _wasRenaming;
+
     /// <summary>F2 moves the focus into the name field; Enter or Esc gives it back to the page.</summary>
     private void OnViewModelChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName != nameof(PeopleViewModel.IsRenaming) || _viewModel is null)
+        // Only when renaming starts or ends: the property is raised at every letter typed, and focusing the field
+        // again selected its text, so the next letter replaced the name (one letter at most).
+        if (e.PropertyName != nameof(PeopleViewModel.IsRenaming) || _viewModel is null || _viewModel.IsRenaming == _wasRenaming)
         {
             return;
         }
 
+        _wasRenaming = _viewModel.IsRenaming;
         Dispatcher.UIThread.Post(() =>
         {
             if (_viewModel.IsRenaming)
