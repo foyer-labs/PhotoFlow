@@ -1,6 +1,6 @@
 # Piano della fase 5 — Rigenerazione, didascalie, esportazione del catalogo, sincronizzazione XMP
 
-Stato: **in esecuzione in autonomia** (indicazione dell'utente del 2026-10-12: procedere fino alla fine del progetto senza fermarsi ai cancelli di fase, decidendo secondo la specifica). Branch: `phase/5-regeneration`.
+Stato: **completata** (13 ott 2026; report in `docs/reports/fase-5.md`). Eseguita in autonomia su indicazione dell'utente del 2026-10-12. Branch: `phase/5-regeneration`.
 
 Riferimenti: spec §4 (sincronizzazione con modifiche esterne), §5 (rigenerazione, modelli, livelli C/D), §7 (volti, protezione delle impronte), §8 (didascalie), §9 (esportazione/importazione, tabelle), §10 (invarianti), §12bis (tavole 5b2, 5f-5j), §13 (fase 5); D14, D21; P3, P13, P16.
 
@@ -34,7 +34,7 @@ Rigenerazione completa con anteprima delle differenze; didascalie (livelli C/D);
 
 | # | Decisione | Motivo |
 |---|---|---|
-| F5-1 | Florence-2 **base-ft** (`onnx-community/Florence-2-base-ft`, MIT) con adattatori nostri invece di Florence2-Sharp; compito "didascalia dettagliata"; precisione (fp32 o fp16) scelta dopo la parità | Florence2-Sharp userebbe sessioni ONNX proprie, fuori da `IInferenceProvider` (CLAUDE.md §3), come già per l'OCR (F4-1) |
+| F5-1 | Florence-2 **base-ft** fp32 con adattatori nostri invece di Florence2-Sharp; compito "didascalia dettagliata". Encoder del testo e decoder da `onnx-community` (verificati: Δ 2·10⁻⁴); **encoder visivo esportato da noi** dall'originale (quello della conversione dà coseno 0,94), pubblicato come release del repository | Florence2-Sharp userebbe sessioni ONNX proprie, fuori da `IInferenceProvider` (CLAUDE.md §3), come già per l'OCR (F4-1); parità esatta (24/24 didascalie) solo con il nostro encoder visivo |
 | F5-2 | Livello D (VLM) rinviato al backlog | Qwen2.5-VL-3B ha licenza "qwen-research" (non commerciale; scheda Hugging Face verificata il 13 ott 2026). Il 7B è Apache-2.0 ma richiede ~5 GB, un nostro export con il Model Builder e un secondo runtime (ONNX Runtime GenAI) fuori da `IInferenceProvider`, senza test di parità praticabili. Il livello resta visibile e disattivato con il motivo |
 | F5-3 | Trasferimento delle assegnazioni dei volti: coppie vecchio/nuovo volto per IoU ≥ 0,5 (accoppiamento migliore per primo). I volti manuali non associati restano; i nuovi volti non associati vanno al riconoscimento normale; prototipi rifatti per il modello nuovo dai volti assegnati | Spec §5 "associazione ai vecchi volti per sovrapposizione dei riquadri" |
 | F5-4 | `.pfcatalog` = zip con `manifest.json`, `catalog.pfdb` (copia con la backup API di SQLite), `profiles/`, `thumbnails/` facoltative. Impronte ricifrate con una chiave derivata dalla password d'esportazione (PBKDF2-SHA256 + AES-GCM come la chiave locale). L'importazione si applica al riavvio | Un file unico (spec §9); nessuna dipendenza nuova |
