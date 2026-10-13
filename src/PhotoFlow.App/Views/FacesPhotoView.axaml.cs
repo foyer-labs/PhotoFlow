@@ -40,6 +40,9 @@ public sealed partial class FacesPhotoView : UserControl
     /// <summary>A box drawn by the user, normalized to the photo.</summary>
     public event EventHandler<BoundingBox>? FaceDrawn;
 
+    /// <summary>A face clicked (not while drawing): who is it?</summary>
+    public event EventHandler<ViewModels.FaceBoxViewModel>? FaceClicked;
+
     public IImage? Source { get => GetValue(SourceProperty); set => SetValue(SourceProperty, value); }
 
     public double ImageWidth { get => GetValue(ImageWidthProperty); set => SetValue(ImageWidthProperty, value); }
@@ -108,6 +111,15 @@ public sealed partial class FacesPhotoView : UserControl
         else
         {
             Drawing.IsVisible = false;
+        }
+    }
+
+    private void OnFacePressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (!IsDrawing && sender is Control { Tag: ViewModels.FaceBoxViewModel face } && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed && e.ClickCount == 1)
+        {
+            e.Handled = true;
+            FaceClicked?.Invoke(this, face);
         }
     }
 

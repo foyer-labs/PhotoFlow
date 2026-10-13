@@ -998,4 +998,7 @@
   <data name="Browse.DrawFace" xml:space="preserve"><value>Drag a box around the face on the photo.</value></data>
   <data name="Browse.SaveFace" xml:space="preserve"><value>Save</value></data>
   <data name="Browse.FaceAdded" xml:space="preserve"><value>Face added: it is yours, no analysis will remove it.</value></data>
+  <data name="Browse.IdentifyFace" xml:space="preserve"><value>Who is this face (now: {0})?</value></data>
+  <data name="Browse.FaceIdentified" xml:space="preserve"><value>Face assigned: it is yours, and it helps recognizing the person in the other photos.</value></data>
+  <data name="Browse.ClickFaceHint" xml:space="preserve"><value>Click a face to say who it is · N to add a face not found</value></data>
 </root>

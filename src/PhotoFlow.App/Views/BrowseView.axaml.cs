@@ -113,6 +113,17 @@ public sealed partial class BrowseView : UserControl
         }
     }
 
+    /// <summary>A face clicked on the large preview: who is it?</summary>
+    private async void OnFaceClicked(object? sender, FaceBoxViewModel face)
+    {
+        if (_viewModel is { IsLargePreview: true })
+        {
+            await _viewModel.IdentifyFaceAsync(face);
+            FacePersonBox.Focus();
+            FacePersonBox.IsDropDownOpen = true;
+        }
+    }
+
     /// <summary>A box drawn on the large preview: the face to add, then its person.</summary>
     private void OnFaceDrawn(object? sender, PhotoFlow.Core.Analysis.BoundingBox box)
     {

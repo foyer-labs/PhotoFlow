@@ -16,6 +16,7 @@ using PhotoFlow.Core.Analysis;
 using PhotoFlow.Core.Catalog;
 using PhotoFlow.Core.Imaging;
 using PhotoFlow.Core.Search;
+using PhotoFlow.Faces.Recognition;
 
 namespace PhotoFlow.App.ViewModels;
 
@@ -119,7 +120,8 @@ public sealed record BrowseRow(IReadOnlyList<BrowseItemViewModel> Items);
 /// A face on a shown photo, in the pixels of the image (spec §7): its name, or "?" when not recognized. The lines and
 /// the label follow the size of the image (the view scales it down); the current face of a person page stands out.
 /// </summary>
-public sealed record FaceBoxViewModel(double X, double Y, double Width, double Height, string? Name, bool IsCurrent = false, double ImageSide = 600, bool Dim = false)
+public sealed record FaceBoxViewModel(double X, double Y, double Width, double Height, string? Name, bool IsCurrent = false, double ImageSide = 600, bool Dim = false,
+    long FaceId = 0, long? PersonId = null)
 {
     public string Label => Name ?? "?";
 
@@ -143,7 +145,7 @@ public sealed record FaceBoxViewModel(double X, double Y, double Width, double H
             .Where(f => f.PersonId is not { } id || !persons.TryGetValue(id, out var p) || !p.Ignored)
             .Select(f => new FaceBoxViewModel(f.Box.X1 * width, f.Box.Y1 * height, (f.Box.X2 - f.Box.X1) * width, (f.Box.Y2 - f.Box.Y1) * height,
                 f.PersonId is { } id && persons.TryGetValue(id, out var person) ? person.Name : null,
-                f.Id == current, side, current is not null && f.Id != current))];
+                f.Id == current, side, current is not null && f.Id != current, f.Id, f.PersonId))];
     }
 
     /// <summary>"Luca, Ripa · 1 non riconosciuto": who is on the photo.</summary>
@@ -1025,7 +1027,17 @@ public sealed partial class BrowseViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(IsChoosingFacePerson))]
     private BoundingBox? _drawnFace;
 
-    public bool IsChoosingFacePerson => DrawnFace is not null;
+    public bool IsChoosingFacePerson => DrawnFace is not null || IdentifyingFace is not null;
+
+    /// <summary>A face of the photo clicked to say who it is ("?" or another person).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsChoosingFacePerson), nameof(CanSaveFace), nameof(FacePrompt))]
+    private FaceBoxViewModel? _identifyingFace;
+
+    /// <summary>What the picker asks: draw a face, or who the clicked face is.</summary>
+    public string FacePrompt => IdentifyingFace is { } face
+        ? Strings.Format("Browse.IdentifyFace", face.Name ?? "?")
+        : Strings.Get("Browse.DrawFace");
 
     public ObservableCollection<PersonChoice> FacePeople { get; } = [];
 
@@ -1039,7 +1051,8 @@ public sealed partial class BrowseViewModel : PageViewModel
 
     public bool IsNewFacePerson => FacePerson is { Id: null };
 
-    public bool CanSaveFace => DrawnFace is not null && (FacePerson is { Id: not null } || (IsNewFacePerson && !string.IsNullOrWhiteSpace(NewFacePersonName)));
+    public bool CanSaveFace => (DrawnFace is not null || IdentifyingFace is not null)
+        && (FacePerson is { Id: not null } || (IsNewFacePerson && !string.IsNullOrWhiteSpace(NewFacePersonName)));
 
     [RelayCommand]
     private void ToggleFaces() => ShowFaces = !ShowFaces;
@@ -1055,7 +1068,29 @@ public sealed partial class BrowseViewModel : PageViewModel
 
         IsLargePreview = true;
         ShowFaces = true;
+        await LoadFacePeopleAsync();
+        IsDrawingFace = true;
+    }
+
+    /// <summary>A click on a face of the photo: who is it? (a "?" face, or one to correct).</summary>
+    public async Task IdentifyFaceAsync(FaceBoxViewModel face)
+    {
+        ArgumentNullException.ThrowIfNull(face);
+        if (Selected is null || face.FaceId == 0)
+        {
+            return;
+        }
+
+        await LoadFacePeopleAsync();
+        FacePerson = face.PersonId is { } current ? FacePeople.FirstOrDefault(p => p.Id == current) : null;
+        IdentifyingFace = face;
+        IsDrawingFace = true; // the same panel; no box is drawn while a face is being identified
+    }
+
+    private async Task LoadFacePeopleAsync()
+    {
         DrawnFace = null;
+        IdentifyingFace = null;
         FacePeople.Clear();
         FacePeople.Add(new PersonChoice(null, Strings.Get("People.NewPerson")));
         foreach (var person in (await _host.Catalog.People.ListPersonsAsync(CancellationToken.None))
@@ -1066,13 +1101,12 @@ public sealed partial class BrowseViewModel : PageViewModel
 
         FacePerson = null;
         NewFacePersonName = null;
-        IsDrawingFace = true;
     }
 
     /// <summary>The box drawn on the photo: now the person.</summary>
     public void FaceDrawnOnPhoto(BoundingBox box)
     {
-        if (IsDrawingFace)
+        if (IsDrawingFace && IdentifyingFace is null)
         {
             DrawnFace = box;
         }
@@ -1082,18 +1116,35 @@ public sealed partial class BrowseViewModel : PageViewModel
     [RelayCommand]
     private async Task SaveFaceAsync()
     {
-        if (!CanSaveFace || Selected is not { } item || DrawnFace is not { } box)
+        if (!CanSaveFace || Selected is not { } item)
         {
             return;
         }
 
         var person = FacePerson!.Id ?? await _host.Catalog.People.CreatePersonAsync(NewFacePersonName!.Trim(), CancellationToken.None);
-        await _host.Catalog.Analysis.AddManualFaceAsync(item.AssetId, box, person, CancellationToken.None);
+        if (IdentifyingFace is { } face)
+        {
+            // The user says who it is (I5: a manual assignment); both people get their samples again, so the
+            // fingerprint of this face helps recognizing the person in the other photos.
+            await _host.Catalog.People.AssignManualAsync([face.FaceId], person, CancellationToken.None);
+            await PeopleEngine.RefreshPrototypesAsync(_host.Catalog, person, CancellationToken.None);
+            if (face.PersonId is { } previous && previous != person)
+            {
+                await PeopleEngine.RefreshPrototypesAsync(_host.Catalog, previous, CancellationToken.None);
+            }
+
+            Message = Strings.Get("Browse.FaceIdentified");
+        }
+        else if (DrawnFace is { } box)
+        {
+            await _host.Catalog.Analysis.AddManualFaceAsync(item.AssetId, box, person, CancellationToken.None);
+            Message = Strings.Get("Browse.FaceAdded");
+        }
+
         CancelAddFace();
         await WriteXmpAsync(item.AssetId);
         await LoadDetailAsync(item);
         await Facets.LoadAsync(CancellationToken.None);
-        Message = Strings.Get("Browse.FaceAdded");
     }
 
     [RelayCommand]
@@ -1101,6 +1152,7 @@ public sealed partial class BrowseViewModel : PageViewModel
     {
         IsDrawingFace = false;
         DrawnFace = null;
+        IdentifyingFace = null;
     }
 
     [RelayCommand]

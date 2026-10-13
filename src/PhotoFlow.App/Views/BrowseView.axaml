@@ -280,11 +280,14 @@
               <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Text="✕" /><TextBlock Text="{l:Tr Browse.Preview.Close}" /><Border Classes="key"><TextBlock Text="Esc" /></Border></StackPanel>
             </Button>
             <v:FacesPhotoView x:Name="LargePhoto" Grid.Row="1" Margin="16,0" Source="{Binding DetailImage}" ImageWidth="{Binding DetailImageSize.Width}" ImageHeight="{Binding DetailImageSize.Height}"
-                              Faces="{Binding FaceBoxes}" ShowFaces="{Binding ShowFaces}" IsDrawing="{Binding IsDrawingFace}" FaceDrawn="OnFaceDrawn" />
+                              Faces="{Binding FaceBoxes}" ShowFaces="{Binding ShowFaces}" IsDrawing="{Binding IsDrawingFace}" FaceDrawn="OnFaceDrawn" FaceClicked="OnFaceClicked" />
             <StackPanel Grid.Row="2" Margin="16,8,16,12" Spacing="8">
               <!-- Who is on the photo; V shows the boxes, N adds a face -->
               <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
-                <TextBlock Classes="label" VerticalAlignment="Center" TextWrapping="Wrap" Text="{Binding DetailPeople, StringFormat={}{0}}" />
+                <StackPanel VerticalAlignment="Center" Spacing="2">
+                  <TextBlock Classes="label" TextWrapping="Wrap" Text="{Binding DetailPeople}" />
+                  <TextBlock Classes="micro tertiary" TextWrapping="Wrap" IsVisible="{Binding ShowFaces}" Text="{l:Tr Browse.ClickFaceHint}" />
+                </StackPanel>
                 <CheckBox Grid.Column="1" IsChecked="{Binding ShowFaces}">
                   <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Classes="label" Text="{l:Tr Browse.ShowFaces}" /><Border Classes="key"><TextBlock Text="V" /></Border></StackPanel>
                 </CheckBox>
@@ -294,7 +297,7 @@
               </Grid>
               <Border Classes="card" IsVisible="{Binding IsDrawingFace}">
                 <StackPanel Spacing="8">
-                  <TextBlock Classes="label" TextWrapping="Wrap" IsVisible="{Binding !IsChoosingFacePerson}" Text="{l:Tr Browse.DrawFace}" />
+                  <TextBlock Classes="label" TextWrapping="Wrap" Text="{Binding FacePrompt}" />
                   <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsChoosingFacePerson}">
                     <ComboBox x:Name="FacePersonBox" MinWidth="240" ItemsSource="{Binding FacePeople}" SelectedItem="{Binding FacePerson}" PlaceholderText="{l:Tr People.ChoosePerson}" MaxDropDownHeight="360">
                       <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PersonChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>

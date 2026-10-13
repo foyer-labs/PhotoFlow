@@ -93,6 +93,24 @@ public sealed class BrowseFacesTests : IDisposable
         Assert.Equal(AssignmentOrigin.Manual, added.AssignmentOrigin);
         Save(window, "faces-2-saved");
 
+        // A click on the "?" face: who is it? Ripa, from the list.
+        browse.IsLargePreview = true;
+        Dispatcher.UIThread.RunJobs();
+        var unknown = browse.FaceBoxes.Single(f => f.Name is null);
+        var center = surface.TranslatePoint(new Point(unknown.X + (unknown.Width / 2), unknown.Y + (unknown.Height / 2)), window)!.Value;
+        window.MouseDown(center, MouseButton.Left);
+        window.MouseUp(center, MouseButton.Left);
+        await WaitAsync(() => browse.IdentifyingFace is not null && browse.FacePeople.Count > 0);
+        Assert.Equal(unknown.FaceId, browse.IdentifyingFace!.FaceId);
+        Assert.False(browse.CanSaveFace); // a person first
+        browse.FacePerson = browse.FacePeople.Single(p => p.Id == ripa);
+        Save(window, "faces-3-identify");
+        await browse.SaveFaceCommand.ExecuteAsync(null);
+        await WaitAsync(() => browse.FaceBoxes.All(f => f.Name is not null));
+        Assert.Equal("Ripa, Luca", browse.DetailPeople);
+        var identified = (await catalog.Analysis.GetFacesAsync(asset, ct)).Single(f => f.Id == unknown.FaceId);
+        Assert.Equal((ripa, AssignmentOrigin.Manual), (identified.PersonId!.Value, identified.AssignmentOrigin!.Value));
+
         // V hides the boxes.
         browse.ToggleFacesCommand.Execute(null);
         Assert.False(browse.ShowFaces);

@@ -998,4 +998,7 @@
   <data name="Browse.DrawFace" xml:space="preserve"><value>Trascina un riquadro intorno al volto sulla foto.</value></data>
   <data name="Browse.SaveFace" xml:space="preserve"><value>Salva</value></data>
   <data name="Browse.FaceAdded" xml:space="preserve"><value>Volto aggiunto: è tuo, nessuna analisi lo toglierà.</value></data>
+  <data name="Browse.IdentifyFace" xml:space="preserve"><value>Chi è questo volto (ora: {0})?</value></data>
+  <data name="Browse.FaceIdentified" xml:space="preserve"><value>Volto assegnato: è tuo, e aiuta a riconoscere la persona nelle altre foto.</value></data>
+  <data name="Browse.ClickFaceHint" xml:space="preserve"><value>Clic su un volto per dire chi è · N per aggiungere un volto non trovato</value></data>
 </root>

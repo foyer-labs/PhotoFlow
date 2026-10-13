@@ -9,7 +9,7 @@
     <Canvas x:Name="Surface" Background="Transparent"
             Width="{Binding #Root.ImageWidth}" Height="{Binding #Root.ImageHeight}">
       <Image Source="{Binding #Root.Source}" Width="{Binding #Root.ImageWidth}" Height="{Binding #Root.ImageHeight}" />
-      <ItemsControl ItemsSource="{Binding #Root.Faces}" IsVisible="{Binding #Root.ShowFaces}" IsHitTestVisible="False"
+      <ItemsControl ItemsSource="{Binding #Root.Faces}" IsVisible="{Binding #Root.ShowFaces}" IsHitTestVisible="{Binding !#Root.IsDrawing}"
                     Width="{Binding #Root.ImageWidth}" Height="{Binding #Root.ImageHeight}">
         <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
         <ItemsControl.Styles>
@@ -20,8 +20,8 @@
         </ItemsControl.Styles>
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="vm:FaceBoxViewModel">
-            <StackPanel>
-              <Border Width="{Binding Width}" Height="{Binding Height}" BorderThickness="{Binding Stroke}"
+            <StackPanel Tag="{Binding}" PointerPressed="OnFacePressed" Background="Transparent" Cursor="Hand" ToolTip.Tip="{Binding Label}">
+              <Border Width="{Binding Width}" Height="{Binding Height}" BorderThickness="{Binding Stroke}" Background="Transparent"
                       BorderBrush="{DynamicResource PF.Brush.Accent}" Opacity="{Binding BoxOpacity}" />
               <Border Background="{DynamicResource PF.Brush.Accent}" Padding="{Binding LabelPadding}" HorizontalAlignment="Left" Opacity="{Binding BoxOpacity}">
                 <TextBlock FontSize="{Binding LabelSize}" Foreground="{DynamicResource PF.Brush.PrimaryActionText}" Text="{Binding Label}" />
