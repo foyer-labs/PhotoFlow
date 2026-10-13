@@ -1,6 +1,6 @@
 # Piano della fase 4 — OCR motorsport, elenco iscritti, vista Numeri
 
-Stato: **in esecuzione in autonomia** (indicazione dell'utente del 2026-10-12: procedere fino alla fine del progetto senza fermarsi ai cancelli di fase, decidendo secondo la specifica). Branch: `phase/4-motorsport`.
+Stato: **completata** (13 ott 2026; report in `docs/reports/fase-4.md`). Eseguita in autonomia su indicazione dell'utente del 2026-10-12. Branch: `phase/4-motorsport`.
 
 Riferimenti: spec §3 (interfacce, `IInferenceProvider`), §5 (OCR PP-OCR), §6 (profilo Motorsport), §8 (OCR motorsport, tag `Motorsport|…`), §9 (`OcrResults`, `EntryLists`), §12bis (Revisione 2c, scorciatoie della vista Numeri), §13 (fase 4); D18.
 
@@ -34,8 +34,10 @@ OCR dei numeri di gara sul ritaglio di ogni vettura rilevata da D-FINE; elenco i
 | # | Decisione | Motivo |
 |---|---|---|
 | F4-1 | Modelli RapidOCR fissati su `SWHL/RapidOCR@1cfba2e` (Apache-2.0): `ch_PP-OCRv4_det_infer.onnx` (4,7 MB) e `en_PP-OCRv3_rec_infer.onnx` (9 MB, cifre e lettere latine, dizionario nei metadati); adattatori nostri su `IInferenceProvider` | Stessa pipeline di inferenza (CUDA/CPU, parità) degli altri modelli; totale 14 MB; la v5 latina disponibile (`monkt/paddleocr-onnx`) ha un rilevatore da 88 MB |
-| F4-2 | Excel `.xlsx` letto con `DocumentFormat.OpenXml` (MIT, Microsoft) | Libreria ufficiale, nessuna dipendenza copyleft |
-| F4-3 | Scelta del numero: letture solo cifre (1-3) del ritaglio; accettato il numero in elenco con la confidenza più alta se supera la soglia e distacca il secondo candidato in elenco; altrimenti candidati → "da rivedere"; numeri non in elenco ignorati (senza elenco: il numero letto con confidenza alta) | §8: nessun numero scritto se non certo |
+| F4-2 | Excel `.xlsx` letto con la libreria standard (zip + XML: prima scheda, stringhe condivise e in linea, numeri) — **cambiata in esecuzione**: prima era `DocumentFormat.OpenXml` | Per leggere una tabella basta la libreria standard: nessuna dipendenza (~5 MB) in più; coperta da test con un file come lo scrive Excel |
+| F4-3 | Scelta del numero: letture solo cifre (1-3) del ritaglio; accettato il numero in elenco con la confidenza più alta se supera la soglia (0,7) e distacca il secondo candidato in elenco (0,1); altrimenti candidati → "da rivedere"; numeri non in elenco ignorati (senza elenco: il numero letto con confidenza ≥ 0,85) | §8: nessun numero scritto se non certo |
+| F4-4 | Riconoscitore OCR sempre su CPU, rilevatore sul backend migliore (aggiunta in esecuzione) | Misurato: 27 ms per testo su GPU contro 3 ms su CPU (ingressi piccoli di larghezza sempre diversa); rilevatore 68 ms GPU contro 205 ms CPU |
+| F4-5 | Rifiniture della scelta (aggiunte in esecuzione): penalità della cifra confusa 0,5 quando anche il numero letto è in elenco; senza elenco vale solo un numero letto da solo | Un 9 nitido diventava "da rivedere" se il 6 era iscritto (test d'integrazione); al salone moto "959 Panigale" e "G 310" diventavano numeri certi |
 
 ## Rischi
 

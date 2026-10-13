@@ -220,7 +220,7 @@ Tutti i modelli girano in ONNX Runtime; ogni funzione ha un modello attivo selez
 | Tagger | RAM++ fp32 (F3-1) | — | 1,86 GB | Export `CannotFindObject/RAM_ONNX` fissato per commit + SHA-256 (mirror `imagent/ram-plus-onnx`); stessi tag dell'originale su 52/52 foto; la int8 è esclusa |
 | Didascalie | Florence-2 base | Florence-2 large | \~0,5 / \~1,5 GB | Florence2-Sharp (NuGet) |
 | VLM (livello D) | Qwen2.5-VL | — | 3-5 GB circa | ONNX Runtime GenAI (C#) |
-| OCR | PaddleOCR PP-OCRv5 (latin) | Taglie server | \~15 MB | RapidOcrNet (NuGet) |
+| OCR | PP-OCRv4 det + PP-OCRv3 rec inglese (F4-1) | PP-OCRv5 latina (rilevatore da 88 MB) | 14 MB | Modelli RapidOCR fissati per commit + SHA-256 (`SWHL/RapidOCR`), adattatori nostri su `IInferenceProvider`; parità esatta con RapidOCR Python; riconoscitore su CPU (F4-4) |
 | Estetica | Predittore LAION su embedding CLIP | — | < 5 MB | Riscrivibile in poche righe |
 
 Qwen3-VL è escluso finché ONNX Runtime GenAI non lo supporta nativamente.
@@ -506,9 +506,19 @@ Florence-2 produce solo inglese; Qwen2.5-VL può produrre italiano ma solo con G
 | Più auto nella foto | Tag per ciascuna; soggetto principale evidenziato |
 | Vettura con un pilota | XMP: numero + pilota (+ team) |
 | Vettura con equipaggio | XMP: solo numero (+ team); equipaggio associato nel catalogo, ricercabile e segnalato come "equipaggio" |
-| Senza elenco iscritti | Solo il numero |
+| Senza elenco iscritti | Solo il numero, e solo se letto da solo (non dentro un'altra scritta) con confidenza ≥ 0,85 |
 
 Elenco iscritti: import CSV/Excel (numero, pilota/i, team, categoria, vettura) o inserimento manuale; riutilizzabile su più eventi. Correzione rapida dalla vista "Numeri" della revisione.
+
+Fase 4 (13 ott 2026, F4-1..F4-5):
+
+- **Letture.** Per le foto il cui profilo chiede l'OCR (Motorsport), OCR sul ritaglio di ciascuna vettura rilevata (le 6 più grandi, margine del 2%, ritaglio ingrandito al lato corto di 736 px dal rilevatore di testo); senza vetture rilevate, sull'intero fotogramma. Le letture si salvano per vettura in `OcrResults` con la versione del modello.
+- **Scelta del numero (F4-3, fase di lotto dopo i raggruppamenti).** Contano i gruppi di 1-3 cifre. Con un elenco valgono solo i suoi numeri: certo se la confidenza è ≥ 0,7 e distacca di 0,1 il secondo candidato in elenco. Le cifre spesso confuse (6/9, 1/7) danno un candidato con penalità 0,9, ridotta a 0,5 quando anche il numero letto è in elenco: un 9 nitido resta 9 anche se il 6 è iscritto. Le letture parziali (prefisso o suffisso di numeri dell'elenco) danno candidati da rivedere. Senza elenco vedi la tabella.
+- **Raffiche.** La vettura principale delle foto in dubbio prende il numero certo della maggioranza della raffica, se compatibile con i suoi candidati (origine "dalla raffica").
+- **Correzioni e conservazione (I5).** I numeri dati dall'utente sono manuali e non vengono mai sostituiti da una nuova lettura. La fase si ripete quando cambia l'elenco del job (scelto nell'import o nella vista Numeri).
+- **Tag (D18).** `Motorsport|Numero N`, `Motorsport|Team|Nome` e, per il pilota singolo, `Motorsport|Pilota|Nome`. Piloti (tutto l'equipaggio), team e vettura dell'elenco sono cercabili nella Consultazione.
+- **Vista Numeri (2c, tasto N dalla Revisione).** Elenchi: da risolvere (per gruppo di candidati, es. "6 o 9"), in elenco, altro (nessun numero, fuori elenco). Tasti: 0-9 digita, ⌫ cancella una cifra, Invio conferma il numero digitato o il primo candidato e va avanti, Canc nessun numero, ↑ ↓ candidati e numeri dell'elenco, ← → foto, Pag ↑ Pag ↓ elenco, P propagazione alla raffica, Ctrl Z annulla. Pannello dell'elenco: scelta, import CSV/Excel, modifica come testo (una vettura per riga).
+- **Misure (set locale, salone moto 2015, 35 foto, 4 analisi in parallelo, RTX 3090).** L'OCR costa 97 ms per foto (da 1,55 a 1,34 foto/s). Senza elenco: 2 numeri certi su 34 vetture, entrambi scritte di modelli, da correggere nella vista Numeri; con l'elenco sarebbero ignorati. Il set non contiene numeri di gara: la qualità sui numeri resta da verificare su foto in pista (§17).
 
 ## 9. Catalogo e modello dati
 
@@ -556,8 +566,11 @@ Esportazione/importazione: file unico (es. `.pfcatalog`) con database, galleria 
 |  | `Persons` | Nome, ignorata, volto di copertina |
 |  | `PersonPrototypes` | Impronte rappresentative (cifrate) |
 | Testi | `Captions` | Asset, lingua, testo, modello |
-|  | `OcrResults` | Asset, riquadro, testo, confidenza |
-|  | `EntryLists` | Evento, numero, pilota/i, team, categoria, vettura |
+|  | `OcrResults` | Asset, vettura e suo riquadro, riquadro del testo, testo, confidenza, versione modello |
+| Motorsport | `EntryLists` | Nome, file d'origine (riutilizzabile su più eventi) |
+|  | `Entries` | Elenco, numero, pilota/i, team, categoria, vettura |
+|  | `JobEntryLists` | Job, elenco usato |
+|  | `VehicleNumbers` | Asset, vettura, riquadro, numero, stato (certo/da rivedere/nessuno/fuori elenco), origine (automatica/raffica/manuale), candidati |
 | Sincronizzazione | `XmpSync` | Ultima scrittura, firma del file XMP, scrittura in sospeso |
 | Sistema | `UndoLog`, `SchemaVersion` | Operazioni annullabili; versione schema |
 
@@ -1033,7 +1046,7 @@ Il progetto è Apache 2.0; l'unico componente non commerciale (buffalo\_l) è op
 | exiftool | Licenza di Perl (Artistic/GPL), ridistribuibile | Da conoscenza |
 | Velopack / vpk (1.2.161) | MIT; canali per variante, feed statico, ritorno indietro con `AllowVersionDowngrade` | Verificato 12 ott 2026 |
 | [Florence2-Sharp](https://docs.curiosity.ai/florence2-sharp/) | MIT | Verificato |
-| [RapidOcrNet](https://www.nuget.org/packages/rapidocrnet) (4.2.0) | Codice Apache 2.0; modelli PaddleOCR Apache 2.0 (da confermare alla fonte); dipende da ONNX Runtime ≥ 1.29 (R16) | Verificato 12 ott 2026 (codice) |
+| [RapidOcrNet](https://www.nuget.org/packages/rapidocrnet) (4.2.0) | Codice Apache 2.0; non adottato (F4-1: adattatori nostri sui modelli RapidOCR, per usare `IInferenceProvider`) | Verificato 12 ott 2026 (codice) |
 | [HdbscanSharp](https://www.nuget.org/packages/HdbscanSharp) (3.0.1) | MIT; inattivo da maggio 2025; O(n²), non adatto a ~100.000 volti (R18) | Verificato 12 ott 2026 |
 | IBM Plex Sans / Plex Mono (font) | SIL Open Font License, incorporabile | Da design |
 | PanAndZoom (pacchetto `PanAndZoom` ≥ 12.1.1, Avalonia 12) | MIT; `ZoomBorder` con `SetMatrix` / `MatrixChanged` per il confronto sincronizzato | Verificato 12 ott 2026 |
@@ -1049,7 +1062,7 @@ Il progetto è Apache 2.0; l'unico componente non commerciale (buffalo\_l) è op
 | [CLIP](https://huggingface.co/Xenova/clip-vit-base-patch32) | MIT (la scheda del modello OpenAI dichiara fuori ambito gli usi "deployed": indicazione d'uso, non licenza; da valutare in fase 2) | Sì |
 | [RAM++ (ONNX int8)](https://huggingface.co/anakhiu/ram-plus-onnx-int8) | Apache 2.0 (provenienza debole; non supera la parità, vedi §5) | Sì |
 | [Florence-2](https://huggingface.co/onnx-community/Florence-2-large) | MIT | Sì |
-| PaddleOCR | Apache 2.0 | Sì |
+| PaddleOCR (modelli ONNX di `SWHL/RapidOCR`) | Apache 2.0 (repository RapidOCR e PaddleOCR) | Sì |
 | Qwen2.5-VL | Varia per dimensione | Da verificare |
 | Predittore estetico LAION | Da verificare | Da verificare |
 | [InsightFace buffalo\_l](https://pypi.org/project/insightface/) | Solo ricerca non commerciale | No |
@@ -1140,6 +1153,9 @@ Decisioni emerse in Design (confermate), funzioni rinviate a dopo la stabilizzaz
 | Scritture del catalogo per foto in un'unica transazione (oggi ~11 commit per foto: il catalogo regge ~45 foto/s, oltre il bisogno con i modelli) | Tappa 1b.7 |
 | Accelerazione SIMD del ricampionamento e dei segnali (oggi l'analisi è limitata dalla CPU: 8 foto in parallelo su 24 thread) | Tappa 1.10 |
 | Cambio di politica XMP di una libreria: unione dei sidecar esistenti negli incorporati (o viceversa) | D21, fase 5 (sincronizzazione) |
+| Vista Numeri: foto intera con i riquadri delle vetture (ambra = numero incerto, grigio = altra vettura riconosciuta), "Conferma e scrivi XMP" nella vista, numero di eventi in cui è usato un elenco (tavola 2c); oggi ritagli con le letture e conferma dalla Revisione | Tappa 4.5 |
+| Elenco iscritti: modifica in tabella (oggi come testo, una vettura per riga) | Tappa 4.5 |
+| Ricampionamento più veloce per l'OCR (oggi il ridimensionamento antialias del fotogramma costa ~65 ms a 1600 px) | Tappa 4.6 |
 
 ### Verifiche tecniche
 

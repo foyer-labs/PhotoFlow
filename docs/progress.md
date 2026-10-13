@@ -78,6 +78,9 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 | 2026-10-13 | Fase 2 unita in `main` (PR #4) dopo la CI verde |
 | 2026-10-13 | Fase 3 (tappe 3.0-3.9), decisioni prese in autonomia: F3-1 RAM++ fp32 (`CannotFindObject/RAM_ONNX`, parità 52/52 con PyTorch, la int8 esce); F3-2 etichette italiane dei 4.585 tag preparate con un LLM durante lo sviluppo e incluse, tutte da rivedere (al posto dell'LLM locale della tavola 5c); F3-3 categorie predefinite e lista nera minima; F3-4 ricerca FTS5 + scansione esatta degli embedding, indice testuale aggiornato da trigger; F3-5 quasi-duplicati CLIP ≥ 0,95 + hash percettivo ≤ 10 bit; F3-6 copie esatte solo nella stessa libreria (tra librerie sono backup); keyword scritte da PhotoFlow ricordate in `XmpSync` per toglierle senza toccare quelle altrui; gerarchia in italiano una volta rivisto. Misure: ricerca su 60.000 foto < 0,27 s; analisi con RAM++ 4,15 foto/s. Scostamenti dalle tavole nel backlog (DataGrid del Vocabolario, zoom sincronizzato e "Mostra esclusi" in Duplicati, menu Evento e selezione multipla in Consultazione). spec §4, §5, §8, §10, §17 aggiornate |
 
+| 2026-10-13 | Fase 3 unita in `main` (PR #5) dopo la CI verde |
+| 2026-10-13 | Fase 4 (tappe 4.0-4.6), decisioni prese in autonomia: F4-1 modelli RapidOCR (PP-OCRv4 det, PP-OCRv3 rec inglese) con adattatori nostri e parità esatta; F4-2 cambiata: `.xlsx` letto con la libreria standard invece di `DocumentFormat.OpenXml`; F4-3 regole della scelta del numero; F4-4 riconoscitore OCR su CPU (9 volte più veloce che su GPU per i suoi ingressi); F4-5 cifra confusa con penalità ridotta se anche il numero letto è in elenco, e senza elenco solo numeri letti da soli. Elenco iscritti scelto nell'import o nella vista Numeri (la fase dei numeri si ripete), nomi dell'elenco cercabili (migrazione 0014). Corretti in passing: azioni rapide della Home ancora disattivate dalle fasi 2-3 e testi che citavano le fasi. Misura: OCR 97 ms per foto. Scostamenti dalla tavola 2c nel backlog. spec §5, §8, §9, §15, §17 aggiornate |
+
 ## Problemi aperti
 
 | # | Tema | Sintesi |
@@ -96,4 +99,4 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 
 ## Prossimo passo
 
-Fase 3 completata (report in `docs/reports/fase-3.md`, verifiche manuali elencate lì): PR da unire dopo la CI verde, poi piano della fase 4 (in autonomia, come concordato).
+Fase 4 completata (report in `docs/reports/fase-4.md`, verifiche manuali elencate lì): PR da unire dopo la CI verde, poi piano della fase 5 (in autonomia, come concordato).
