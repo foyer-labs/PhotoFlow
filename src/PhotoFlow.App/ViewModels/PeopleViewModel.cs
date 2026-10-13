@@ -603,7 +603,7 @@ public sealed partial class PersonPageViewModel : PageViewModel
         new("Person.Enter", new KeyGesture(Key.Enter), "People.Command.OpenPhoto", StatusGroupKey: "People.Command.OpenPhoto"),
         new("Person.Order", new KeyGesture(Key.O), "People.Command.Order"),
         new("Person.Back", new KeyGesture(Key.Escape), "People.Command.Back", StatusGroupKey: "People.Command.Back"),
-        new("Person.FaceBox", new KeyGesture(Key.E), "People.Command.FaceBox"),
+        new("Person.FaceBox", new KeyGesture(Key.V), "People.Command.FaceBox"),
         new("Person.Explorer", new KeyGesture(Key.E, KeyModifiers.Control | KeyModifiers.Shift), "Browse.Command.Explorer"),
     ]);
 
@@ -720,7 +720,7 @@ public sealed partial class PersonPageViewModel : PageViewModel
     [ObservableProperty]
     private double _faceStroke = 3;
 
-    /// <summary>The face is boxed on the photo (E); kept while going from face to face.</summary>
+    /// <summary>The faces are boxed on the photo (V); kept while going from face to face.</summary>
     [ObservableProperty]
     private bool _showFaceBox = true;
 
@@ -738,6 +738,12 @@ public sealed partial class PersonPageViewModel : PageViewModel
     /// <summary>Named people on the photo.</summary>
     [ObservableProperty]
     private string _photoPeople = string.Empty;
+
+    /// <summary>Every face of the photo, the one of this page standing out (V hides them).</summary>
+    public ObservableCollection<FaceBoxViewModel> PhotoFaces { get; } = [];
+
+    private IReadOnlyList<Face> _photoFaces = [];
+    private IReadOnlyDictionary<long, Person> _photoPersons = new Dictionary<long, Person>();
 
     /// <summary>Active tags of the photo (Italian when available), events apart.</summary>
     public ObservableCollection<string> PhotoTags { get; } = [];
@@ -1061,6 +1067,12 @@ public sealed partial class PersonPageViewModel : PageViewModel
         (FaceLeft, FaceTop) = (face.Box.X1 * PhotoWidth, face.Box.Y1 * PhotoHeight);
         (FaceWidth, FaceHeight) = ((face.Box.X2 - face.Box.X1) * PhotoWidth, (face.Box.Y2 - face.Box.Y1) * PhotoHeight);
         FaceStroke = Math.Max(2, Math.Max(PhotoWidth, PhotoHeight) / 300);
+        PhotoFaces.Clear();
+        foreach (var box in FaceBoxViewModel.From(_photoFaces, _photoPersons, PhotoWidth, PhotoHeight, face.Id))
+        {
+            PhotoFaces.Add(box);
+        }
+
         PhotoTitle = path is null
             ? Strings.Format("People.PhotoThumbnailOnly", tile.Year?.ToString(CultureInfo.InvariantCulture) ?? "—")
             : Path.GetFileName(path);
@@ -1121,8 +1133,10 @@ public sealed partial class PersonPageViewModel : PageViewModel
 
         HasPhotoTags = PhotoTags.Count > 0;
         var persons = (await catalog.People.ListPersonsAsync(CancellationToken.None)).ToDictionary(p => p.Person.Id, p => p.Person);
-        PhotoPeople = string.Join(", ", (await catalog.Analysis.GetFacesAsync(assetId, CancellationToken.None))
-            .Select(f => f.PersonId is { } id && persons.TryGetValue(id, out var p) && !p.Ignored ? p.Name : null).OfType<string>().Distinct());
+        var faces = await catalog.Analysis.GetFacesAsync(assetId, CancellationToken.None);
+        PhotoPeople = FaceBoxViewModel.People(faces, persons);
+        _photoFaces = faces;
+        _photoPersons = persons;
     }
 
     /// <summary>Enter: applies the move chosen in the list, or the rename being typed.</summary>

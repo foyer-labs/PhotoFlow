@@ -399,6 +399,16 @@ public sealed record Face(
     string? EmbeddingModel = null,
     long? SuggestedPersonId = null);
 
+/// <summary>Values of the faces drawn by the user (spec §7, 13 Oct 2026).</summary>
+public static class FaceDefaults
+{
+    /// <summary>Model version of a face drawn by the user: no detector, no fingerprint.</summary>
+    public const string ManualModelVersion = "manual";
+
+    /// <summary>Smallest side of a drawn face, as a fraction of the photo.</summary>
+    public const float MinManualSide = 0.01f;
+}
+
 /// <summary>Unknown with sunglasses, small faces, or with YuNet/SFace (spec §6).</summary>
 public enum EyeState
 {

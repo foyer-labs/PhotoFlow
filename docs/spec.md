@@ -435,6 +435,12 @@ Valori della fase 2 (13 ott 2026): impronte ArcFace w600k\_r50 (buffalo\_l, 512 
 
 Scrittura (fase 2): solo le persone con nome e non ignorate, solo per foto confermate; `Nome` nelle keyword piatte e `Persone|Nome` in quelle gerarchiche; regioni MWG (`mwg-rs:RegionInfo`, area normalizzata al centro, tipo `Face`) scritte da exiftool come struttura completa: le regioni di altri programmi (nome non gestito da PhotoFlow) restano; un RAW riceve le persone del JPEG gemello (sidecar).
 
+**Volti nella foto e volti aggiunti a mano** (13 ott 2026, su richiesta dell'utente):
+
+- **Vedere chi c'è.** L'anteprima grande della Consultazione e la foto aperta dalla pagina di una persona mostrano un riquadro per ogni volto, con il nome sopra ("?" per un volto non riconosciuto), e l'elenco "Persone nella foto". In Persone il volto della pagina è evidenziato. Il tasto V mostra o nasconde i riquadri.
+- **Aggiungere un volto a mano.** Serve quando il rilevamento non ha trovato un volto. Nell'anteprima grande della Consultazione si preme N e si trascina un riquadro sul volto. Poi si sceglie la persona da un elenco: quelle con nome, in ordine alfabetico, oppure "+ Nuova persona…".
+- **Come viene salvato.** Il volto è dell'utente: assegnazione manuale, versione `manual`, nessuna impronta. Per I5 nessuna analisi lo cancella o lo riassegna. Se una rigenerazione con un altro modello trova lo stesso volto (IoU ≥ 0,5, come F5-3), il volto rilevato prende il posto del riquadro disegnato e tiene la persona e l'assegnazione manuale. Va nell'XMP come regione MWG con il nome, come gli altri volti con nome. Senza impronta non contribuisce ai campioni della persona, quindi non aiuta a riconoscerla altrove.
+
 ### Regole di qualità
 
 | Regola | Motivo |

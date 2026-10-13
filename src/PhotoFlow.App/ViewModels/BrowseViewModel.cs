@@ -115,7 +115,58 @@ public sealed partial class BrowseItemViewModel(long assetId, string? thumbnailP
 public sealed record BrowseRow(IReadOnlyList<BrowseItemViewModel> Items);
 
 /// <summary>A face box on the detail preview (normalized coordinates scaled to the preview).</summary>
-public sealed record FaceBoxViewModel(double X, double Y, double Width, double Height, string? Name);
+/// <summary>
+/// A face on a shown photo, in the pixels of the image (spec §7): its name, or "?" when not recognized. The lines and
+/// the label follow the size of the image (the view scales it down); the current face of a person page stands out.
+/// </summary>
+public sealed record FaceBoxViewModel(double X, double Y, double Width, double Height, string? Name, bool IsCurrent = false, double ImageSide = 600, bool Dim = false)
+{
+    public string Label => Name ?? "?";
+
+    private double Unit => Math.Max(1, ImageSide / 400);
+
+    public Thickness Stroke => new((IsCurrent ? 3 : 2) * Unit);
+
+    public double LabelSize => Math.Max(11, ImageSide / 45);
+
+    public Thickness LabelPadding => new(LabelSize / 3, LabelSize / 10);
+
+    public double BoxOpacity => Dim ? 0.55 : 1;
+
+    /// <summary>The faces of a photo shown at <paramref name="width"/> × <paramref name="height"/>; ignored people are left out.</summary>
+    public static List<FaceBoxViewModel> From(IReadOnlyList<Face> faces, IReadOnlyDictionary<long, Person> persons, double width, double height, long? current = null)
+    {
+        ArgumentNullException.ThrowIfNull(faces);
+        ArgumentNullException.ThrowIfNull(persons);
+        var side = Math.Max(width, height);
+        return [.. faces
+            .Where(f => f.PersonId is not { } id || !persons.TryGetValue(id, out var p) || !p.Ignored)
+            .Select(f => new FaceBoxViewModel(f.Box.X1 * width, f.Box.Y1 * height, (f.Box.X2 - f.Box.X1) * width, (f.Box.Y2 - f.Box.Y1) * height,
+                f.PersonId is { } id && persons.TryGetValue(id, out var person) ? person.Name : null,
+                f.Id == current, side, current is not null && f.Id != current))];
+    }
+
+    /// <summary>"Luca, Ripa · 1 non riconosciuto": who is on the photo.</summary>
+    public static string People(IReadOnlyList<Face> faces, IReadOnlyDictionary<long, Person> persons)
+    {
+        ArgumentNullException.ThrowIfNull(faces);
+        ArgumentNullException.ThrowIfNull(persons);
+        var named = faces.Select(f => f.PersonId is { } id && persons.TryGetValue(id, out var p) && !p.Ignored ? p.Name : null).OfType<string>().Distinct().ToList();
+        var unknown = faces.Count(f => f.PersonId is not { } id || !persons.TryGetValue(id, out var p) || (p.Name is null && !p.Ignored));
+        var parts = new List<string>();
+        if (named.Count > 0)
+        {
+            parts.Add(string.Join(", ", named));
+        }
+
+        if (unknown > 0)
+        {
+            parts.Add(Strings.Format(unknown == 1 ? "Faces.UnknownOne" : "Faces.UnknownMany", unknown));
+        }
+
+        return parts.Count == 0 ? Strings.Get("Faces.None") : string.Join(" · ", parts);
+    }
+}
 
 /// <summary>A tag of the selected photo (✕ removes it: suppressed, I5).</summary>
 public sealed record DetailTagViewModel(long TagId, string Label, bool IsManual);
@@ -155,6 +206,8 @@ public sealed partial class BrowseViewModel : PageViewModel
         new("Browse.Stars", new KeyGesture(Key.D0), "Browse.Command.Stars", Parameter: "0"),
         new("Browse.Preview", new KeyGesture(Key.Space), "Browse.Command.Preview", StatusGroupKey: "Browse.Command.Preview"),
         new("Browse.Facets", new KeyGesture(Key.F), "Browse.Command.Facets", StatusGroupKey: "Browse.Command.Facets"),
+        new("Browse.Faces", new KeyGesture(Key.V), "Browse.Command.Faces"),
+        new("Browse.AddFace", new KeyGesture(Key.N), "Browse.Command.AddFace", StatusGroupKey: "Browse.Command.AddFace"),
         new("Browse.Escape", new KeyGesture(Key.Escape), "Common.Cancel"),
     ]);
 
@@ -194,6 +247,8 @@ public sealed partial class BrowseViewModel : PageViewModel
         "Browse.Stars" => SetStarsCommand,
         "Browse.Preview" => TogglePreviewCommand,
         "Browse.Facets" => Facets.ToggleCommand,
+        "Browse.Faces" => ToggleFacesCommand,
+        "Browse.AddFace" => StartAddFaceCommand,
         "Browse.Escape" => EscapeCommand,
         _ => base.ResolveCommand(id),
     };
@@ -753,8 +808,7 @@ public sealed partial class BrowseViewModel : PageViewModel
 
         var persons = (await catalog.People.ListPersonsAsync(CancellationToken.None)).ToDictionary(p => p.Person.Id, p => p.Person);
         var faces = await catalog.Analysis.GetFacesAsync(item.AssetId, CancellationToken.None);
-        var names = faces.Select(f => f.PersonId is { } id && persons.TryGetValue(id, out var p) && !p.Ignored ? p.Name : null).ToList();
-        DetailPeople = string.Join(", ", names.OfType<string>().Distinct());
+        DetailPeople = FaceBoxViewModel.People(faces, persons);
 
         var thumbnail = new[] { asset.FullHash, asset.QuickHash }.OfType<string>().Select(_host.Thumbnails.PathFor).FirstOrDefault(File.Exists);
         var image = thumbnail is null ? null : await Task.Run(() => UiBitmaps.FromFile(thumbnail, 1024));
@@ -765,11 +819,9 @@ public sealed partial class BrowseViewModel : PageViewModel
 
         DetailImage = image;
         DetailImageSize = image is null ? default : new Size(image.PixelSize.Width, image.PixelSize.Height);
-        for (var i = 0; i < faces.Count; i++)
+        foreach (var box in FaceBoxViewModel.From(faces, persons, DetailImageSize.Width, DetailImageSize.Height))
         {
-            var box = faces[i].Box;
-            FaceBoxes.Add(new FaceBoxViewModel(box.X1 * DetailImageSize.Width, box.Y1 * DetailImageSize.Height,
-                (box.X2 - box.X1) * DetailImageSize.Width, (box.Y2 - box.Y1) * DetailImageSize.Height, names[i]));
+            FaceBoxes.Add(box);
         }
     }
 
@@ -949,7 +1001,107 @@ public sealed partial class BrowseViewModel : PageViewModel
     }
 
     [RelayCommand]
-    private void TogglePreview() => IsLargePreview = Selected is not null && !IsLargePreview;
+    private void TogglePreview()
+    {
+        IsLargePreview = Selected is not null && !IsLargePreview;
+        if (!IsLargePreview)
+        {
+            CancelAddFace();
+        }
+    }
+
+    // --- Faces on the photo (spec §7, 13 Oct 2026) ---
+
+    /// <summary>The faces are boxed and named on the photo (V).</summary>
+    [ObservableProperty]
+    private bool _showFaces = true;
+
+    /// <summary>N: a box is being drawn on the large preview to add a face.</summary>
+    [ObservableProperty]
+    private bool _isDrawingFace;
+
+    /// <summary>The face drawn, waiting for its person.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsChoosingFacePerson))]
+    private BoundingBox? _drawnFace;
+
+    public bool IsChoosingFacePerson => DrawnFace is not null;
+
+    public ObservableCollection<PersonChoice> FacePeople { get; } = [];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsNewFacePerson), nameof(CanSaveFace))]
+    private PersonChoice? _facePerson;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanSaveFace))]
+    private string? _newFacePersonName;
+
+    public bool IsNewFacePerson => FacePerson is { Id: null };
+
+    public bool CanSaveFace => DrawnFace is not null && (FacePerson is { Id: not null } || (IsNewFacePerson && !string.IsNullOrWhiteSpace(NewFacePersonName)));
+
+    [RelayCommand]
+    private void ToggleFaces() => ShowFaces = !ShowFaces;
+
+    /// <summary>N: opens the large preview if needed and lets a box be drawn on the face to add.</summary>
+    [RelayCommand]
+    private async Task StartAddFaceAsync()
+    {
+        if (Selected is null)
+        {
+            return;
+        }
+
+        IsLargePreview = true;
+        ShowFaces = true;
+        DrawnFace = null;
+        FacePeople.Clear();
+        FacePeople.Add(new PersonChoice(null, Strings.Get("People.NewPerson")));
+        foreach (var person in (await _host.Catalog.People.ListPersonsAsync(CancellationToken.None))
+                     .Where(p => p.Person.Name is not null && !p.Person.Ignored).OrderBy(p => p.Person.Name, StringComparer.CurrentCulture))
+        {
+            FacePeople.Add(new PersonChoice(person.Person.Id, Strings.Format("People.ChoiceLabel", person.Person.Name!, person.FaceCount)));
+        }
+
+        FacePerson = null;
+        NewFacePersonName = null;
+        IsDrawingFace = true;
+    }
+
+    /// <summary>The box drawn on the photo: now the person.</summary>
+    public void FaceDrawnOnPhoto(BoundingBox box)
+    {
+        if (IsDrawingFace)
+        {
+            DrawnFace = box;
+        }
+    }
+
+    /// <summary>Saves the drawn face for the chosen person (a new one with the name typed); the user's face (I5).</summary>
+    [RelayCommand]
+    private async Task SaveFaceAsync()
+    {
+        if (!CanSaveFace || Selected is not { } item || DrawnFace is not { } box)
+        {
+            return;
+        }
+
+        var person = FacePerson!.Id ?? await _host.Catalog.People.CreatePersonAsync(NewFacePersonName!.Trim(), CancellationToken.None);
+        await _host.Catalog.Analysis.AddManualFaceAsync(item.AssetId, box, person, CancellationToken.None);
+        CancelAddFace();
+        await WriteXmpAsync(item.AssetId);
+        await LoadDetailAsync(item);
+        await Facets.LoadAsync(CancellationToken.None);
+        Message = Strings.Get("Browse.FaceAdded");
+    }
+
+    [RelayCommand]
+    private void CancelAddFace()
+    {
+        IsDrawingFace = false;
+        DrawnFace = null;
+    }
 
     [RelayCommand]
     private void Escape()
@@ -961,6 +1113,10 @@ public sealed partial class BrowseViewModel : PageViewModel
         else if (CaptionText is not null)
         {
             CaptionText = null;
+        }
+        else if (IsDrawingFace)
+        {
+            CancelAddFace();
         }
         else if (IsLargePreview)
         {

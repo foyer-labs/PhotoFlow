@@ -117,17 +117,18 @@ public sealed class PeopleKeyboardTests : IDisposable
         Assert.Equal((120d, 90d, 80d, 90d), (page.FaceLeft, page.FaceTop, page.FaceWidth, page.FaceHeight), new ToleranceComparer());
         Assert.EndsWith(".jpg", page.PhotoTitle, StringComparison.Ordinal);
 
-        // Where it is, its tags (Italian when available); E hides and shows the face box.
+        // Where it is, its tags (Italian when available); V hides and shows the face boxes.
         Assert.StartsWith(root, page.PhotoPath, StringComparison.OrdinalIgnoreCase);
         var beach = (await host.Catalog.Tags.FindAsync("beach", ct))!;
         Assert.Equal([beach.Italian ?? beach.English], page.PhotoTags);
         Assert.Contains("Mia Simi", page.PhotoPeople, StringComparison.Ordinal);
         SaveFrame(window, "people-photo");
         Assert.True(page.ShowFaceBox);
-        Press(window, PhysicalKey.E);
+        Press(window, PhysicalKey.V);
         Assert.False(page.ShowFaceBox);
-        Press(window, PhysicalKey.E);
+        Press(window, PhysicalKey.V);
         Assert.True(page.ShowFaceBox);
+        Assert.Single(page.PhotoFaces, f => f.IsCurrent && f.Label == "Mia Simi");
         Press(window, PhysicalKey.Escape);
         Assert.False(page.IsShowingPhoto);
         Assert.IsType<PersonPageViewModel>(shell.CurrentPage); // Esc closed the photo, not the page

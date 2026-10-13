@@ -989,4 +989,13 @@
   <data name="People.Command.FaceBox" xml:space="preserve"><value>Riquadro volto</value></data>
   <data name="People.ShowFaceBox" xml:space="preserve"><value>Evidenzia volto</value></data>
   <data name="People.PhotoNoTags" xml:space="preserve"><value>Nessun tag su questa foto</value></data>
+  <data name="Faces.UnknownOne" xml:space="preserve"><value>1 non riconosciuto</value></data>
+  <data name="Faces.UnknownMany" xml:space="preserve"><value>{0} non riconosciuti</value></data>
+  <data name="Faces.None" xml:space="preserve"><value>Nessun volto trovato</value></data>
+  <data name="Browse.ShowFaces" xml:space="preserve"><value>Mostra volti</value></data>
+  <data name="Browse.Command.Faces" xml:space="preserve"><value>Mostra volti</value></data>
+  <data name="Browse.Command.AddFace" xml:space="preserve"><value>Aggiungi volto</value></data>
+  <data name="Browse.DrawFace" xml:space="preserve"><value>Trascina un riquadro intorno al volto sulla foto.</value></data>
+  <data name="Browse.SaveFace" xml:space="preserve"><value>Salva</value></data>
+  <data name="Browse.FaceAdded" xml:space="preserve"><value>Volto aggiunto: è tuo, nessuna analisi lo toglierà.</value></data>
 </root>

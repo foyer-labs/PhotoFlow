@@ -113,10 +113,21 @@ public sealed partial class BrowseView : UserControl
         }
     }
 
-    /// <summary>A double click on the large preview goes back to the grid, as one on a thumbnail opened it.</summary>
+    /// <summary>A box drawn on the large preview: the face to add, then its person.</summary>
+    private void OnFaceDrawn(object? sender, PhotoFlow.Core.Analysis.BoundingBox box)
+    {
+        _viewModel?.FaceDrawnOnPhoto(box);
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            FacePersonBox.Focus();
+            FacePersonBox.IsDropDownOpen = true;
+        });
+    }
+
+    /// <summary>A double click on the large preview goes back to the grid, as one on a thumbnail opened it (not while drawing a face).</summary>
     private void OnLargePreviewPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (e.ClickCount == 2 && _viewModel is { IsLargePreview: true })
+        if (e.ClickCount == 2 && _viewModel is { IsLargePreview: true, IsDrawingFace: false })
         {
             e.Handled = true;
             _viewModel.TogglePreviewCommand.Execute(null);
