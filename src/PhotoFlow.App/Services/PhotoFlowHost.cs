@@ -133,6 +133,21 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     /// <summary>Imports the XMP changes made by other programs (spec §4).</summary>
     public ExternalXmpSync CreateXmpSync() => new(Catalog, MetadataReader);
 
+    /// <summary>A .pfcatalog chosen elsewhere (empty Libraries) to import in the settings.</summary>
+    public string? PendingCatalogImport { get; set; }
+
+    /// <summary>The whole catalog in one file (spec §9).</summary>
+    public Task<CatalogExportSummary> ExportCatalogAsync(string path, CatalogExportOptions options, CancellationToken ct) =>
+        CatalogPackage.ExportAsync(Catalog, Paths, FingerprintKeys.Protector, path, options, ct);
+
+    /// <summary>Prepares an exported catalog with the libraries remapped; it replaces this one at the next start.</summary>
+    public async Task<string> ImportCatalogAsync(string path, IReadOnlyDictionary<long, string> roots, string? password, CancellationToken ct)
+    {
+        var prepared = await CatalogPackage.PrepareImportAsync(path, Paths, roots, password, FingerprintKeys.Protector, ct).ConfigureAwait(false);
+        Restore.Request(prepared);
+        return prepared;
+    }
+
     /// <summary>The last sync of the XMP changes made by other programs (at start, in the background, or asked).</summary>
     public XmpSyncReport? LastXmpSync { get; private set; }
 

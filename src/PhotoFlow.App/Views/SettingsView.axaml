@@ -174,11 +174,43 @@
           </StackPanel>
 
           <TextBlock Classes="overline" Text="{l:Tr Settings.Catalog.Export}" />
-          <StackPanel Orientation="Horizontal" Spacing="8" Opacity="0.6">
-            <Button Classes="secondary" IsEnabled="False" Content="{l:Tr Settings.Catalog.ExportButton}" />
-            <Button Classes="secondary" IsEnabled="False" Content="{l:Tr Settings.Catalog.ImportButton}" />
-            <TextBlock Classes="micro tertiary" VerticalAlignment="Center" Text="{l:Tr Settings.Phase5}" />
+          <TextBlock Classes="micro tertiary" TextWrapping="Wrap" Text="{l:Tr Settings.Catalog.ExportNote}" />
+          <CheckBox IsChecked="{Binding ExportThumbnails}" Content="{l:Tr Settings.Catalog.ExportThumbnails}" />
+          <CheckBox IsChecked="{Binding ExportFingerprints}">
+            <StackPanel><TextBlock Text="{l:Tr Settings.Catalog.ExportFingerprints}" /><TextBlock Classes="micro tertiary" TextWrapping="Wrap" Text="{l:Tr Settings.Catalog.ExportFingerprintsNote}" /></StackPanel>
+          </CheckBox>
+          <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding ExportFingerprints}">
+            <TextBox Classes="field" Width="200" PasswordChar="•" Text="{Binding ExportPassword}" PlaceholderText="{l:Tr Settings.Catalog.ExportPassword}" />
+            <TextBox Classes="field" Width="200" PasswordChar="•" Text="{Binding ExportConfirm}" PlaceholderText="{l:Tr Settings.Encryption.Confirm}" />
           </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Classes="secondary" Command="{Binding RequestExportCommand}" IsEnabled="{Binding !IsBusy}" Content="{l:Tr Settings.Catalog.ExportButton}" />
+            <Button Classes="secondary" Command="{Binding RequestImportCommand}" IsEnabled="{Binding !IsBusy}" Content="{l:Tr Settings.Catalog.ImportButton}" />
+          </StackPanel>
+          <Border Classes="card" Padding="16" IsVisible="{Binding IsImporting}">
+            <StackPanel Spacing="10">
+              <TextBlock Classes="label" TextWrapping="Wrap" Text="{l:Tr Settings.Catalog.ImportRemap}" />
+              <ItemsControl ItemsSource="{Binding ImportLibraries}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ImportLibraryRow">
+                    <Grid ColumnDefinitions="200,*,Auto,Auto" ColumnSpacing="8" Margin="0,0,0,6">
+                      <TextBlock Classes="label" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Text="{Binding Title}" />
+                      <TextBox Grid.Column="1" Classes="field" Text="{Binding NewRoot}" />
+                      <TextBlock Grid.Column="2" Classes="data" VerticalAlignment="Center" Text="{Binding Found}" />
+                      <Button Grid.Column="3" Classes="ghost" Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).ChooseRootCommand}" CommandParameter="{Binding}" Content="{l:Tr Settings.Catalog.ChooseFolder}" />
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <TextBox Classes="field" Width="240" HorizontalAlignment="Left" PasswordChar="•" Text="{Binding ImportPassword}" PlaceholderText="{l:Tr Settings.Catalog.ImportPassword}" IsVisible="{Binding ImportNeedsPassword}" />
+              <TextBlock Classes="micro tertiary" TextWrapping="Wrap" Text="{l:Tr Settings.Catalog.ImportNote}" />
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Classes="primary" Command="{Binding ConfirmImportCommand}" IsEnabled="{Binding !IsBusy}" Content="{l:Tr Settings.Catalog.ImportConfirm}" />
+                <Button Classes="ghost" Command="{Binding CancelImportCommand}" Content="{l:Tr Common.Cancel}" />
+              </StackPanel>
+            </StackPanel>
+          </Border>
+          <TextBlock Classes="label secondary" TextWrapping="Wrap" Text="{Binding PackageText}" IsVisible="{Binding PackageText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
           <TextBlock Classes="micro tertiary" Text="{Binding SchemaText}" />
         </StackPanel>
 

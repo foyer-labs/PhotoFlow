@@ -29,6 +29,11 @@ internal sealed class PeopleStore(SqliteCatalog catalog) : IPeopleStore
         return result;
     }
 
+    public async Task<IReadOnlyList<FaceFingerprint>> ListAllFingerprintsAsync(CancellationToken ct) =>
+        (await catalog.RunAsync(c => c.QueryAsync<FingerprintRow>(new CommandDefinition(
+            $"SELECT {FingerprintColumns} FROM Faces f JOIN Assets a ON a.Id = f.AssetId WHERE f.EncryptedEmbedding IS NOT NULL ORDER BY f.Id;",
+            cancellationToken: ct)), ct).ConfigureAwait(false)).Select(Map).ToList();
+
     public async Task<IReadOnlyList<FaceFingerprint>> ListUnassignedFingerprintsAsync(int? year, CancellationToken ct) =>
         (await catalog.RunAsync(c => c.QueryAsync<FingerprintRow>(new CommandDefinition(
             $"""

@@ -42,6 +42,10 @@ internal sealed class LibraryStore(SqliteCatalog catalog) : ILibraryStore
             "UPDATE Libraries SET XmpPolicy = @policy, IsReadOnly = @isReadOnly WHERE Id = @libraryId;",
             new { libraryId, policy = policy.ToString(), isReadOnly }, cancellationToken: ct)), ct);
 
+    public Task UpdateRootAsync(long libraryId, string rootPath, CancellationToken ct) =>
+        catalog.RunAsync(c => c.ExecuteAsync(new CommandDefinition(
+            "UPDATE Libraries SET RootPath = @rootPath WHERE Id = @libraryId;", new { libraryId, rootPath }, cancellationToken: ct)), ct);
+
     public Task<int> CountAssetsAsync(long libraryId, CancellationToken ct) =>
         catalog.RunAsync(c => c.ExecuteScalarAsync<int>(new CommandDefinition(
             "SELECT COUNT(DISTINCT AssetId) FROM AssetLocations WHERE LibraryId = @libraryId;", new { libraryId }, cancellationToken: ct)), ct);

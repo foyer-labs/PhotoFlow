@@ -216,7 +216,8 @@ public sealed class FingerprintKeyStore(string keyFilePath)
             ? Convert.ToBase64String(ProtectedData.Protect(key, Entropy, DataProtectionScope.CurrentUser))
             : throw new PlatformNotSupportedException();
 
-    private static PasswordWrap Wrap(byte[] key, string password)
+    /// <summary>A key encrypted with a password (PBKDF2-SHA256, AES-256-GCM): the local key, or the key of an export.</summary>
+    public static PasswordWrap Wrap(byte[] key, string password)
     {
         ArgumentException.ThrowIfNullOrEmpty(password);
         var salt = RandomNumberGenerator.GetBytes(16);
@@ -229,7 +230,8 @@ public sealed class FingerprintKeyStore(string keyFilePath)
         return new PasswordWrap(Convert.ToBase64String(salt), Iterations, Convert.ToBase64String(nonce), Convert.ToBase64String(tag), Convert.ToBase64String(cipher));
     }
 
-    private static byte[] Unwrap(PasswordWrap wrap, string password)
+    /// <exception cref="System.Security.Cryptography.AuthenticationTagMismatchException">Wrong password.</exception>
+    public static byte[] Unwrap(PasswordWrap wrap, string password)
     {
         var kek = Rfc2898DeriveBytes.Pbkdf2(password, Convert.FromBase64String(wrap.Salt), wrap.Iterations, HashAlgorithmName.SHA256, 32);
         var cipher = Convert.FromBase64String(wrap.Key);
@@ -266,5 +268,5 @@ public sealed class FingerprintKeyStore(string keyFilePath)
 
     private sealed record KeyFile(string? Account, PasswordWrap? Password);
 
-    private sealed record PasswordWrap(string Salt, int Iterations, string Nonce, string Tag, string Key);
+    public sealed record PasswordWrap(string Salt, int Iterations, string Nonce, string Tag, string Key);
 }

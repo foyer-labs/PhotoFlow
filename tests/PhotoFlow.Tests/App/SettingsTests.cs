@@ -220,6 +220,55 @@ public sealed class SettingsTests : IDisposable
         Assert.Empty(settings.EncryptionPassword);
     }
 
+    [AvaloniaFact]
+    public async Task A_catalog_exported_from_the_settings_is_imported_elsewhere_at_the_next_start()
+    {
+        var root = _temp.Sub("photos");
+        var moved = _temp.Sub("photos-moved");
+        string package;
+        long libraryId;
+        var source = new DefaultAppPaths(_temp.Sub("profile-a"));
+        await using (var host = await PhotoFlowHost.StartAsync(source, CancellationToken.None))
+        {
+            libraryId = await host.Catalog.Libraries.AddAsync(new Library(0, "Archivio", root, WritePolicy.SidecarOnly, false, LibraryOrigin.ExistingArchive, null), CancellationToken.None);
+            var settings = new SettingsViewModel(host);
+            await Settle(settings.ActivateAsync());
+            settings.SelectedTab = SettingsViewModel.CatalogTab;
+            var window = new Avalonia.Controls.Window { Content = new SettingsView { DataContext = settings }, Width = 1440, Height = 900 };
+            window.Show();
+            Save(window, "5h-settings-catalog");
+            package = Path.Combine(_temp.Path, SettingsViewModel.ExportFileName);
+            settings.ExportThumbnails = false;
+            await Settle(settings.ExportCatalogAsync(package));
+            Assert.True(File.Exists(package), settings.PackageText);
+        }
+
+        // The other PC: the library is elsewhere; the import waits for the next start.
+        var destination = new DefaultAppPaths(_temp.Sub("profile-b"));
+        await using (var host = await PhotoFlowHost.StartAsync(destination, CancellationToken.None))
+        {
+            var settings = new SettingsViewModel(host);
+            await Settle(settings.ActivateAsync());
+            await Settle(settings.LoadPackageAsync(package));
+            Assert.True(settings.IsImporting);
+            var row = Assert.Single(settings.ImportLibraries);
+            Assert.Equal((root, "✓"), (row.NewRoot, row.Found));
+            row.NewRoot = Path.Combine(moved, "missing");
+            Assert.Equal("?", row.Found);
+            row.NewRoot = moved;
+            Assert.Equal("✓", row.Found);
+            await Settle(settings.ConfirmImportCommand.ExecuteAsync(null));
+            Assert.True(settings.HasPendingRestore, settings.PackageText);
+            Assert.Empty(await host.Catalog.Libraries.ListAsync(CancellationToken.None)); // not yet
+        }
+
+        await using (var host = await PhotoFlowHost.StartAsync(destination, CancellationToken.None))
+        {
+            Assert.True(host.RestoreOutcome?.Restored);
+            Assert.Equal(moved, (await host.Catalog.Libraries.GetAsync(libraryId, CancellationToken.None))!.RootPath);
+        }
+    }
+
     public void Dispose() => _temp.Dispose();
 
     private static void Save(Avalonia.Controls.Window window, string name)

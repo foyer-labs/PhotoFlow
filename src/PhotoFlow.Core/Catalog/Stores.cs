@@ -59,6 +59,9 @@ public interface ILibraryStore
 
     /// <summary>XMP policy and read-only flag (D21: the caller confirms a switch to embedded XMP).</summary>
     Task UpdatePolicyAsync(long libraryId, Metadata.WritePolicy policy, bool isReadOnly, CancellationToken ct);
+
+    /// <summary>The library moved (catalog imported on another PC, spec §9): its photos are found under the new root.</summary>
+    Task UpdateRootAsync(long libraryId, string rootPath, CancellationToken ct);
 }
 
 public interface IAssetStore
@@ -235,6 +238,9 @@ public interface IPeopleStore
 
     /// <summary>Faces with a fingerprint, no person and no manual decision, captured in <paramref name="year"/> (null: unknown date).</summary>
     Task<IReadOnlyList<FaceFingerprint>> ListUnassignedFingerprintsAsync(int? year, CancellationToken ct);
+
+    /// <summary>Every face with a fingerprint (export of the catalog: encrypted again with another key).</summary>
+    Task<IReadOnlyList<FaceFingerprint>> ListAllFingerprintsAsync(CancellationToken ct);
 
     Task<IReadOnlyList<PersonPrototype>> ListPrototypesAsync(CancellationToken ct);
 

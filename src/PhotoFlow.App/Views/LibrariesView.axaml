@@ -17,6 +17,7 @@
           <Border Classes="key" BorderBrush="{DynamicResource PF.Brush.PrimaryActionText}"><TextBlock Text="Ctrl N" Foreground="{DynamicResource PF.Brush.PrimaryActionText}" /></Border>
         </StackPanel>
       </Button>
+      <Button Classes="ghost" HorizontalAlignment="Center" Command="{Binding RequestImportCatalogCommand}" Content="{l:Tr Libraries.ImportCatalog}" />
     </StackPanel>
 
     <Grid ColumnDefinitions="300,*" IsVisible="{Binding !IsEmpty}">

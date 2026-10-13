@@ -302,7 +302,6 @@
   <data name="Settings.Tab.Catalog" xml:space="preserve"><value>Catalog</value></data>
   <data name="Settings.Tab.General" xml:space="preserve"><value>General</value></data>
   <data name="Settings.Tab.Culling" xml:space="preserve"><value>Culling</value></data>
-  <data name="Settings.Phase5" xml:space="preserve"><value>Comes with phase 5</value></data>
   <data name="Settings.Hardware.Execution" xml:space="preserve"><value>Model execution</value></data>
   <data name="Settings.Hardware.Cuda" xml:space="preserve"><value>CUDA · NVIDIA GPU in use</value></data>
   <data name="Settings.Hardware.CudaMissing" xml:space="preserve"><value>NVIDIA GPU found · GPU pack not installed: models run on the CPU</value></data>
@@ -851,4 +850,23 @@
   <data name="Settings.Xmp.SyncFailed" xml:space="preserve"><value>The synchronization could not complete: see the log.</value></data>
   <data name="Settings.Xmp.SyncResult" xml:space="preserve"><value>{0} files changed by other programs, {1} photos updated; {2} values kept from PhotoFlow (more recent or manual tags); {3} face regions named elsewhere.</value></data>
   <data name="Settings.Xmp.PeopleImported" xml:space="preserve"><value>{0} people created, {1} faces assigned from the regions named by other programs.</value></data>
+  <data name="Settings.Catalog.ExportNote" xml:space="preserve"><value>One .pfcatalog file with the database, the people gallery, the libraries and your profiles; on another PC it is imported with the folders of the libraries remapped.</value></data>
+  <data name="Settings.Catalog.ExportThumbnails" xml:space="preserve"><value>Include the thumbnails (otherwise made again from the photos)</value></data>
+  <data name="Settings.Catalog.ExportFingerprints" xml:space="preserve"><value>Include the face fingerprints (encrypted with an export password)</value></data>
+  <data name="Settings.Catalog.ExportFingerprintsNote" xml:space="preserve"><value>Without them, names and assignments travel and the fingerprints are computed again on the other PC.</value></data>
+  <data name="Settings.Catalog.ExportPassword" xml:space="preserve"><value>Export password</value></data>
+  <data name="Settings.Catalog.ExportPasswordMissing" xml:space="preserve"><value>Choose a password for the fingerprints, or leave them out.</value></data>
+  <data name="Settings.Catalog.Exporting" xml:space="preserve"><value>Exporting the catalog…</value></data>
+  <data name="Settings.Catalog.Exported" xml:space="preserve"><value>{0}: {1} photos, {2} fingerprints, {3}.</value></data>
+  <data name="Settings.Catalog.ExportFailed" xml:space="preserve"><value>The export did not succeed: {0}</value></data>
+  <data name="Settings.Catalog.FileType" xml:space="preserve"><value>PhotoFlow catalog</value></data>
+  <data name="Settings.Catalog.ImportReady" xml:space="preserve"><value>{0}, exported on {1}: check where the photos of each library are now.</value></data>
+  <data name="Settings.Catalog.ImportRemap" xml:space="preserve"><value>Folders of the libraries on this PC (✓ found, ? not found)</value></data>
+  <data name="Settings.Catalog.ChooseFolder" xml:space="preserve"><value>Choose…</value></data>
+  <data name="Settings.Catalog.ImportPassword" xml:space="preserve"><value>Password of the export</value></data>
+  <data name="Settings.Catalog.ImportNote" xml:space="preserve"><value>The imported catalog replaces this one at the next start; this one is kept next to the backups. Profiles and thumbnails are added now.</value></data>
+  <data name="Settings.Catalog.ImportConfirm" xml:space="preserve"><value>Import</value></data>
+  <data name="Settings.Catalog.Imported" xml:space="preserve"><value>Catalog ready: it replaces the current one at the next start.</value></data>
+  <data name="Settings.Catalog.ImportedNoFingerprints" xml:space="preserve"><value>Catalog ready (without fingerprints: they are computed again): it replaces the current one at the next start.</value></data>
+  <data name="Libraries.ImportCatalog" xml:space="preserve"><value>Import a .pfcatalog catalog</value></data>
 </root>

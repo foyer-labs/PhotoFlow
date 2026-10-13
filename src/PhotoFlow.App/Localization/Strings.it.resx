@@ -302,7 +302,6 @@
   <data name="Settings.Tab.Catalog" xml:space="preserve"><value>Catalogo</value></data>
   <data name="Settings.Tab.General" xml:space="preserve"><value>Generali</value></data>
   <data name="Settings.Tab.Culling" xml:space="preserve"><value>Culling</value></data>
-  <data name="Settings.Phase5" xml:space="preserve"><value>Arriva con la fase 5</value></data>
   <data name="Settings.Hardware.Execution" xml:space="preserve"><value>Esecuzione dei modelli</value></data>
   <data name="Settings.Hardware.Cuda" xml:space="preserve"><value>CUDA · GPU NVIDIA in uso</value></data>
   <data name="Settings.Hardware.CudaMissing" xml:space="preserve"><value>GPU NVIDIA rilevata · pacchetto GPU non installato: i modelli girano sulla CPU</value></data>
@@ -851,4 +850,23 @@
   <data name="Settings.Xmp.SyncFailed" xml:space="preserve"><value>La sincronizzazione non è riuscita: vedi il log.</value></data>
   <data name="Settings.Xmp.SyncResult" xml:space="preserve"><value>{0} file cambiati da altri programmi, {1} foto aggiornate; {2} valori tenuti da PhotoFlow (più recenti o tag manuali); {3} regioni volto nominate altrove.</value></data>
   <data name="Settings.Xmp.PeopleImported" xml:space="preserve"><value>{0} persone create, {1} volti assegnati dalle regioni nominate da altri programmi.</value></data>
+  <data name="Settings.Catalog.ExportNote" xml:space="preserve"><value>Un file .pfcatalog con database, galleria persone, librerie e i tuoi profili; su un altro PC si importa rimappando le cartelle delle librerie.</value></data>
+  <data name="Settings.Catalog.ExportThumbnails" xml:space="preserve"><value>Includi le miniature (altrimenti si rifanno dalle foto)</value></data>
+  <data name="Settings.Catalog.ExportFingerprints" xml:space="preserve"><value>Includi le impronte dei volti (cifrate con una password di esportazione)</value></data>
+  <data name="Settings.Catalog.ExportFingerprintsNote" xml:space="preserve"><value>Senza, nomi e assegnazioni viaggiano e le impronte si ricalcolano sull'altro PC.</value></data>
+  <data name="Settings.Catalog.ExportPassword" xml:space="preserve"><value>Password di esportazione</value></data>
+  <data name="Settings.Catalog.ExportPasswordMissing" xml:space="preserve"><value>Scegli una password per le impronte, oppure non includerle.</value></data>
+  <data name="Settings.Catalog.Exporting" xml:space="preserve"><value>Esportazione del catalogo…</value></data>
+  <data name="Settings.Catalog.Exported" xml:space="preserve"><value>{0}: {1} foto, {2} impronte, {3}.</value></data>
+  <data name="Settings.Catalog.ExportFailed" xml:space="preserve"><value>L'esportazione non è riuscita: {0}</value></data>
+  <data name="Settings.Catalog.FileType" xml:space="preserve"><value>Catalogo PhotoFlow</value></data>
+  <data name="Settings.Catalog.ImportReady" xml:space="preserve"><value>{0}, esportato il {1}: controlla dove sono ora le foto di ogni libreria.</value></data>
+  <data name="Settings.Catalog.ImportRemap" xml:space="preserve"><value>Cartelle delle librerie su questo PC (✓ trovata, ? non trovata)</value></data>
+  <data name="Settings.Catalog.ChooseFolder" xml:space="preserve"><value>Scegli…</value></data>
+  <data name="Settings.Catalog.ImportPassword" xml:space="preserve"><value>Password dell'esportazione</value></data>
+  <data name="Settings.Catalog.ImportNote" xml:space="preserve"><value>Il catalogo importato sostituisce questo al prossimo avvio; questo resta accanto ai backup. Profili e miniature si aggiungono subito.</value></data>
+  <data name="Settings.Catalog.ImportConfirm" xml:space="preserve"><value>Importa</value></data>
+  <data name="Settings.Catalog.Imported" xml:space="preserve"><value>Catalogo pronto: sostituisce quello attuale al prossimo avvio.</value></data>
+  <data name="Settings.Catalog.ImportedNoFingerprints" xml:space="preserve"><value>Catalogo pronto (senza impronte: si ricalcolano): sostituisce quello attuale al prossimo avvio.</value></data>
+  <data name="Libraries.ImportCatalog" xml:space="preserve"><value>Importa catalogo .pfcatalog</value></data>
 </root>

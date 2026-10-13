@@ -3,6 +3,7 @@
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
 using PhotoFlow.App.Localization;
+using PhotoFlow.App.Services;
 using PhotoFlow.App.ViewModels;
 
 namespace PhotoFlow.App.Views;
@@ -41,7 +42,42 @@ public sealed partial class SettingsView : UserControl
             return;
         }
 
-        if (pick == SettingsPick.OfflinePackage)
+        if (pick == SettingsPick.ExportCatalog)
+        {
+            var file = await storage.SaveFilePickerAsync(new FilePickerSaveOptions
+            {
+                Title = Strings.Get("Settings.Catalog.ExportButton"),
+                SuggestedFileName = SettingsViewModel.ExportFileName,
+                DefaultExtension = CatalogPackage.Extension,
+                FileTypeChoices = [new FilePickerFileType(Strings.Get("Settings.Catalog.FileType")) { Patterns = ["*" + CatalogPackage.Extension] }],
+            });
+            if (file?.TryGetLocalPath() is { } path)
+            {
+                await _viewModel.ExportCatalogAsync(path);
+            }
+        }
+        else if (pick == SettingsPick.ImportCatalog)
+        {
+            var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
+            {
+                Title = Strings.Get("Settings.Catalog.ImportButton"),
+                AllowMultiple = false,
+                FileTypeFilter = [new FilePickerFileType(Strings.Get("Settings.Catalog.FileType")) { Patterns = ["*" + CatalogPackage.Extension] }],
+            });
+            if (files.Count > 0 && files[0].TryGetLocalPath() is { } path)
+            {
+                await _viewModel.LoadPackageAsync(path);
+            }
+        }
+        else if (pick == SettingsPick.ImportRoot)
+        {
+            var folders = await storage.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = Strings.Get("Settings.Catalog.ChooseFolder") });
+            if (folders.Count > 0 && folders[0].TryGetLocalPath() is { } folder)
+            {
+                _viewModel.UseRoot(folder);
+            }
+        }
+        else if (pick == SettingsPick.OfflinePackage)
         {
             var folders = await storage.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = Strings.Get("Settings.Models.ImportOffline") });
             if (folders.Count > 0 && folders[0].TryGetLocalPath() is { } folder)
