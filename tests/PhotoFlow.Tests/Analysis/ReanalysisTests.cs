@@ -112,6 +112,26 @@ public sealed class ReanalysisTests : IDisposable
         Assert.Equal(0, await catalog.Reanalysis.CountAsync(again, Ct));
     }
 
+    [Fact]
+    public void Each_caption_is_compared_with_the_model_of_its_language()
+    {
+        Caption Auto(string language, string version) => new(1, language, "x", version, CaptionOrigin.Automatic, DateTimeOffset.UtcNow);
+        var both = new ModelVersions("culling-v1", null, null, null, null, "florence@2", null, "qwen@1");
+        var noVlm = both with { VlmCaptions = null };
+
+        // Florence older, Italian current: only level C again; the reverse: only level D.
+        Assert.Equal((true, false), both.CaptionsToRedo([Auto("en", "florence@1"), Auto("it", "qwen@1")], forceAll: false));
+        Assert.Equal((false, true), both.CaptionsToRedo([Auto("en", "florence@2"), Auto("it", "qwen@0")], forceAll: false));
+
+        // The user's caption and a missing language are not stale; without the VLM its captions stay as they are.
+        Assert.Equal((false, false), both.CaptionsToRedo([new Caption(1, "it", "Mia", null, CaptionOrigin.Manual, DateTimeOffset.UtcNow), Auto("en", "florence@2")], forceAll: false));
+        Assert.Equal((false, false), noVlm.CaptionsToRedo([Auto("en", "florence@2"), Auto("it", "qwen@1")], forceAll: false));
+
+        // "Forza tutto": every captioner available.
+        Assert.Equal((true, true), both.CaptionsToRedo([], forceAll: true));
+        Assert.Equal((true, false), noVlm.CaptionsToRedo([], forceAll: true));
+    }
+
     public void Dispose() => _temp.Dispose();
 
     /// <summary>The "new models": detector 2, SFace, RAM++ 2, Florence 2; everything a little different.</summary>

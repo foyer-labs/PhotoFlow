@@ -45,17 +45,27 @@ public sealed class XmpPublisher(ICatalog catalog, IMetadataWriter writer, bool 
         Convert.ToHexString(XxHash3.Hash(Encoding.UTF8.GetBytes(
             $"{changes.Rating}|{changes.Label}|{string.Join(',', changes.FlatKeywords)}|-{string.Join(',', changes.RemovedFlatKeywords ?? [])}|"
             + string.Join(';', changes.Regions?.Regions.Select(r => FormattableString.Invariant($"{r.Name}:{r.CenterX:0.####},{r.CenterY:0.####}")) ?? [])
-            + (changes.Description is { } description ? "|d:" + description : string.Empty))));
+            + (changes.Description is { } description ? "|d:" + description : string.Empty)
+            + string.Concat((changes.DescriptionAlternatives ?? new Dictionary<string, string>()).OrderBy(a => a.Key, StringComparer.Ordinal).Select(a => $"|d-{a.Key}:{a.Value}")))));
 
-    /// <summary>The caption of the photo in <c>dc:description</c> (an empty caption of the user clears it).</summary>
-    public static MetadataChanges? WithCaption(MetadataChanges? changes, Caption? caption)
+    /// <summary>
+    /// The captions of the photo in <c>dc:description</c>: the first (Italian when there is one, U5) as x-default, the
+    /// other languages as alternatives (D5b-6). An empty caption of the user clears its language.
+    /// </summary>
+    public static MetadataChanges? WithCaption(MetadataChanges? changes, IReadOnlyList<Caption> captions)
     {
-        if (caption is null)
+        ArgumentNullException.ThrowIfNull(captions);
+        if (captions.Count == 0)
         {
             return changes;
         }
 
-        return (changes ?? new MetadataChanges(null, null, [], [], null)) with { Description = caption.Text };
+        var alternatives = captions.Skip(1).Where(c => c.Language != captions[0].Language).ToDictionary(c => c.Language, c => c.Text, StringComparer.Ordinal);
+        return (changes ?? new MetadataChanges(null, null, [], [], null)) with
+        {
+            Description = captions[0].Text,
+            DescriptionAlternatives = alternatives.Count == 0 ? null : alternatives,
+        };
     }
 
     /// <summary>Adds the named people of the photo to the changes (or makes changes for them alone).</summary>
@@ -176,13 +186,13 @@ public sealed class XmpPublisher(ICatalog catalog, IMetadataWriter writer, bool 
                 changes = WithRemovals(WithTags(changes, tags), sync);
                 if (writeCaptions)
                 {
-                    var caption = await catalog.Captions.GetAsync(assetId, ct).ConfigureAwait(false);
-                    if (caption is null && await catalog.Assets.GetTwinAsync(assetId, ct).ConfigureAwait(false) is { } captionTwin)
+                    var captions = await catalog.Captions.GetAllAsync(assetId, ct).ConfigureAwait(false);
+                    if (captions.Count == 0 && await catalog.Assets.GetTwinAsync(assetId, ct).ConfigureAwait(false) is { } captionTwin)
                     {
-                        caption = await catalog.Captions.GetAsync(captionTwin, ct).ConfigureAwait(false);
+                        captions = await catalog.Captions.GetAllAsync(captionTwin, ct).ConfigureAwait(false);
                     }
 
-                    changes = WithCaption(changes, caption);
+                    changes = WithCaption(changes, captions);
                 }
             }
             if (asset is null || changes is null || (sync?.XmpSignature == Signature(changes) && !sync.WritePending))

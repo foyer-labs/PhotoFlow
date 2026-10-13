@@ -10,6 +10,7 @@
     <Project Path="src/PhotoFlow.Metadata/PhotoFlow.Metadata.csproj" />
     <Project Path="src/PhotoFlow.Sources/PhotoFlow.Sources.csproj" />
     <Project Path="src/PhotoFlow.Tagging/PhotoFlow.Tagging.csproj" />
+    <Project Path="src/PhotoFlow.Vlm/PhotoFlow.Vlm.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/PhotoFlow.ScenarioHost/PhotoFlow.ScenarioHost.csproj" />

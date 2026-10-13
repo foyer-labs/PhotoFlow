@@ -515,7 +515,8 @@ Fase 5 (13 ott 2026, F5-1, F5-2):
 - **Come si genera.** Livello C con Florence-2 base-ft, compito "didascalia dettagliata". La ricerca a fascio è identica a transformers: 3 fasci, nessun trigramma ripetuto, chiusura anticipata. Costo: 0,9 s per foto su GPU (2,5 s su CPU); nell'analisi con 4 lavori in parallelo +644 ms per foto. È facoltativo e si sceglie nell'import.
 - **Conservazione (I5).** Le didascalie si salvano in `Captions` con la versione del modello. Quella scritta o cancellata dall'utente (D in Consultazione, o la descrizione cambiata in un altro programma) non viene mai sostituita.
 - **Ricerca e XMP.** Il testo delle didascalie è cercabile. `dc:description` si scrive solo con la preferenza attiva (spenta per default).
-- **Livello D.** Rinviato (F5-2), poi riaperto dall'utente il 13 ott 2026: fase 5b (`docs/plans/fase-5b.md`). Qwen2.5-VL-7B scrive una didascalia in italiano (una o due frasi, oggettive), solo con GPU ≥ 8 GB (P16). Il livello C (inglese) resta. In Consultazione e in `dc:description` l'italiano è x-default, l'inglese la lingua alternativa.
+- **Livello D.** Rinviato (F5-2), poi riaperto dall'utente il 13 ott 2026: fase 5b (`docs/plans/fase-5b.md`). Qwen2.5-VL-7B scrive una didascalia in italiano (una o due frasi, oggettive), solo con GPU NVIDIA ≥ 12 GB (P16, rivista il 13 ott 2026). Il livello C (inglese) resta. In Consultazione e in `dc:description` l'italiano è x-default, l'inglese la lingua alternativa.
+- **Come gira il livello D** (fase 5b). Pesi originali scaricati dall'utente e convertiti dall'app (Impostazioni › Modelli) con il Python del PC in un ambiente privato. Il modello gira in un processo separato (ONNX Runtime GenAI, eccezione U4). Non gira per foto insieme agli altri modelli (insieme superano i 21 GB): è una **passata a fine job**, che aspetta le analisi in corso e libera la GPU dagli altri modelli (~10,6 GB per il solo VLM, ~2 s per foto). Nella rigenerazione funziona allo stesso modo, e le didascalie passano dall'anteprima come le altre. Dopo 3 errori di fila la passata si ferma, senza far fallire il job: le foto rimaste aspettano la passata successiva.
 
 ### OCR motorsport
 
@@ -1153,7 +1154,7 @@ Decisioni emerse in Design (confermate), funzioni rinviate a dopo la stabilizzaz
 | P13 | Persone | Chiave impronte non disponibile: galleria consultabile, riconoscimento sospeso fino a password o ricalcolo | Coerente con D12 |
 | P14 | Consultazione | Persone e tag sono filtri esatti; il testo libero ordina per significato; azione "Trova simili" |  |
 | P15 | Vocabolario | Il nucleo si forma dopo almeno 1.000 foto con tag |  |
-| P16 | Tagging | Didascalie VLM (livello D) disponibili solo con GPU ≥ 8 GB |  |
+| P16 | Tagging | Didascalie VLM (livello D) disponibili solo con GPU NVIDIA ≥ 12 GB | Rivista il 13 ott 2026 su indicazione dell'utente (era ≥ 8 GB): misurato Qwen2.5-VL-7B int4 da solo con picco ~10 GB (pesi 6,5 GB, ONNX Runtime GenAI, generazione), oltre a Windows e agli altri modelli |
 | P17 | Profili | Parametri esposti: scarto per mosso sotto soglia, intervallo massimo raffica (2,0 s), similarità minima (0,90), pari merito entro 0,02 | Valori iniziali da tarare |
 | P18 | Impostazioni | Cambio lingua applicato al riavvio della finestra (non a caldo) | Semplifica la localizzazione |
 | P19 | Catalogo | Estensione del file catalogo `.pfdb` |  |
@@ -1190,6 +1191,9 @@ Decisioni emerse in Design (confermate), funzioni rinviate a dopo la stabilizzaz
 | Elenco iscritti: modifica in tabella (oggi come testo, una vettura per riga) | Tappa 4.5 |
 | Ricampionamento più veloce per l'OCR (oggi il ridimensionamento antialias del fotogramma costa ~65 ms a 1600 px) | Tappa 4.6 |
 | Didascalie VLM dentro `IInferenceProvider` con test di parità esatta (oggi ONNX Runtime GenAI in un processo separato, eccezione U4) | Fase 5b |
+| Livello D più vicino al modello originale: quantizzazione calibrata (AWQ/GPTQ) o fp16 sulle GPU da 24 GB (oggi int4 RTN: 0/10 didascalie identiche, 53% di token in comune con PyTorch) | Tappa 5b.5 |
+| Livello D su GPU da 8-10 GB (oggi ≥ 12 GB: il 7B int4 arriva a ~10 GB) | Tappa 5b.5 |
+| Eliminazione dei pesi originali del VLM dall'app dopo la conversione (oggi a mano dalla cartella) | Tappa 5b.2 |
 | Didascalie più veloci: cache dell'encoder sulla GPU (IO binding) invece di ricopiarla a ogni passo del decoder; Florence-2 large come alternativa | Tappa 5.1 |
 | Rigenerazione: scambio dell'indice embedding quando ci sarà un secondo modello di embedding | Tappa 5.4 |
 | Registro della sincronizzazione XMP consultabile nell'interfaccia (oggi nel catalogo e nel riepilogo delle Impostazioni) | Tappa 5.6 |

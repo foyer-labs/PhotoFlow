@@ -15,7 +15,16 @@ public sealed record ModelInfo(
     string Id, ModelFunction Function, string Name, string Version, int Phase, string? DefaultFor, string Adapter, ModelLicense License, IReadOnlyList<ModelFile> Files)
 {
     public long DownloadBytes => Files.Sum(f => f.Size);
+
+    /// <summary>
+    /// The user downloads the original files into <see cref="ModelRegistry.SourceDirectory"/>; PhotoFlow verifies and
+    /// converts them (level D, phase 5b, decision U2). The files of the manifest are the originals.
+    /// </summary>
+    public bool ManualConvert { get; init; }
 }
+
+/// <summary>A file of a manually downloaded model that is missing or not the expected one.</summary>
+public sealed record SourceFileProblem(string Path, bool Missing);
 
 /// <summary>
 /// Model registry: the manifest embedded in the application, local state, verified download at first use with the
@@ -38,12 +47,64 @@ public sealed class ModelRegistry(HttpClient http, IReadOnlyList<ModelInfo> mode
     public bool IsInstalled(string id)
     {
         var model = Get(id);
-        return File.Exists(MarkerPath(model)) && LocalFiles(model).All(File.Exists);
+        return model.ManualConvert
+            ? File.Exists(MarkerPath(model)) && File.Exists(Path.Combine(ModelDirectory(model), ConvertedConfig))
+            : File.Exists(MarkerPath(model)) && LocalFiles(model).All(File.Exists);
+    }
+
+    /// <summary>The file the conversion of a manual model leaves in its folder (ONNX Runtime GenAI configuration).</summary>
+    public const string ConvertedConfig = "genai_config.json";
+
+    /// <summary>Folder of an installed model (the converted one for a manual model).</summary>
+    public string InstallDirectory(string id) => ModelDirectory(Get(id));
+
+    /// <summary>Folder where the user puts the original files of a manual model.</summary>
+    public string SourceDirectory(string id) => Path.Combine(modelsDirectory, Get(id).Id + "-source");
+
+    /// <summary>
+    /// The original files of a manual model that are missing or differ (size, then SHA-256), in the order of the
+    /// manifest; empty when all are there and intact. <paramref name="progress"/> gets the bytes checked.
+    /// </summary>
+    public async Task<IReadOnlyList<SourceFileProblem>> VerifySourceAsync(string id, IProgress<long>? progress, CancellationToken ct)
+    {
+        var model = Get(id);
+        var problems = new List<SourceFileProblem>();
+        long done = 0;
+        foreach (var file in model.Files)
+        {
+            var path = Path.Combine(SourceDirectory(id), file.Path);
+            if (!File.Exists(path))
+            {
+                problems.Add(new SourceFileProblem(file.Path, Missing: true));
+            }
+            else if (new FileInfo(path).Length != file.Size
+                || !string.Equals(await VerifiedDownload.Sha256Async(path, ct).ConfigureAwait(false), file.Sha256, StringComparison.OrdinalIgnoreCase))
+            {
+                problems.Add(new SourceFileProblem(file.Path, Missing: false));
+            }
+
+            done += file.Size;
+            progress?.Report(done);
+        }
+
+        return problems;
+    }
+
+    /// <summary>Records a manual model as installed once its conversion left its files in <see cref="InstallDirectory"/>.</summary>
+    public Task MarkConvertedAsync(string id, CancellationToken ct)
+    {
+        var model = Get(id);
+        return File.WriteAllTextAsync(MarkerPath(model), model.Version, ct);
     }
 
     public async Task InstallAsync(string id, bool licenseAccepted, IProgress<DownloadProgress>? progress, CancellationToken ct)
     {
         var model = Get(id);
+        if (model.ManualConvert)
+        {
+            throw new InvalidOperationException($"'{model.Name}' is downloaded by the user and converted on this PC, not downloaded by PhotoFlow.");
+        }
+
         if (model.License.RequiresAcceptance && !licenseAccepted)
         {
             throw new InvalidOperationException($"The license of '{model.Name}' ({model.License.Spdx}) must be accepted before downloading it.");
@@ -73,7 +134,7 @@ public sealed class ModelRegistry(HttpClient http, IReadOnlyList<ModelInfo> mode
     {
         ArgumentNullException.ThrowIfNull(licenseAccepted);
         var installed = new List<string>();
-        foreach (var model in models.Where(m => !IsInstalled(m.Id)))
+        foreach (var model in models.Where(m => !m.ManualConvert && !IsInstalled(m.Id)))
         {
             if (model.License.RequiresAcceptance && !licenseAccepted(model))
             {
@@ -180,6 +241,9 @@ public sealed class ModelRegistry(HttpClient http, IReadOnlyList<ModelInfo> mode
                 f.GetProperty("sha256").GetString()!,
                 f.GetProperty("size").GetInt64(),
                 f.TryGetProperty("archive", out var a) ? a.GetString() : null,
-                f.TryGetProperty("use", out var u) ? u.EnumerateArray().Select(x => x.GetString()!).ToList() : [])).ToList());
+                f.TryGetProperty("use", out var u) ? u.EnumerateArray().Select(x => x.GetString()!).ToList() : [])).ToList())
+        {
+            ManualConvert = m.TryGetProperty("install", out var install) && install.GetString() == "manual-convert",
+        };
     }
 }

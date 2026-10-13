@@ -51,4 +51,26 @@ public sealed class SkiaImageOperations : IImageOperations
 
         return new RgbImage(info.Width, info.Height, rgb);
     }
+
+    public byte[] EncodeJpeg(RgbImage image, int quality) => Jpeg(image, quality);
+
+    /// <summary>JPEG with Skia (thumbnails, images handed to other processes).</summary>
+    public static byte[] Jpeg(RgbImage image, int quality)
+    {
+        ArgumentNullException.ThrowIfNull(image);
+        var rgba = new byte[image.Width * image.Height * 4];
+        var rgb = image.Pixels.Span;
+        for (int i = 0, j = 0; i < rgb.Length; i += 3, j += 4)
+        {
+            rgba[j] = rgb[i];
+            rgba[j + 1] = rgb[i + 1];
+            rgba[j + 2] = rgb[i + 2];
+            rgba[j + 3] = 255;
+        }
+
+        var info = new SKImageInfo(image.Width, image.Height, SKColorType.Rgba8888, SKAlphaType.Opaque);
+        using var skImage = SKImage.FromPixelCopy(info, rgba);
+        using var data = skImage.Encode(SKEncodedImageFormat.Jpeg, quality);
+        return data.ToArray();
+    }
 }

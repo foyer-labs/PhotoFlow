@@ -46,6 +46,12 @@ public sealed class CaptionXmpTests : IDisposable
         await catalog.Captions.SetManualAsync(assetId, "en", "Monza, la partenza.", Ct);
         await publisher.WriteAsync([assetId], prudentMode: true, null, Ct);
         Assert.Equal("Monza, la partenza.", (await ExifToolFixture.ReadTagAsync(exifTool, path, "XMP-dc:Description")).Trim());
+
+        // Level D (phase 5b, D5b-6): the Italian caption is x-default, the English one an alternative language.
+        await catalog.Captions.SetAutomaticAsync(assetId, "it", "Un'auto rossa in pista.", "qwen2.5-vl-7b@1", Ct);
+        await publisher.WriteAsync([assetId], prudentMode: true, null, Ct);
+        Assert.Equal("Un'auto rossa in pista.", (await ExifToolFixture.ReadTagAsync(exifTool, path, "XMP-dc:Description")).Trim());
+        Assert.Equal("Monza, la partenza.", (await ExifToolFixture.ReadTagAsync(exifTool, path, "XMP-dc:Description-en")).Trim());
     }
 
     public void Dispose() => _temp.Dispose();

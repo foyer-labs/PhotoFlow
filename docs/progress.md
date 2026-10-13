@@ -6,8 +6,8 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 
 | Voce | Valore |
 |---|---|
-| Fase corrente | 3 — Tag, vocabolario, Consultazione, Duplicati: **completata** (report in [docs/reports/fase-3.md](reports/fase-3.md)); prossima: fase 4 (OCR motorsport, elenco iscritti, vista Numeri) |
-| Branch | `phase/3-tags-search` (PR verso `main`) |
+| Fase corrente | 5b — Didascalie VLM in italiano (livello D, Qwen2.5-VL-7B): report in [docs/reports/fase-5b.md](reports/fase-5b.md). Fasi 0-5 completate e unite in `main` |
+| Branch | `phase/5b-vlm` (PR verso `main`) |
 | Remoto | https://github.com/foyer-labs/PhotoFlow.git (pubblico) |
 | Autore dei commit | Foyer Labs <foyerlabs@gmail.com> (config locale del repository) |
 | Ultimo aggiornamento | 2026-10-13 |
@@ -83,6 +83,7 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 
 | 2026-10-13 | Fase 4 unita in `main` (PR #6) dopo la CI verde |
 | 2026-10-13 | Fase 5 (tappe 5.0-5.8), decisioni prese in autonomia:<br>• F5-1 didascalie Florence-2 base-ft con adattatori nostri; l'encoder visivo di `onnx-community` non corrisponde all'originale, lo esportiamo noi; parità esatta su CPU e CUDA.<br>• F5-2 livello D rinviato: licenze del 3B e runtime separato del 7B.<br>• F5-3 trasferimento delle assegnazioni dei volti per IoU ≥ 0,5.<br>• F5-4 `.pfcatalog` con impronte ricifrate da una password d'esportazione; importazione al prossimo avvio.<br>• F5-5 sincronizzazione XMP con stato e contenuto del file.<br>Inoltre: scelta dei modelli (rilevatore, volti) tra quelli installati; pulsante di ricalcolo delle impronte quando un catalogo arriva senza. Misure: cambio di modello dei volti su 230 foto senza persone perse; didascalie +644 ms per foto. spec §4, §5, §8, §9, §15, §17 aggiornate. **Da fare all'utente**: pubblicare la release `models-florence2-base-ft-1` con `vision_encoder_pf.onnx` (azione pubblica, non fatta in autonomia) |
+| 2026-10-13 | Fase 5b (riapertura di F5-2 da parte dell'utente): U1 Qwen2.5-VL-7B; U2 pesi scaricati a mano e convertiti dall'app; U3 Python già installato; U4 ONNX Runtime GenAI in un processo separato (eccezione a CLAUDE.md §3); U5 solo italiano, C resta. Durante la fase l'utente ha indicato di non forzare la VRAM: **P16 rivista a GPU ≥ 12 GB** (misura: picco ~10 GB del solo 7B int4) |
 
 ## Problemi aperti
 
@@ -102,4 +103,4 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 
 ## Prossimo passo
 
-Fase 5 completata (report in `docs/reports/fase-5.md`): PR da unire dopo la CI verde. Con la fase 5 si chiudono le fasi della specifica (§13): restano le verifiche manuali, la pubblicazione della release del modello Florence-2 e il backlog (§17).
+Fase 5b: report in `docs/reports/fase-5b.md`, PR da unire dopo la CI verde. Restano le verifiche manuali elencate nei report, la pubblicazione della release del modello Florence-2 e il backlog (§17).

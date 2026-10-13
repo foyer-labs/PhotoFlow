@@ -202,6 +202,7 @@
           <TextBlock Classes="overline" Text="{l:Tr Browse.Detail.Caption}" />
           <StackPanel Spacing="4" IsVisible="{Binding !IsEditingCaption}">
             <TextBlock Classes="label" TextWrapping="Wrap" Text="{Binding DetailCaption}" />
+            <TextBlock Classes="micro secondary" TextWrapping="Wrap" Text="{Binding DetailCaptionOther}" IsVisible="{Binding DetailCaptionOther, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
             <StackPanel Orientation="Horizontal" Spacing="8">
               <TextBlock Classes="micro tertiary" VerticalAlignment="Center" Text="{Binding DetailCaptionOrigin}" />
               <Button Classes="ghost" Command="{Binding StartCaptionCommand}">

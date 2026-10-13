@@ -139,7 +139,8 @@
               <TextBlock Classes="micro tertiary" TextWrapping="Wrap" Text="{l:Tr Import.Tags.NoModel}" IsVisible="{Binding !CanTagB}" />
               <CheckBox IsChecked="{Binding TagsC}" IsEnabled="{Binding CanTagC}" Content="{l:Tr Import.Tags.C}" />
               <TextBlock Classes="micro tertiary" TextWrapping="Wrap" Text="{l:Tr Import.Tags.CNoModel}" IsVisible="{Binding !CanTagC}" />
-              <CheckBox IsEnabled="False" Content="{l:Tr Import.Tags.D}" ToolTip.Tip="{l:Tr Import.Tags.DUnavailable}" />
+              <CheckBox IsChecked="{Binding TagsD}" IsEnabled="{Binding CanTagD}" Content="{l:Tr Import.Tags.D}" />
+              <TextBlock Classes="micro tertiary" TextWrapping="Wrap" Text="{l:Tr Import.Tags.DNoModel}" IsVisible="{Binding !CanTagD}" />
             </StackPanel>
           </StackPanel>
         </Grid>

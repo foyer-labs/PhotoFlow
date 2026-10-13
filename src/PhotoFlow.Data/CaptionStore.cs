@@ -9,6 +9,9 @@ internal sealed class CaptionStore(SqliteCatalog catalog) : ICaptionStore
 {
     private const string Columns = "AssetId, Language, Text, ModelVersion, Origin, UpdatedAtMs";
 
+    // Italian first (phase 5b, U5), then the user's, then the most recent.
+    private const string Preferred = "Language = 'it' DESC, Origin = 'Manual' DESC, UpdatedAtMs DESC";
+
     public async Task<bool> SetAutomaticAsync(long assetId, string language, string text, string modelVersion, CancellationToken ct) =>
         await catalog.RunAsync(c => c.ExecuteAsync(new CommandDefinition(
             """
@@ -28,8 +31,13 @@ internal sealed class CaptionStore(SqliteCatalog catalog) : ICaptionStore
 
     public async Task<Caption?> GetAsync(long assetId, CancellationToken ct) =>
         (await catalog.RunAsync(c => c.QueryAsync<Row>(new CommandDefinition(
-            $"SELECT {Columns} FROM Captions WHERE AssetId = @assetId ORDER BY Origin = 'Manual' DESC, UpdatedAtMs DESC LIMIT 1;",
+            $"SELECT {Columns} FROM Captions WHERE AssetId = @assetId ORDER BY {Preferred} LIMIT 1;",
             new { assetId }, cancellationToken: ct)), ct).ConfigureAwait(false)).Select(ToCaption).FirstOrDefault();
+
+    public async Task<IReadOnlyList<Caption>> GetAllAsync(long assetId, CancellationToken ct) =>
+        (await catalog.RunAsync(c => c.QueryAsync<Row>(new CommandDefinition(
+            $"SELECT {Columns} FROM Captions WHERE AssetId = @assetId ORDER BY {Preferred};",
+            new { assetId }, cancellationToken: ct)), ct).ConfigureAwait(false)).Select(ToCaption).ToList();
 
     public async Task<IReadOnlyDictionary<long, Caption>> GetForAssetsAsync(IReadOnlyList<long> assetIds, CancellationToken ct)
     {
@@ -38,11 +46,11 @@ internal sealed class CaptionStore(SqliteCatalog catalog) : ICaptionStore
         foreach (var chunk in assetIds.Distinct().Chunk(500))
         {
             var rows = await catalog.RunAsync(c => c.QueryAsync<Row>(new CommandDefinition(
-                $"SELECT {Columns} FROM Captions WHERE AssetId IN @chunk ORDER BY Origin = 'Manual', UpdatedAtMs;",
+                $"SELECT {Columns} FROM Captions WHERE AssetId IN @chunk ORDER BY Language = 'it', Origin = 'Manual', UpdatedAtMs;",
                 new { chunk }, cancellationToken: ct)), ct).ConfigureAwait(false);
             foreach (var row in rows)
             {
-                result[row.AssetId] = ToCaption(row); // the user's and the most recent come last
+                result[row.AssetId] = ToCaption(row); // the preferred one comes last
             }
         }
 

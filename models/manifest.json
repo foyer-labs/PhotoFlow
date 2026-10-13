@@ -325,6 +325,125 @@
       ],
       "io": "vision pixel_values [1,3,768,768] (bicubic, ImageNet mean/std) -> image_features [1,577,768]; embed_tokens input_ids -> [B,L,768]; encoder (attention_mask, inputs_embeds [1,577+13,768]) -> last_hidden_state; decoder_model_merged with past_key_values.* and use_cache_branch -> logits [B,1,51289].",
       "notes": "Decision F5-1 (13 Oct 2026): task <DETAILED_CAPTION>, beam search 3 as transformers' generate; parity with the original PyTorch model (tools/lab/florence_refs.py) on 24 real photos: identical token ids and captions on CPU and CUDA (CaptionParityTests). The vision encoder file is published as a GitHub release asset of this repository (models-florence2-base-ft-1)."
+    },
+    {
+      "id": "qwen2.5-vl-7b",
+      "function": "Vlm",
+      "name": "Qwen2.5-VL-7B-Instruct (level D, Italian captions), converted on this PC",
+      "version": "Qwen/Qwen2.5-VL-7B-Instruct@cc59489/int4",
+      "phase": 5,
+      "defaultFor": "gpu",
+      "adapter": "qwen2.5-vl-genai",
+      "install": "manual-convert",
+      "license": {
+        "spdx": "Apache-2.0",
+        "source": "https://huggingface.co/Qwen/Qwen2.5-VL-7B-Instruct",
+        "commercialUse": true,
+        "requiresAcceptance": false,
+        "notes": "Original weights downloaded by the user (decision U2) and verified with these SHA-256; converted on the PC by tools/vlm (Microsoft Olive recipe, MIT; ONNX Runtime GenAI Model Builder, int4). The 3B model is excluded: 'qwen-research' license, non-commercial."
+      },
+      "files": [
+        {
+          "path": "chat_template.json",
+          "url": "https://huggingface.co/Qwen/Qwen2.5-VL-7B-Instruct/resolve/cc594898137f460bfe9f0759e9844b3ce807cfb5/chat_template.json",
+          "sha256": "ad60d90252ed0b0705ba14e2d0ad0fec0beac1ea955642b54059b36052d8bc96",
+          "size": 1050,
+          "mirrors": []
+        },
+        {
+          "path": "config.json",
+          "url": "https://huggingface.co/Qwen/Qwen2.5-VL-7B-Instruct/resolve/cc594898137f460bfe9f0759e9844b3ce807cfb5/config.json",
+          "sha256": "77d9ec7321cc572e3579e2c84799c9cadaded63c49ce93b101733349fc330c43",
+          "size": 1374,
+          "mirrors": []
+        },
+        {
+          "path": "generation_config.json",
+          "url": "https://huggingface.co/Qwen/Qwen2.5-VL-7B-Instruct/resolve/cc594898137f460bfe9f0759e9844b3ce807cfb5/generation_config.json",
+          "sha256": "0a3aea82869fe29f20dc95ccf3e2bcff380eca1f5ad6447a4a4b37110b08e43e",
+          "size": 216,
+          "mirrors": []
+        },
+        {
+          "path": "merges.txt",
+          "url": "https://huggingface.co/Qwen/Qwen2.5-VL-7B-Instruct/resolve/cc594898137f460bfe9f0759e9844b3ce807cfb5/merges.txt",
+          "sha256": "599bab54075088774b1733fde865d5bd747cbcc7a547c5bc12610e874e26f5e3",
+          "size": 1671839,
+          "mirrors": []
+        },
+        {
+          "path": "model-00001-of-00005.safetensors",
+          "url": "https://huggingface.co/Qwen/Qwen2.5-VL-7B-Instruct/resolve/cc594898137f460bfe9f0759e9844b3ce807cfb5/model-00001-of-00005.safetensors",
+          "sha256": "e97b877e47fde53a6c6e77aafb36e58e91ee9d95c4a3eeac6f1b5c0e6a1c986e",
+          "size": 3900233256,
+          "mirrors": []
+        },
+        {
+          "path": "model-00002-of-00005.safetensors",
+          "url": "https://huggingface.co/Qwen/Qwen2.5-VL-7B-Instruct/resolve/cc594898137f460bfe9f0759e9844b3ce807cfb5/model-00002-of-00005.safetensors",
+          "sha256": "a9a300a43b4724eee2abe7c18ceb26768d0ab011eb0cad19d9bfd2476a24d024",
+          "size": 3864726320,
+          "mirrors": []
+        },
+        {
+          "path": "model-00003-of-00005.safetensors",
+          "url": "https://huggingface.co/Qwen/Qwen2.5-VL-7B-Instruct/resolve/cc594898137f460bfe9f0759e9844b3ce807cfb5/model-00003-of-00005.safetensors",
+          "sha256": "111223d173e00bbee81cba1216fad28668df3476706b7fd26f4d5b50f8b3a507",
+          "size": 3864726424,
+          "mirrors": []
+        },
+        {
+          "path": "model-00004-of-00005.safetensors",
+          "url": "https://huggingface.co/Qwen/Qwen2.5-VL-7B-Instruct/resolve/cc594898137f460bfe9f0759e9844b3ce807cfb5/model-00004-of-00005.safetensors",
+          "sha256": "ef47f634fa57d46ee134edcc09f34085a47da1e16c12a2abe0d67118be6d72ed",
+          "size": 3864733680,
+          "mirrors": []
+        },
+        {
+          "path": "model-00005-of-00005.safetensors",
+          "url": "https://huggingface.co/Qwen/Qwen2.5-VL-7B-Instruct/resolve/cc594898137f460bfe9f0759e9844b3ce807cfb5/model-00005-of-00005.safetensors",
+          "sha256": "0c859795ad3a627a9b95bcb762e059d5b768a4a36fdd4affeff269d93fdecc67",
+          "size": 1089994880,
+          "mirrors": []
+        },
+        {
+          "path": "model.safetensors.index.json",
+          "url": "https://huggingface.co/Qwen/Qwen2.5-VL-7B-Instruct/resolve/cc594898137f460bfe9f0759e9844b3ce807cfb5/model.safetensors.index.json",
+          "sha256": "73b333b0b16e5286ddba615d2caebcd495cf7e616f52eb217a81781393d79de9",
+          "size": 57619,
+          "mirrors": []
+        },
+        {
+          "path": "preprocessor_config.json",
+          "url": "https://huggingface.co/Qwen/Qwen2.5-VL-7B-Instruct/resolve/cc594898137f460bfe9f0759e9844b3ce807cfb5/preprocessor_config.json",
+          "sha256": "f2058c716eef96ccaed1cc1e2d0c08306b62586d535b28d9d08e691b2fab7ca0",
+          "size": 350,
+          "mirrors": []
+        },
+        {
+          "path": "tokenizer.json",
+          "url": "https://huggingface.co/Qwen/Qwen2.5-VL-7B-Instruct/resolve/cc594898137f460bfe9f0759e9844b3ce807cfb5/tokenizer.json",
+          "sha256": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+          "size": 7031645,
+          "mirrors": []
+        },
+        {
+          "path": "tokenizer_config.json",
+          "url": "https://huggingface.co/Qwen/Qwen2.5-VL-7B-Instruct/resolve/cc594898137f460bfe9f0759e9844b3ce807cfb5/tokenizer_config.json",
+          "sha256": "4abd3520120e266da84c0864fee064d1fb10806f02225911a47253dd38dc5f56",
+          "size": 5702,
+          "mirrors": []
+        },
+        {
+          "path": "vocab.json",
+          "url": "https://huggingface.co/Qwen/Qwen2.5-VL-7B-Instruct/resolve/cc594898137f460bfe9f0759e9844b3ce807cfb5/vocab.json",
+          "sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910",
+          "size": 2776833,
+          "mirrors": []
+        }
+      ],
+      "io": "ONNX Runtime GenAI model (vision.onnx, embedding.onnx, text.onnx, genai_config.json, processor_config.json) run by PhotoFlow.Vlm; greedy decoding, Italian prompt.",
+      "notes": "Phase 5b, decisions U1-U5 and D5b-1..D5b-8 (docs/plans/fase-5b.md). Exception to CLAUDE.md §3: ONNX Runtime GenAI in a separate process, approximate verification against PyTorch."
     }
   ]
 }

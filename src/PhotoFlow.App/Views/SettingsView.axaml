@@ -113,6 +113,12 @@
                       <CheckBox IsVisible="{Binding RequiresAcceptance}" IsEnabled="{Binding CanInstall}" IsChecked="{Binding LicenseAccepted}">
                         <TextBlock Classes="micro" TextWrapping="Wrap" Text="{l:Tr Settings.Models.AcceptLicense}" />
                       </CheckBox>
+                      <StackPanel Spacing="4" IsVisible="{Binding IsManualConvert}">
+                        <TextBlock Classes="micro secondary" TextWrapping="Wrap" Text="{l:Tr Settings.Models.ManualNote}" />
+                        <TextBlock Classes="micro tertiary" TextWrapping="Wrap" Text="{Binding SourceFilesText}" />
+                        <TextBlock Classes="data micro" TextWrapping="Wrap" Text="{Binding SourceFolder}" />
+                        <TextBlock Classes="micro" TextWrapping="Wrap" Text="{Binding ConversionText}" IsVisible="{Binding ConversionText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                      </StackPanel>
                     </StackPanel>
                     <TextBlock Grid.Column="2" Classes="data tertiary" Text="{Binding SizeText}" />
                     <StackPanel Grid.Column="3" Spacing="6" HorizontalAlignment="Right">
@@ -120,9 +126,32 @@
                       <Button Classes="secondary" IsVisible="{Binding CanInstall}"
                               Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).InstallModelCommand}" CommandParameter="{Binding}"
                               Content="{l:Tr Settings.Models.Download}" />
-                      <Button Classes="ghost" IsVisible="{Binding IsInstalled}"
+                      <Button Classes="ghost" IsVisible="{Binding CanVerify}"
                               Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).VerifyModelCommand}" CommandParameter="{Binding}"
                               Content="{l:Tr Settings.Models.Verify}" />
+                      <Button Classes="ghost" IsVisible="{Binding IsManualConvert}"
+                              Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).OpenSourceFolderCommand}" CommandParameter="{Binding}"
+                              Content="{l:Tr Settings.Models.OpenFolder}" />
+                      <Button Classes="secondary" IsVisible="{Binding CanConvert}"
+                              Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).ConvertModelCommand}" CommandParameter="{Binding}"
+                              Content="{l:Tr Settings.Models.Convert}" />
+                      <Button Classes="ghost" IsVisible="{Binding IsConverting}"
+                              Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).CancelConversionCommand}"
+                              Content="{l:Tr Settings.Models.CancelConversion}" />
+                      <Button Classes="ghost" IsVisible="{Binding CanRemoveEnvironment}"
+                              Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).RequestRemoveVlmEnvironmentCommand}" CommandParameter="{Binding}"
+                              Content="{l:Tr Settings.Models.RemoveEnvironment}" />
+                      <StackPanel Spacing="6" IsVisible="{Binding ConfirmingRemoval}" HorizontalAlignment="Right">
+                        <TextBlock Classes="micro" MaxWidth="240" TextWrapping="Wrap" Text="{l:Tr Settings.Models.RemoveEnvironmentConfirm}" />
+                        <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right">
+                          <Button Classes="ghost"
+                                  Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).CancelRemoveVlmEnvironmentCommand}" CommandParameter="{Binding}"
+                                  Content="{l:Tr Settings.Models.CancelConversion}" />
+                          <Button Classes="secondary"
+                                  Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).RemoveVlmEnvironmentCommand}" CommandParameter="{Binding}"
+                                  Content="{l:Tr Settings.Models.RemoveEnvironmentYes}" />
+                        </StackPanel>
+                      </StackPanel>
                       <TextBlock Classes="micro" HorizontalAlignment="Right" IsVisible="{Binding IsInUse}" Text="{l:Tr Settings.Models.InUse}" />
                       <Button Classes="secondary" IsVisible="{Binding CanUse}"
                               Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).UseModelCommand}" CommandParameter="{Binding}"

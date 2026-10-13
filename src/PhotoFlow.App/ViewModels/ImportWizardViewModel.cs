@@ -99,6 +99,8 @@ public sealed partial class ImportWizardViewModel : PageViewModel
         _tagsB = CanTagB && levels.HasFlag(Core.Tagging.TagLevels.Tagger);
         CanTagC = host.Models.IsInstalled(PhotoFlowHost.CaptionModelId);
         _tagsC = CanTagC && levels.HasFlag(Core.Tagging.TagLevels.Caption);
+        CanTagD = host.VlmAvailable;
+        _tagsD = CanTagD && levels.HasFlag(Core.Tagging.TagLevels.VlmCaption);
         _xmpPolicy = defaults.XmpPolicy;
         RecentEvents = defaults.RecentEvents;
         _eventName = string.Empty;
@@ -196,8 +198,16 @@ public sealed partial class ImportWizardViewModel : PageViewModel
 
     public bool CanTagC { get; }
 
+    /// <summary>Level D: Italian captions of the VLM (phase 5b; off by default, a few seconds per photo).</summary>
+    [ObservableProperty]
+    private bool _tagsD;
+
+    /// <summary>The VLM is converted and the GPU has the 12 GB it needs (P16).</summary>
+    public bool CanTagD { get; }
+
     public Core.Tagging.TagLevels TagLevels =>
-        (TagsA ? Core.Tagging.TagLevels.ZeroShot : 0) | (TagsB ? Core.Tagging.TagLevels.Tagger : 0) | (TagsC ? Core.Tagging.TagLevels.Caption : 0);
+        (TagsA ? Core.Tagging.TagLevels.ZeroShot : 0) | (TagsB ? Core.Tagging.TagLevels.Tagger : 0) | (TagsC ? Core.Tagging.TagLevels.Caption : 0)
+        | (TagsD ? Core.Tagging.TagLevels.VlmCaption : 0);
 
     /// <summary>A face recognition model is installed (SFace, or buffalo_l with its license accepted).</summary>
     public bool CanRecognize { get; }

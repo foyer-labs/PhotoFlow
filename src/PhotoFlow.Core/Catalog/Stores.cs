@@ -402,8 +402,11 @@ public interface ICaptionStore
     /// <summary>The user's caption (an empty text clears it for good).</summary>
     Task SetManualAsync(long assetId, string language, string text, CancellationToken ct);
 
-    /// <summary>The caption of a photo (the user's first, then the most recent).</summary>
+    /// <summary>The caption of a photo: Italian first (U5), then the user's, then the most recent.</summary>
     Task<Caption?> GetAsync(long assetId, CancellationToken ct);
+
+    /// <summary>Every caption of a photo, one per language, in the order of <see cref="GetAsync"/>.</summary>
+    Task<IReadOnlyList<Caption>> GetAllAsync(long assetId, CancellationToken ct);
 
     Task<IReadOnlyDictionary<long, Caption>> GetForAssetsAsync(IReadOnlyList<long> assetIds, CancellationToken ct);
 }

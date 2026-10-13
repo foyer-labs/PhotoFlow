@@ -27,6 +27,7 @@ using PhotoFlow.Sources.Jobs;
 using PhotoFlow.Sources.Scanning;
 using PhotoFlow.Core.Tagging;
 using PhotoFlow.Tagging.Clip;
+using PhotoFlow.App.Services.Vlm;
 using PhotoFlow.Tagging.Captions;
 using PhotoFlow.Tagging.Ocr;
 using PhotoFlow.Tagging.RamPlus;
@@ -53,7 +54,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     /// <summary>Model adapters this version can run: only these models can be downloaded or chosen (board 5g).</summary>
     public static readonly IReadOnlySet<string> ImplementedAdapters = new HashSet<string>(StringComparer.Ordinal)
     {
-        "dfine-hf-v1", "insightface-buffalo-v1", "yunet-v1", "clip-hf-v1", "sface-v1", "ramplus-v1", "ppocr-v1", "florence2-v1",
+        "dfine-hf-v1", "insightface-buffalo-v1", "yunet-v1", "clip-hf-v1", "sface-v1", "ramplus-v1", "ppocr-v1", "florence2-v1", "qwen2.5-vl-genai",
     };
 
     public const string ClipModelId = "clip-vit-b32";
@@ -61,9 +62,21 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     public const string OcrModelId = "ppocr-en";
     public const string CaptionModelId = "florence2-base-ft";
     public const string SFaceModelId = "opencv-sface-2021dec";
+    public const string VlmModelId = "qwen2.5-vl-7b";
+
+    /// <summary>
+    /// Level D needs an NVIDIA GPU with 12 GB (P16 as revised on 13 Oct 2026): the 7B int4 alone peaks at ~10 GB
+    /// (weights 6.5 GB, ONNX Runtime GenAI, generation) besides Windows and the other models. Cards sold as 12 GB may
+    /// report a little less, so the bound leaves half a gigabyte.
+    /// </summary>
+    public const long VlmGpuMemoryBytes = 11_776L * 1024 * 1024;
 
     private readonly SemaphoreSlim _sessionsGate = new(1, 1);
     private readonly List<IInferenceSession> _sessions = [];
+    private readonly List<IInferenceSession> _analysisSessions = [];
+
+    // Level D needs the GPU alone (P16): analyses enter shared, the VLM pass exclusive (see VlmPass).
+    private readonly GpuTurns _gpuTurns = new();
     private CullingPhotoProcessor? _processor;
     private AnalysisComponents? _components;
     private Task _maintenance = Task.CompletedTask;
@@ -92,7 +105,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
             Catalog,
             new ImportJobRunner(Catalog, new IngestService(new CopyEngine(FileSystem)), ExifReader, FileSystem, new LazyProcessor(this), Deferred, BatchStages()),
             new ArchiveJobRunner(Catalog, ExifReader, FileSystem, new LowPriorityProcessor(this), BatchStages()),
-            new ReanalysisJobRunner(Catalog, FileSystem, new LowPriorityProcessor(this), CurrentVersionsAsync)));
+            new ReanalysisJobRunner(Catalog, FileSystem, new LowPriorityProcessor(this), CurrentVersionsAsync, Vlm, Previews)));
         Cards = new PollingCardDetector();
         Maintenance = new MaintenanceService(paths, new InternalFileCleaner(paths), protectedBackup: () => Restore?.Pending);
         Restore = new CatalogRestoreService(paths);
@@ -140,7 +153,79 @@ public sealed class PhotoFlowHost : IAsyncDisposable
         var c = await GetAnalysisComponentsAsync(ct).ConfigureAwait(false);
         var culling = new CullingAnalyzer(c.Operations, c.Objects, c.Faces);
         return new ModelVersions(culling.Id, culling.ModelVersion, c.Embedder?.ModelVersion, c.Fingerprints?.ModelVersion, c.Tagger?.ModelVersion,
-            c.Captioner?.ModelVersion, c.TextReader?.ModelVersion);
+            c.Captioner?.ModelVersion, c.TextReader?.ModelVersion, Vlm.ModelVersion, c.Captioner?.Language ?? "en", Vlm.Language);
+    }
+
+    /// <summary>The GPU can run level D: CUDA in use and at least <see cref="VlmGpuMemoryBytes"/> of memory (unknown memory: no).</summary>
+    public static bool VlmGpuAllows(HardwareInfo hardware)
+    {
+        ArgumentNullException.ThrowIfNull(hardware);
+        return hardware.AvailableBackends.Contains(ExecutionBackend.Cuda) && hardware.GpuMemoryBytes >= VlmGpuMemoryBytes;
+    }
+
+    public bool VlmGpuReady => VlmGpuAllows(Inference.Detected);
+
+    /// <summary>The conversion of the level D model with the scripts next to the application (folder <c>vlm</c>).</summary>
+    public VlmConversion CreateVlmConversion() => new(Models, Paths, new ProcessVlmToolchain(), Path.Combine(AppContext.BaseDirectory, "vlm"));
+
+    /// <summary>Level D can run: the model is converted and the GPU allows it.</summary>
+    public bool VlmAvailable => VlmGpuReady && Models.IsInstalled(VlmModelId);
+
+    /// <summary>Level D in a pass of its own, with the GPU free of the other models.</summary>
+    public IExclusiveCaptioning Vlm => _vlmPass ??= new VlmPass(this);
+
+    private VlmPass? _vlmPass;
+
+    /// <summary>A per-photo analysis: shared with the others, waits while a level D pass holds the GPU.</summary>
+    public Task<IDisposable> EnterAnalysisAsync(CancellationToken ct) => _gpuTurns.EnterSharedAsync(ct);
+
+    /// <summary>Frees the GPU of the analysis models (they load again at the next analysis).</summary>
+    private async Task ReleaseAnalysisModelsAsync(CancellationToken ct)
+    {
+        await _sessionsGate.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            foreach (var session in _analysisSessions)
+            {
+                session.Dispose();
+                _sessions.Remove(session);
+            }
+
+            _analysisSessions.Clear();
+            _components = null;
+            _processor = null;
+        }
+        finally
+        {
+            _sessionsGate.Release();
+        }
+    }
+
+    /// <summary>
+    /// Level D (phase 5b): takes the GPU turn (new analyses wait), waits for the analyses running, frees the GPU of the
+    /// analysis models, starts the VLM process for the pass and closes it at the end, so the analyses find the memory
+    /// again. Only one pass at a time.
+    /// </summary>
+    private sealed class VlmPass(PhotoFlowHost host) : IExclusiveCaptioning
+    {
+        public string? ModelVersion => host.VlmAvailable ? $"{VlmModelId}@{host.Models.Get(VlmModelId).Version}" : null;
+
+        public string Language => "it";
+
+        public async Task RunAsync(Func<IImageCaptioner, Task> work, CancellationToken ct)
+        {
+            ArgumentNullException.ThrowIfNull(work);
+            if (ModelVersion is not { } version)
+            {
+                return;
+            }
+
+            using var turn = await host._gpuTurns.EnterExclusiveAsync(ct).ConfigureAwait(false);
+            await host.ReleaseAnalysisModelsAsync(ct).ConfigureAwait(false);
+            await using var captioner = new VlmCaptioner(host.Models.InstallDirectory(VlmModelId), version,
+                Path.Combine(host.Paths.GpuRuntimeDirectory, GpuPackFolder), new SkiaImageOperations(), host.Paths);
+            await work(captioner).ConfigureAwait(false);
+        }
     }
 
     /// <summary>A regeneration (job Reanalyze, spec §5): the new results wait for the preview and the confirmation.</summary>
@@ -186,6 +271,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
             }
 
             _sessions.Clear();
+            _analysisSessions.Clear();
             _components = null;
             _processor = null;
             _sceneClassifier = null;
@@ -371,6 +457,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
             new FacesStage(Catalog, () => FingerprintKeys.Protector),
             new TaggingStage(Catalog, GetCustomTagScanAsync),
             new NumbersStage(Catalog),
+            new VlmCaptionStage(Catalog, FileSystem, Previews, Vlm),
         ];
     }
 
@@ -457,6 +544,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
         await ExifTool.DisposeAsync().ConfigureAwait(false);
         Http.Dispose();
         _sessionsGate.Dispose();
+        _gpuTurns.Dispose();
         _shutdown.Dispose();
     }
 
@@ -538,6 +626,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
         {
             var session = await Inference.CreateSessionAsync(Models.Resolve(id, file), target, ct).ConfigureAwait(false);
             _sessions.Add(session);
+            _analysisSessions.Add(session);
             return session;
         }
     }
@@ -561,6 +650,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
         public async Task<PhotoProcessingResult> ProcessAsync(PhotoInput photo, ProcessingOptions options, CancellationToken ct)
         {
             await host.Jobs.YieldToNormalAsync(ct).ConfigureAwait(false);
+            using var turn = await host.EnterAnalysisAsync(ct).ConfigureAwait(false);
             return await (await host.GetProcessorAsync(ct).ConfigureAwait(false)).ProcessAsync(photo, options, ct).ConfigureAwait(false);
         }
     }
@@ -645,7 +735,10 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     /// <summary>Loads the models when the first photo reaches the analysis, not at startup.</summary>
     private sealed class LazyProcessor(PhotoFlowHost host) : IPhotoProcessor
     {
-        public async Task<PhotoProcessingResult> ProcessAsync(PhotoInput photo, ProcessingOptions options, CancellationToken ct) =>
-            await (await host.GetProcessorAsync(ct).ConfigureAwait(false)).ProcessAsync(photo, options, ct).ConfigureAwait(false);
+        public async Task<PhotoProcessingResult> ProcessAsync(PhotoInput photo, ProcessingOptions options, CancellationToken ct)
+        {
+            using var turn = await host.EnterAnalysisAsync(ct).ConfigureAwait(false);
+            return await (await host.GetProcessorAsync(ct).ConfigureAwait(false)).ProcessAsync(photo, options, ct).ConfigureAwait(false);
+        }
     }
 }

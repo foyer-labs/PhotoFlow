@@ -108,6 +108,14 @@ public sealed class ExifToolMetadataWriter : IMetadataWriter
             args.Add("-XMP-dc:Description=" + SingleLine(description));
         }
 
+        foreach (var (language, text) in (changes.DescriptionAlternatives ?? new Dictionary<string, string>()).OrderBy(a => a.Key, StringComparer.Ordinal))
+        {
+            if (language.Length is >= 2 and <= 3 && language.All(char.IsAsciiLetterLower))
+            {
+                args.Add($"-XMP-dc:Description-{language}=" + SingleLine(text));
+            }
+        }
+
         return args;
     }
 

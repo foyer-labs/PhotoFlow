@@ -62,6 +62,53 @@ public sealed class InternalFileCleaner
         File.Delete(Path.GetFullPath(path));
     }
 
+    /// <summary>
+    /// Deletes a folder strictly inside an internal folder with everything in it (a work folder, a private Python
+    /// environment). Every entry is checked first: if the folder or anything in it is a link, nothing is deleted.
+    /// A folder that does not exist is fine.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The folder is not internal, or holds a link.</exception>
+    public void DeleteInternalDirectory(string path)
+    {
+        if (!IsInternal(path))
+        {
+            throw new InvalidOperationException($"Refusing to delete '{path}': not an internal folder of PhotoFlow (invariant I4).");
+        }
+
+        var full = Path.GetFullPath(path);
+        if (!Directory.Exists(full))
+        {
+            return;
+        }
+
+        // First the whole tree, without following anything; a link anywhere stops everything.
+        var files = new List<string>();
+        var folders = new List<string> { full };
+        for (var i = 0; i < folders.Count; i++)
+        {
+            foreach (var entry in Directory.EnumerateFileSystemEntries(folders[i]))
+            {
+                if (IsLink(entry))
+                {
+                    throw new InvalidOperationException($"Refusing to delete '{path}': '{entry}' is a link (invariant I4).");
+                }
+
+                (Directory.Exists(entry) ? folders : files).Add(entry);
+            }
+        }
+
+        foreach (var file in files)
+        {
+            File.SetAttributes(file, FileAttributes.Normal); // read-only files of package managers
+            File.Delete(file);
+        }
+
+        foreach (var folder in Enumerable.Reverse(folders))
+        {
+            Directory.Delete(folder, recursive: false); // empty by now: the deepest first
+        }
+    }
+
     private static bool IsLink(string path)
     {
         FileSystemInfo info = Directory.Exists(path) ? new DirectoryInfo(path) : new FileInfo(path);
