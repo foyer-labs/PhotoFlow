@@ -228,7 +228,7 @@ Tutti i modelli girano in ONNX Runtime; ogni funzione ha un modello attivo selez
 | Embedding (raffiche, ricerca, duplicati, zero-shot) | CLIP ViT-B/32 fp32 (F2-1) | — | 606 MB (immagine 352 MB + testo 254 MB) | Disponibile (Xenova, fissato per commit + SHA-256); la conversione quantizzata è esclusa (coseno 0,87-0,97 con l'originale) |
 | Tagger | RAM++ fp32 (F3-1) | — | 1,86 GB | Export `CannotFindObject/RAM_ONNX` fissato per commit + SHA-256 (mirror `imagent/ram-plus-onnx`); stessi tag dell'originale su 52/52 foto; la int8 è esclusa |
 | Didascalie | Florence-2 base-ft fp32 (F5-1) | Florence-2 large (da adattare) | 1,09 GB | Encoder del testo, decoder e tokenizer `onnx-community` fissati per commit; encoder visivo esportato da noi (`tools/lab/export_florence_vision.py`) perché quello della conversione non corrisponde all'originale (coseno 0,94); adattatori nostri su `IInferenceProvider`, parità esatta delle didascalie con PyTorch su CPU e CUDA |
-| VLM (livello D) | Rinviato (F5-2) | — | 3-5 GB circa | Qwen2.5-VL-3B ha licenza non commerciale ("qwen-research"); il 7B (Apache-2.0) richiede un nostro export e ONNX Runtime GenAI, fuori da `IInferenceProvider` |
+| VLM (livello D) | Qwen2.5-VL-7B-Instruct int4 (fase 5b, U1) | — | ~6 GB convertito (16,6 GB di pesi originali) | Pesi originali scaricati dall'utente e convertiti dall'app con il Model Builder di ONNX Runtime GenAI (U2, U3); esecuzione con ONNX Runtime GenAI in un processo separato (U4, eccezione a CLAUDE.md §3); il 3B è escluso (licenza "qwen-research", non commerciale) |
 | OCR | PP-OCRv4 det + PP-OCRv3 rec inglese (F4-1) | PP-OCRv5 latina (rilevatore da 88 MB) | 14 MB | Modelli RapidOCR fissati per commit + SHA-256 (`SWHL/RapidOCR`), adattatori nostri su `IInferenceProvider`; parità esatta con RapidOCR Python; riconoscitore su CPU (F4-4) |
 | Estetica | Predittore LAION su embedding CLIP | — | < 5 MB | Riscrivibile in poche righe |
 
@@ -515,7 +515,8 @@ Fase 5 (13 ott 2026, F5-1, F5-2):
 - **Come si genera.** Livello C con Florence-2 base-ft, compito "didascalia dettagliata". La ricerca a fascio è identica a transformers: 3 fasci, nessun trigramma ripetuto, chiusura anticipata. Costo: 0,9 s per foto su GPU (2,5 s su CPU); nell'analisi con 4 lavori in parallelo +644 ms per foto. È facoltativo e si sceglie nell'import.
 - **Conservazione (I5).** Le didascalie si salvano in `Captions` con la versione del modello. Quella scritta o cancellata dall'utente (D in Consultazione, o la descrizione cambiata in un altro programma) non viene mai sostituita.
 - **Ricerca e XMP.** Il testo delle didascalie è cercabile. `dc:description` si scrive solo con la preferenza attiva (spenta per default).
-- **Livello D.** Rinviato (F5-2): resta visibile e disattivato con il motivo.
+- **Livello D.** Rinviato (F5-2), poi riaperto dall'utente il 13 ott 2026: fase 5b (`docs/plans/fase-5b.md`). Qwen2.5-VL-7B scrive una didascalia in italiano (una o due frasi, oggettive), solo con GPU NVIDIA ≥ 12 GB (P16, rivista il 13 ott 2026). Il livello C (inglese) resta. In Consultazione e in `dc:description` l'italiano è x-default, l'inglese la lingua alternativa.
+- **Come gira il livello D** (fase 5b). Pesi originali scaricati dall'utente e convertiti dall'app (Impostazioni › Modelli) con il Python del PC in un ambiente privato. Il modello gira in un processo separato (ONNX Runtime GenAI, eccezione U4). Non gira per foto insieme agli altri modelli (insieme superano i 21 GB): è una **passata a fine job**, che aspetta le analisi in corso e libera la GPU dagli altri modelli (~10,6 GB per il solo VLM, ~2 s per foto). Nella rigenerazione funziona allo stesso modo, e le didascalie passano dall'anteprima come le altre. Dopo 3 errori di fila la passata si ferma, senza far fallire il job: le foto rimaste aspettano la passata successiva.
 
 ### OCR motorsport
 
@@ -553,7 +554,7 @@ Catalogo SQLite, foto identificate dall'hash del contenuto: tag, volti e decisio
 
 | Elemento | Posizione |
 | --- | --- |
-| Catalogo | Configurabile: locale (default) o percorso di rete |
+| Catalogo | Configurabile: locale (proposto) o percorso di rete. Si sceglie al primo avvio, prima che il catalogo venga creato, e si cambia in Impostazioni › Catalogo (vedi sotto) |
 | Miniature e cache | Sempre locali (\~2 GB per 60.000 foto), ricostruibili |
 | Profili e impostazioni | File JSON nella cartella dati utente |
 
@@ -563,6 +564,14 @@ Catalogo SQLite, foto identificate dall'hash del contenuto: tag, volti e decisio
 | Un PC alla volta | File di lock; apertura rifiutata con messaggio chiaro (dopo 2 s di nuovi tentativi: un processo appena terminato può rilasciare il lock in ritardo) |
 | Backup | A ogni chiusura e ogni giorno (all'avvio, se l'ultimo è più vecchio di 24 h); si tengono gli ultimi 10 (decisione B1); cache delle miniature entro 4 GB, temporanei oltre 24 h e archivi del pacchetto GPU installato ripuliti |
 | Integrità | Controllo all'apertura; ripristino proposto dall'ultimo backup. Un ripristino scelto nelle Impostazioni si applica al prossimo avvio; il catalogo sostituito si sposta in `backup/replaced-*` e non si cancella |
+
+**Scelta e cambio di posizione** (13 ott 2026, su richiesta dell'utente; la tavola 1a mostrava solo il percorso, "modificabile in Impostazioni"). La posizione scelta è salvata in `config/catalog-location.json`, nella cartella dati locale.
+
+- **Primo avvio.** Se non esiste ancora un catalogo, prima di crearlo PhotoFlow chiede la cartella e propone quella locale. Se nella cartella scelta c'è già un catalogo PhotoFlow valido, si usa quello.
+- **Sposta…** Il catalogo viene copiato nella nuova cartella al prossimo avvio, a catalogo chiuso: copia con il backup di SQLite e controllo d'integrità. L'originale resta dov'era e non viene mai cancellato. Se la cartella contiene già un catalogo, lo spostamento è rifiutato.
+- **Apri un catalogo esistente…** Si usa dal prossimo avvio, dopo averne verificato l'integrità; quello attuale resta intatto.
+- **Errori.** Se all'avvio la copia o l'apertura non riesce (lock, file danneggiato, cartella non raggiungibile), si resta sul catalogo di prima e il motivo compare nelle Impostazioni.
+- **Cosa resta locale.** Backup, miniature e cache restano nella cartella dati locale, qualunque sia la posizione del catalogo.
 
 Esportazione/importazione: file unico (es. `.pfcatalog`) con database, galleria persone e configurazione delle librerie; rimappatura dei percorsi all'importazione.
 
@@ -683,6 +692,7 @@ Pacchetto self-contained con Velopack, modelli scaricati al primo uso; durante l
 | --- | --- |
 | Runtime .NET | Incluso (self-contained) |
 | Installer e aggiornamenti | Velopack; feed come file statici su qualsiasi server HTTP |
+| Release su GitHub | Versioni dell'app con tag `vX.Y.Z` (alle versioni di riferimento). I file dei modelli esportati da noi stanno in release `models-<modello>-<n>` dello stesso repository, marcate come pre-release e mai «Latest», con il titolo "Model file · …" (decisione dell'utente del 13 ott 2026) |
 | Varianti | Windows: CUDA (NVIDIA) + CPU, pacchetto GPU scaricato al primo uso; Mac: CoreML; Linux: CPU/CUDA |
 | Firma del codice | Nessuna per ora (avviso SmartScreen al primo avvio) |
 | exiftool | Windows: eseguibile incluso; Mac/Linux: script Perl incluso; percorso personalizzabile. Scaricato in fase di build con versione fissata e SHA-256 (nessun binario nel repository, F1-5) |
@@ -1153,7 +1163,7 @@ Decisioni emerse in Design (confermate), funzioni rinviate a dopo la stabilizzaz
 | P13 | Persone | Chiave impronte non disponibile: galleria consultabile, riconoscimento sospeso fino a password o ricalcolo | Coerente con D12 |
 | P14 | Consultazione | Persone e tag sono filtri esatti; il testo libero ordina per significato; azione "Trova simili" |  |
 | P15 | Vocabolario | Il nucleo si forma dopo almeno 1.000 foto con tag |  |
-| P16 | Tagging | Didascalie VLM (livello D) disponibili solo con GPU ≥ 8 GB |  |
+| P16 | Tagging | Didascalie VLM (livello D) disponibili solo con GPU NVIDIA ≥ 12 GB | Rivista il 13 ott 2026 su indicazione dell'utente (era ≥ 8 GB): misurato Qwen2.5-VL-7B int4 da solo con picco ~10 GB (pesi 6,5 GB, ONNX Runtime GenAI, generazione), oltre a Windows e agli altri modelli |
 | P17 | Profili | Parametri esposti: scarto per mosso sotto soglia, intervallo massimo raffica (2,0 s), similarità minima (0,90), pari merito entro 0,02 | Valori iniziali da tarare |
 | P18 | Impostazioni | Cambio lingua applicato al riavvio della finestra (non a caldo) | Semplifica la localizzazione |
 | P19 | Catalogo | Estensione del file catalogo `.pfdb` |  |
@@ -1189,7 +1199,10 @@ Decisioni emerse in Design (confermate), funzioni rinviate a dopo la stabilizzaz
 | Vista Numeri: foto intera con i riquadri delle vetture (ambra = numero incerto, grigio = altra vettura riconosciuta), "Conferma e scrivi XMP" nella vista, numero di eventi in cui è usato un elenco (tavola 2c); oggi ritagli con le letture e conferma dalla Revisione | Tappa 4.5 |
 | Elenco iscritti: modifica in tabella (oggi come testo, una vettura per riga) | Tappa 4.5 |
 | Ricampionamento più veloce per l'OCR (oggi il ridimensionamento antialias del fotogramma costa ~65 ms a 1600 px) | Tappa 4.6 |
-| Didascalie VLM (livello D): Qwen2.5-VL-7B con un nostro export, quando sarà percorribile dentro `IInferenceProvider` con test di parità | F5-2 |
+| Didascalie VLM dentro `IInferenceProvider` con test di parità esatta (oggi ONNX Runtime GenAI in un processo separato, eccezione U4) | Fase 5b |
+| Livello D più vicino al modello originale: quantizzazione calibrata (AWQ/GPTQ) o fp16 sulle GPU da 24 GB (oggi int4 RTN: 0/10 didascalie identiche, 53% di token in comune con PyTorch) | Tappa 5b.5 |
+| Livello D su GPU da 8-10 GB (oggi ≥ 12 GB: il 7B int4 arriva a ~10 GB) | Tappa 5b.5 |
+| Eliminazione dei pesi originali del VLM dall'app dopo la conversione (oggi a mano dalla cartella) | Tappa 5b.2 |
 | Didascalie più veloci: cache dell'encoder sulla GPU (IO binding) invece di ricopiarla a ogni passo del decoder; Florence-2 large come alternativa | Tappa 5.1 |
 | Rigenerazione: scambio dell'indice embedding quando ci sarà un secondo modello di embedding | Tappa 5.4 |
 | Registro della sincronizzazione XMP consultabile nell'interfaccia (oggi nel catalogo e nel riepilogo delle Impostazioni) | Tappa 5.6 |

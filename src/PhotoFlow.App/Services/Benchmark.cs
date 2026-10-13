@@ -39,7 +39,7 @@ public sealed record BenchmarkResult(DateTimeOffset At, int Photos, string Backe
 public sealed class BenchmarkRunner(PhotoFlowHost host)
 {
     public const int DefaultPhotos = 50;
-    public static readonly string[] StageKeys = ["Preview", "Culling", "Faces", "Embedding", "Tags", "Captions"];
+    public static readonly string[] StageKeys = ["Preview", "Culling", "Faces", "Embedding", "Tags", "Captions", "VlmCaptions"];
 
     /// <exception cref="InvalidOperationException">No library with photos.</exception>
     public async Task<BenchmarkResult> RunAsync(int photos, IProgress<(int Done, int Total)>? progress, CancellationToken ct)
@@ -50,10 +50,12 @@ public sealed class BenchmarkRunner(PhotoFlowHost host)
             throw new InvalidOperationException("No photo in the libraries.");
         }
 
+        // The models stay loaded while measured: a level D pass waits (and is measured at the end on its own).
+        using var turn = await host.EnterAnalysisAsync(ct).ConfigureAwait(false);
         var components = await host.GetAnalysisComponentsAsync(ct).ConfigureAwait(false);
         var profile = host.Profiles.Get("events") with { Faces = FaceMode.Off };
         var signalsOnly = new CullingAnalyzer(components.Operations, components.Objects, null);
-        var total = (sample.Count * 7) + 1;
+        var total = (sample.Count * 8) + 1;
         var done = 0;
         void Step()
         {
@@ -164,6 +166,25 @@ public sealed class BenchmarkRunner(PhotoFlowHost host)
             }
         }).ConfigureAwait(false);
         var parallel = clock.Elapsed.TotalMilliseconds / sample.Count;
+
+        // Level D (phase 5b) as the jobs run it: the other models released, the VLM alone; after a warm-up photo.
+        turn.Dispose();
+        BenchmarkStage? vlmStage = null;
+        await host.Vlm.RunAsync(async captioner =>
+        {
+            await captioner.CaptionAsync((await host.Previews.GetPreviewAsync(sample[0], CullingSignals.ReferenceLongSide, ct).ConfigureAwait(false)).Image, ct)
+                .ConfigureAwait(false);
+            vlmStage = await MeasureAsync("VlmCaptions", async () =>
+            {
+                foreach (var path in sample)
+                {
+                    var preview = await host.Previews.GetPreviewAsync(path, CullingSignals.ReferenceLongSide, ct).ConfigureAwait(false);
+                    await captioner.CaptionAsync(preview.Image, ct).ConfigureAwait(false);
+                    Step();
+                }
+            }).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
+        stages.Add(vlmStage ?? Skipped("VlmCaptions"));
 
         var backend = host.DescribeAnalysis().Backend.ToString();
         return new BenchmarkResult(DateTimeOffset.UtcNow, sample.Count, backend, stages, parallel, workers);

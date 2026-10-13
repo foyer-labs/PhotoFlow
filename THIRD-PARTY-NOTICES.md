@@ -16,6 +16,8 @@ version (spec §16).
 | SkiaSharp (Skia) | 3.119.4 | MIT (Skia: BSD-3-Clause) | JPEG decoding, thumbnails |
 | Magick.NET-Q8-AnyCPU (ImageMagick) | 15.0.0 | Apache-2.0 (ImageMagick License) | Fallback RAW decoding. Magick.Native links **statically** LibRaw (LGPL-2.1 or CDDL-1.0), libheif and libde265 (LGPL-3.0): their sources are available from the upstream projects and on request; relinking terms to be reviewed (R19) |
 | Microsoft.ML.OnnxRuntime.Gpu | 1.31.0 | MIT | Inference (CPU and CUDA execution providers) |
+| Microsoft.ML.OnnxRuntimeGenAI.Cuda | 0.17.1 | MIT | Level D captions, only in the separate `PhotoFlow.Vlm` process (phase 5b, exception U4) |
+| Olive recipe for Qwen2.5-VL (`microsoft/olive-recipes@232aa122155f`) | — | MIT (`tools/vlm/recipe/LICENSE`); `codes/modeling_qwen2_5_vl.py`: Apache-2.0 (Qwen Team, Hugging Face) | Conversion scripts shipped as `vlm/`, run with the Python of the user's PC |
 | Microsoft.Data.Sqlite (SQLitePCLRaw, SQLite) | 10.0.12 | MIT (SQLitePCLRaw: Apache-2.0; SQLite: public domain) | Catalog |
 | Dapper | 2.1.89 | Apache-2.0 | Catalog queries |
 | System.IO.Hashing | 10.0.12 | MIT | xxHash3 verified copy |
@@ -28,6 +30,8 @@ version (spec §16).
 | Component | License | Conditions |
 | --- | --- | --- |
 | NVIDIA CUDA runtime libraries (cudart, cuBLAS, cuFFT, cuRAND, NVRTC, nvJitLink) and cuDNN — the "GPU pack" (`models/gpu-runtime.json`) | NVIDIA CUDA Toolkit EULA, NVIDIA cuDNN Software License Agreement | Downloaded from NVIDIA's redistribution archives only after the user accepts the licenses in the first run; verified with SHA-256; kept unmodified with their `LICENSE.txt`; used only by PhotoFlow and only on NVIDIA GPUs |
+| Python packages of the level D conversion (`tools/vlm/requirements.txt`: PyTorch, transformers, ONNX, ONNX Runtime, ONNX Runtime GenAI, Olive) | BSD-3-Clause, Apache-2.0, MIT | Installed by `pip` from PyPI and the PyTorch index into a private environment of PhotoFlow, only when the user starts the conversion; never bundled |
+| Qwen2.5-VL-7B-Instruct original weights | Apache-2.0 | Downloaded by the user from Hugging Face; PhotoFlow verifies them (SHA-256) and converts them on the PC |
 | Machine-learning models (`models/manifest.json`) | Per model, shown before download (Apache-2.0, MIT; InsightFace buffalo_l: non-commercial research only) | Downloaded with SHA-256 verification; licenses that require it (buffalo_l) are accepted explicitly before the download |
 
 ## Development only (not distributed)

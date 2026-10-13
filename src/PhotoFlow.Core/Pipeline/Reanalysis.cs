@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
+using PhotoFlow.Core.Catalog;
+
 namespace PhotoFlow.Core.Pipeline;
 
 /// <summary>What a regeneration computes again (spec §5, "Cosa": selectable).</summary>
@@ -57,7 +59,24 @@ public sealed record StagedCulling(Analysis.AnalyzerResult Analysis, string Prof
 
 /// <summary>The versions the current models would record (to find the results of older models).</summary>
 /// <param name="AnalyzerId">Id of the culling analyzer whose results carry <paramref name="Culling"/>.</param>
-public sealed record ModelVersions(string AnalyzerId, string? Culling, string? Embedding, string? Fingerprints, string? Tags, string? Captions, string? Ocr);
+/// <param name="VlmCaptions">Version of the level D captioner (phase 5b), when available.</param>
+/// <param name="CaptionsLanguage">Language of the level C captions: a caption is compared with the model of its language.</param>
+/// <param name="VlmCaptionsLanguage">Language of the level D captions.</param>
+public sealed record ModelVersions(string AnalyzerId, string? Culling, string? Embedding, string? Fingerprints, string? Tags, string? Captions, string? Ocr,
+    string? VlmCaptions = null, string CaptionsLanguage = "en", string VlmCaptionsLanguage = "it")
+{
+    /// <summary>
+    /// Which captioners a regeneration runs on a photo: the one of a language whose automatic caption an older model
+    /// wrote (with "forza tutto", every captioner available). A language without a current model is left alone.
+    /// </summary>
+    public (bool Captions, bool VlmCaptions) CaptionsToRedo(IEnumerable<Caption> captions, bool forceAll)
+    {
+        var automatic = captions.Where(c => c.Origin == CaptionOrigin.Automatic).ToList();
+        bool Redo(string? version, string language) => version is not null
+            && (forceAll || automatic.Any(c => c.Language == language && c.ModelVersion != version));
+        return (Redo(Captions, CaptionsLanguage), Redo(VlmCaptions, VlmCaptionsLanguage));
+    }
+}
 
 /// <summary>Differences between the staged results of a regeneration and the catalog (spec §5: "Anteprima delle differenze").</summary>
 public sealed record ReanalysisPreview(

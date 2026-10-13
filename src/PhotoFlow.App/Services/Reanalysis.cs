@@ -78,15 +78,18 @@ public static class Reanalysis
                         keptManual += old.Count(f => !matched.Contains(f.Id) && f.AssignmentOrigin == AssignmentOrigin.Manual);
                         break;
                     case ReanalysisParts.Captions:
-                        var caption = JsonSerializer.Deserialize<GeneratedCaption>(json, Json)!;
-                        var existing = await catalog.Captions.GetAsync(asset.Key, ct).ConfigureAwait(false);
-                        if (existing is { Origin: CaptionOrigin.Manual })
+                        var current = (await catalog.Captions.GetAllAsync(asset.Key, ct).ConfigureAwait(false)).ToDictionary(c => c.Language);
+                        foreach (var caption in JsonSerializer.Deserialize<List<GeneratedCaption>>(json, Json)!)
                         {
-                            captionsProtected++;
-                        }
-                        else if (existing?.Text != caption.Text)
-                        {
-                            captions++;
+                            var existing = current.GetValueOrDefault(caption.Language);
+                            if (existing is { Origin: CaptionOrigin.Manual })
+                            {
+                                captionsProtected++;
+                            }
+                            else if (existing?.Text != caption.Text)
+                            {
+                                captions++;
+                            }
                         }
 
                         break;
@@ -151,8 +154,11 @@ public static class Reanalysis
                         [.. tags.Select(t => (t.TagKey, (double?)t.Confidence))], ct).ConfigureAwait(false);
                     break;
                 case ReanalysisParts.Captions:
-                    var caption = JsonSerializer.Deserialize<GeneratedCaption>(json, Json)!;
-                    await catalog.Captions.SetAutomaticAsync(assetId, caption.Language, caption.Text, caption.ModelVersion, ct).ConfigureAwait(false);
+                    foreach (var caption in JsonSerializer.Deserialize<List<GeneratedCaption>>(json, Json)!)
+                    {
+                        await catalog.Captions.SetAutomaticAsync(assetId, caption.Language, caption.Text, caption.ModelVersion, ct).ConfigureAwait(false);
+                    }
+
                     break;
                 case ReanalysisParts.Ocr:
                     var readings = JsonSerializer.Deserialize<List<OcrReading>>(json, Json)!;

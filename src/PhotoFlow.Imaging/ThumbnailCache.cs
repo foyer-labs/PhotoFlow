@@ -42,7 +42,7 @@ public sealed class ThumbnailCache : IThumbnailStore
         }
 
         var thumbnail = ImageTransforms.FitWithin(preview, Size);
-        var encoded = Encode(thumbnail);
+        var encoded = SkiaImageOperations.Jpeg(thumbnail, Quality);
         _fileSystem.CreateDirectory(Path.GetDirectoryName(path)!);
         var temp = path + ".tmp";
         await using (var stream = _fileSystem.OpenWrite(temp))
@@ -60,23 +60,5 @@ public sealed class ThumbnailCache : IThumbnailStore
         }
 
         return path;
-    }
-
-    private static byte[] Encode(RgbImage image)
-    {
-        var rgba = new byte[image.Width * image.Height * 4];
-        var rgb = image.Pixels.Span;
-        for (int i = 0, j = 0; i < rgb.Length; i += 3, j += 4)
-        {
-            rgba[j] = rgb[i];
-            rgba[j + 1] = rgb[i + 1];
-            rgba[j + 2] = rgb[i + 2];
-            rgba[j + 3] = 255;
-        }
-
-        var info = new SKImageInfo(image.Width, image.Height, SKColorType.Rgba8888, SKAlphaType.Opaque);
-        using var skImage = SKImage.FromPixelCopy(info, rgba);
-        using var data = skImage.Encode(SKEncodedImageFormat.Jpeg, Quality);
-        return data.ToArray();
     }
 }

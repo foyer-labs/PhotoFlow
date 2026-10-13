@@ -34,6 +34,7 @@ Il test di un'invariante si scrive **prima** del codice che la riguarda.
 - Tutti i percorsi passano da `IAppPaths`. Nessun percorso scritto nel codice.
 - Ricerca testuale e vettoriale solo tramite `ISearchIndex` (predisposizione PostgreSQL).
 - Backend di inferenza solo tramite `IInferenceProvider` (CUDA / CoreML / CPU; nuovi backend solo dopo i test di parità).
+  **Eccezione approvata dall'utente (13 ott 2026, decisione U4 in `docs/plans/fase-5b.md`):** le didascalie VLM (livello D, Qwen2.5-VL-7B) girano con ONNX Runtime GenAI in un processo separato (`PhotoFlow.Vlm`) dietro `IImageCaptioner`, con verifica approssimata contro il modello originale (spec §5) invece della parità esatta. Nessun altro modello può usare questa via senza una nuova decisione.
 - Pipeline: fasi per foto collegate da `System.Threading.Channels` limitati; barriere di lotto come `IBatchStage`.
 - Dependency injection con `Microsoft.Extensions.DependencyInjection`; log con `ILogger` (Serilog come sink).
 

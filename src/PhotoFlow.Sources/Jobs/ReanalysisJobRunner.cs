@@ -2,6 +2,7 @@
 
 using System.Text.Json;
 using PhotoFlow.Core.Catalog;
+using PhotoFlow.Core.Imaging;
 using PhotoFlow.Core.IO;
 using PhotoFlow.Core.Pipeline;
 using PhotoFlow.Core.Tagging;
@@ -12,9 +13,11 @@ namespace PhotoFlow.Sources.Jobs;
 /// Regeneration (job <c>Reanalyze</c>, spec §5, D14). The photos of the perimeter whose results come from an older model
 /// (or all, with "forza tutto") are analyzed again with the current models; the new results only go to the staging area
 /// (<c>ReanalysisStaging</c>): the catalog does not change until the user confirms, after the preview of the differences.
-/// A trial on a sample works the same way on a few photos. Files are only read.
+/// A trial on a sample works the same way on a few photos. Level D (phase 5b) runs after the photos, in a pass of its
+/// own with the GPU free (<see cref="IExclusiveCaptioning"/>), and its captions join the staged ones. Files are only read.
 /// </summary>
-public sealed class ReanalysisJobRunner(ICatalog catalog, IFileSystem fileSystem, IPhotoProcessor processor, Func<CancellationToken, Task<ModelVersions>> versions)
+public sealed class ReanalysisJobRunner(ICatalog catalog, IFileSystem fileSystem, IPhotoProcessor processor, Func<CancellationToken, Task<ModelVersions>> versions,
+    IExclusiveCaptioning? vlm = null, IPreviewProvider? previews = null)
     : IJobRunner
 {
     public static readonly JsonSerializerOptions Json = new();
@@ -124,8 +127,73 @@ public sealed class ReanalysisJobRunner(ICatalog catalog, IFileSystem fileSystem
             return new JobRunSummary(JobState.Paused, completed, failed, JobPauseReason.UserRequest);
         }
 
+        try
+        {
+            await VlmPassAsync(jobId, settings, current, ct).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            await catalog.Jobs.SetStateAsync(jobId, JobState.Paused, CancellationToken.None).ConfigureAwait(false);
+            return new JobRunSummary(JobState.Paused, completed, failed, JobPauseReason.UserRequest);
+        }
+
         await catalog.Jobs.SetStateAsync(jobId, JobState.Completed, CancellationToken.None).ConfigureAwait(false);
         return new JobRunSummary(JobState.Completed, completed, failed, null);
+    }
+
+    /// <summary>
+    /// Level D of the regeneration: the photos whose Italian caption an older model wrote (all, with "forza tutto")
+    /// and not staged yet get a new one, added to the staged captions of the photo.
+    /// </summary>
+    private async Task VlmPassAsync(long jobId, ReanalysisSettings settings, ModelVersions current, CancellationToken ct)
+    {
+        if (vlm is null || previews is null || current.VlmCaptions is not { } version || !settings.Parts.HasFlag(ReanalysisParts.Captions))
+        {
+            return;
+        }
+
+        var staged = (await catalog.Reanalysis.ListAsync(jobId, ct).ConfigureAwait(false))
+            .Where(s => s.Part == ReanalysisParts.Captions)
+            .ToDictionary(s => s.AssetId, s => JsonSerializer.Deserialize<List<GeneratedCaption>>(s.PayloadJson, Json)!);
+        var assets = new List<long>();
+        foreach (var item in (await catalog.Jobs.GetItemsAsync(jobId, ct).ConfigureAwait(false)).Where(i => i.State == JobItemState.Done && i.AssetId is not null))
+        {
+            var assetId = item.AssetId!.Value;
+            var redo = current.CaptionsToRedo(await catalog.Captions.GetAllAsync(assetId, ct).ConfigureAwait(false), settings.Mode == ReanalysisMode.ForceAll).VlmCaptions;
+            if (redo && !(staged.TryGetValue(assetId, out var list) && list.Any(c => c.Language == current.VlmCaptionsLanguage && c.ModelVersion == version)))
+            {
+                assets.Add(assetId);
+            }
+        }
+
+        if (assets.Count == 0)
+        {
+            return;
+        }
+
+        await vlm.RunAsync(async captioner =>
+        {
+            var failures = 0;
+            foreach (var assetId in assets)
+            {
+                if (await VlmCaptionStage.CaptionAsync(catalog, fileSystem, previews, captioner, assetId, ct).ConfigureAwait(false) is not { } text)
+                {
+                    if (++failures >= VlmCaptionStage.MaxConsecutiveFailures)
+                    {
+                        break; // the model does not run here now: the photos left keep their caption
+                    }
+
+                    continue;
+                }
+
+                failures = 0;
+
+                var list = staged.GetValueOrDefault(assetId) ?? [];
+                list.RemoveAll(c => c.Language == captioner.Language);
+                list.Add(new GeneratedCaption(captioner.Language, text, captioner.ModelVersion));
+                await catalog.Reanalysis.StageAsync(jobId, assetId, ReanalysisParts.Captions, JsonSerializer.Serialize(list, Json), CancellationToken.None).ConfigureAwait(false);
+            }
+        }, ct).ConfigureAwait(false);
     }
 
     /// <summary>The parts of a photo made by older models (all the chosen parts with "forza tutto").</summary>
@@ -137,7 +205,7 @@ public sealed class ReanalysisJobRunner(ICatalog catalog, IFileSystem fileSystem
         var available = settings.Parts
             & ~(current.Embedding is null ? ReanalysisParts.Embedding : 0)
             & ~(current.Tags is null ? ReanalysisParts.Tags : 0)
-            & ~(current.Captions is null ? ReanalysisParts.Captions : 0)
+            & ~(current.Captions is null && current.VlmCaptions is null ? ReanalysisParts.Captions : 0)
             & ~(current.Ocr is null ? ReanalysisParts.Ocr : 0)
             & ~(current.Culling is null ? ReanalysisParts.Culling | ReanalysisParts.Faces : 0);
         if (settings.Mode == ReanalysisMode.ForceAll)
@@ -175,7 +243,7 @@ public sealed class ReanalysisJobRunner(ICatalog catalog, IFileSystem fileSystem
         }
 
         if (available.HasFlag(ReanalysisParts.Captions)
-            && await catalog.Captions.GetAsync(assetId, ct).ConfigureAwait(false) is { Origin: CaptionOrigin.Automatic } caption && caption.ModelVersion != current.Captions)
+            && current.CaptionsToRedo(await catalog.Captions.GetAllAsync(assetId, ct).ConfigureAwait(false), forceAll: false) is (true, _) or (_, true))
         {
             stale |= ReanalysisParts.Captions;
         }
@@ -195,6 +263,14 @@ public sealed class ReanalysisJobRunner(ICatalog catalog, IFileSystem fileSystem
         try
         {
             var parts = await StalePartsAsync(catalog, assetId, settings, current, ct).ConfigureAwait(false);
+            var (captionsC, _) = parts.HasFlag(ReanalysisParts.Captions)
+                ? current.CaptionsToRedo(await catalog.Captions.GetAllAsync(assetId, ct).ConfigureAwait(false), settings.Mode == ReanalysisMode.ForceAll)
+                : (false, false);
+            if (!captionsC)
+            {
+                parts &= ~ReanalysisParts.Captions; // level D only: done by the pass after the photos
+            }
+
             if (parts != ReanalysisParts.None)
             {
                 var path = await AssetFiles.LocateAsync(catalog, fileSystem, assetId, ct).ConfigureAwait(false)
@@ -203,7 +279,7 @@ public sealed class ReanalysisJobRunner(ICatalog catalog, IFileSystem fileSystem
                 var previous = (await catalog.Analysis.GetResultsAsync([assetId], current.AnalyzerId, ct).ConfigureAwait(false)).GetValueOrDefault(assetId);
                 var profile = previous?.ProfileId ?? settings.ProfileId;
                 var result = await processor.ProcessAsync(new PhotoInput(path, asset?.FullHash ?? asset?.QuickHash, asset?.Exif),
-                    new ProcessingOptions(profile, null, parts.HasFlag(ReanalysisParts.Tags), parts.HasFlag(ReanalysisParts.Captions)), ct).ConfigureAwait(false);
+                    new ProcessingOptions(profile, null, parts.HasFlag(ReanalysisParts.Tags), captionsC), ct).ConfigureAwait(false);
                 async Task Stage(ReanalysisParts part, object payload) =>
                     await catalog.Reanalysis.StageAsync(jobId, assetId, part, JsonSerializer.Serialize(payload, Json), CancellationToken.None).ConfigureAwait(false);
                 if (parts.HasFlag(ReanalysisParts.Culling))
@@ -228,7 +304,7 @@ public sealed class ReanalysisJobRunner(ICatalog catalog, IFileSystem fileSystem
 
                 if (parts.HasFlag(ReanalysisParts.Captions) && result.Caption is { } caption)
                 {
-                    await Stage(ReanalysisParts.Captions, caption).ConfigureAwait(false);
+                    await Stage(ReanalysisParts.Captions, new List<GeneratedCaption> { caption }).ConfigureAwait(false);
                 }
 
                 if (parts.HasFlag(ReanalysisParts.Ocr) && result.Readings is { } readings)

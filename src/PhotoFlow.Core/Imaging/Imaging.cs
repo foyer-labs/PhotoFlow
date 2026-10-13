@@ -37,6 +37,9 @@ public interface IImageOperations
 
     /// <summary>Resamples the fractional source <paramref name="box"/> (Pillow <c>box</c> semantics) to the given size.</summary>
     RgbImage Resize(RgbImage image, SourceBox box, int width, int height, ResampleMode mode);
+
+    /// <summary>The image as a JPEG file (to hand it to another process, e.g. the level D captions).</summary>
+    byte[] EncodeJpeg(RgbImage image, int quality);
 }
 
 /// <summary>Fractional source rectangle in pixels (single precision, as Pillow's <c>box</c>).</summary>

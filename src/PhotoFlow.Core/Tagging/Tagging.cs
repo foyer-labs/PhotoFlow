@@ -46,6 +46,9 @@ public enum TagLevels
     /// <summary>C: Florence-2 captions (optional, spec §5).</summary>
     Caption = 4,
 
+    /// <summary>D: Italian captions of the VLM (optional, GPU only; phase 5b).</summary>
+    VlmCaption = 8,
+
     Default = ZeroShot | Tagger,
 }
 
@@ -73,4 +76,20 @@ public interface IImageCaptioner
     string Language { get; }
 
     Task<string> CaptionAsync(RgbImage image, CancellationToken ct);
+}
+
+/// <summary>
+/// Level D (phase 5b) needs the GPU for itself: the VLM alone peaks at ~10 GB (P16: GPU ≥ 12 GB). A pass waits for
+/// the analyses in progress, frees the GPU of the other models, runs <paramref name="work"/> with the captioner and
+/// frees it again; the analyses waiting meanwhile go on after.
+/// </summary>
+public interface IExclusiveCaptioning
+{
+    /// <summary>Version of the captioner, null when level D cannot run here (model or GPU).</summary>
+    string? ModelVersion { get; }
+
+    /// <summary>Language of the captions ("it").</summary>
+    string Language { get; }
+
+    Task RunAsync(Func<IImageCaptioner, Task> work, CancellationToken ct);
 }

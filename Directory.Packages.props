@@ -27,6 +27,8 @@
     <PackageVersion Include="Magick.NET-Q8-AnyCPU" Version="15.0.0" />
     <!-- CUDA 13 + cuDNN 9 build, includes the CPU provider (decision F1-2). -->
     <PackageVersion Include="Microsoft.ML.OnnxRuntime.Gpu" Version="1.31.0" />
+    <!-- Level D captions only, in the PhotoFlow.Vlm process (phase 5b, decision U4); MIT; needs ORT GPU >= 1.30. -->
+    <PackageVersion Include="Microsoft.ML.OnnxRuntimeGenAI.Cuda" Version="0.17.1" />
   </ItemGroup>
 
   <ItemGroup Label="Ingest and catalog">

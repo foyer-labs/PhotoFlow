@@ -23,7 +23,13 @@ public sealed class ArchitectureTests
         ["PhotoFlow.Imaging"] = ["SkiaSharp", "Magick.NET"],
         ["PhotoFlow.Inference"] = ["Microsoft.ML.OnnxRuntime"],
         ["PhotoFlow.App"] = ["Avalonia", "CommunityToolkit.Mvvm", "Microsoft.Extensions.", "Serilog"],
+
+        // Level D captions in a process of their own (phase 5b, exception U4 of CLAUDE.md §3).
+        ["PhotoFlow.Vlm"] = ["Microsoft.ML.OnnxRuntimeGenAI"],
     };
+
+    /// <summary>Projects that run on their own and share nothing with the application but a protocol.</summary>
+    private static readonly HashSet<string> Standalone = ["PhotoFlow.Vlm"];
 
     public static TheoryData<string> Projects => new(AllowedPackages.Keys);
 
@@ -56,7 +62,7 @@ public sealed class ArchitectureTests
     [MemberData(nameof(Projects))]
     public void Every_project_except_core_references_core(string project)
     {
-        if (project == "PhotoFlow.Core")
+        if (project == "PhotoFlow.Core" || Standalone.Contains(project))
         {
             return;
         }

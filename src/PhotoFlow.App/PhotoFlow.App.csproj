@@ -17,6 +17,13 @@
     <ProjectReference Include="..\PhotoFlow.Faces\PhotoFlow.Faces.csproj" />
     <ProjectReference Include="..\PhotoFlow.Tagging\PhotoFlow.Tagging.csproj" />
     <ProjectReference Include="..\PhotoFlow.Data\PhotoFlow.Data.csproj" />
+    <!-- Level D captions process (phase 5b, U4): built and copied next to the application, never called in-process. -->
+    <ProjectReference Include="..\PhotoFlow.Vlm\PhotoFlow.Vlm.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Conversion of the level D model on the user's PC (phase 5b, U2-U3): script, pinned requirements, Olive recipe. -->
+    <Content Include="..\..\tools\vlm\**\*" Exclude="..\..\tools\vlm\**\__pycache__\**;..\..\tools\vlm\parity.py" LinkBase="vlm" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

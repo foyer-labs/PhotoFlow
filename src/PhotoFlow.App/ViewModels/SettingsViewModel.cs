@@ -10,6 +10,7 @@ using CommunityToolkit.Mvvm.Input;
 using PhotoFlow.App.Commands;
 using PhotoFlow.App.Localization;
 using PhotoFlow.App.Services;
+using PhotoFlow.App.Services.Vlm;
 using PhotoFlow.Analysis.Quality;
 using PhotoFlow.Core.Imaging;
 using PhotoFlow.Core.Inference;
@@ -44,10 +45,45 @@ public sealed partial class ModelRowViewModel(ModelInfo model, bool available) :
 
     public bool RequiresAcceptance => Model.License.RequiresAcceptance && IsAvailable;
 
-    public bool CanInstall => IsAvailable && !IsInstalled;
+    public bool CanInstall => IsAvailable && !IsInstalled && !IsManualConvert;
+
+    /// <summary>Downloaded by the user and converted here (phase 5b, U2): no download button, a conversion instead.</summary>
+    public bool IsManualConvert => Model.ManualConvert && IsAvailable;
+
+    /// <summary>Only downloaded models can be verified against the manifest (a converted one has other files).</summary>
+    public bool CanVerify => IsInstalled && !Model.ManualConvert;
+
+    public bool CanConvert => IsManualConvert && !IsConverting;
+
+    /// <summary>The files to put in the source folder.</summary>
+    public string SourceFilesText => string.Join(", ", Model.Files.Select(f => f.Path));
+
+    /// <summary>Where the user puts the original files.</summary>
+    [ObservableProperty]
+    private string _sourceFolder = string.Empty;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CanInstall), nameof(Status))]
+    [NotifyPropertyChangedFor(nameof(CanConvert), nameof(CanRemoveEnvironment))]
+    private bool _isConverting;
+
+    /// <summary>The private Python environment of the conversion is there (~5 GB, removable once converted).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanRemoveEnvironment))]
+    private bool _environmentExists;
+
+    public bool CanRemoveEnvironment => IsManualConvert && EnvironmentExists && !IsConverting && !ConfirmingRemoval;
+
+    /// <summary>The removal of the environment waits for a second, explicit confirmation.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanRemoveEnvironment))]
+    private bool _confirmingRemoval;
+
+    /// <summary>The step of the conversion, or its outcome.</summary>
+    [ObservableProperty]
+    private string? _conversionText;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanInstall), nameof(CanVerify), nameof(Status))]
     private bool _isInstalled;
 
     [ObservableProperty]
@@ -70,7 +106,7 @@ public sealed partial class ModelRowViewModel(ModelInfo model, bool available) :
 
     public string Status => !IsAvailable
         ? Strings.Format("Settings.ComesWithPhase", Model.Phase.ToString(CultureInfo.InvariantCulture))
-        : Verification ?? Strings.Get(IsInstalled ? "Models.Status.Installed" : "Models.Status.NotDownloaded");
+        : Verification ?? Strings.Get(IsInstalled ? "Models.Status.Installed" : Model.ManualConvert ? "Models.Status.ToConvert" : "Models.Status.NotDownloaded");
 
     partial void OnVerificationChanged(string? value) => OnPropertyChanged(nameof(Status));
 }
@@ -87,6 +123,8 @@ public enum SettingsPick
     ExportCatalog,
     ImportCatalog,
     ImportRoot,
+    MoveCatalog,
+    OpenCatalog,
 }
 
 /// <summary>A library of a catalog to import, with the folder where its photos are now (spec §9: remapping).</summary>
@@ -474,6 +512,11 @@ public sealed partial class SettingsViewModel : PageViewModel
             {
                 row.IsInstalled = _host.Models.IsInstalled(row.Model.Id);
                 row.LicenseAccepted = _host.Settings.AcceptedModelLicenses.Contains(row.Model.Id);
+                if (row.Model.ManualConvert)
+                {
+                    row.SourceFolder = _host.Models.SourceDirectory(row.Model.Id);
+                    row.EnvironmentExists = _host.CreateVlmConversion().EnvironmentExists;
+                }
             }
 
             UpdateModelsInUse();
@@ -556,6 +599,140 @@ public sealed partial class SettingsViewModel : PageViewModel
         });
         row.IsInstalled = _host.Models.IsInstalled(row.Model.Id);
     }
+
+    private CancellationTokenSource? _conversion;
+
+    /// <summary>Opens the folder where the user puts the original files of a model to convert (made when missing).</summary>
+    [RelayCommand]
+    private void OpenSourceFolder(ModelRowViewModel? row)
+    {
+        if (row is not { IsManualConvert: true })
+        {
+            return;
+        }
+
+        try
+        {
+            Directory.CreateDirectory(row.SourceFolder);
+            using var _ = Process.Start(new ProcessStartInfo(row.SourceFolder) { UseShellExecute = true });
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+            Message = Strings.Format("Browse.LaunchFailed", e.Message);
+        }
+    }
+
+    /// <summary>
+    /// Verifies the original files in the source folder and converts them (phase 5b, U2-U3): only with a GPU that can
+    /// run the model (P16). The steps are shown on the row; the original files are only read.
+    /// </summary>
+    [RelayCommand]
+    private async Task ConvertModelAsync(ModelRowViewModel? row)
+    {
+        if (row is not { CanConvert: true })
+        {
+            return;
+        }
+
+        if (!_host.VlmGpuReady)
+        {
+            row.ConversionText = Strings.Get("Vlm.GpuRequired");
+            return;
+        }
+
+        _conversion = new CancellationTokenSource();
+        row.IsConverting = true;
+        IsBusy = true;
+        try
+        {
+            var progress = new Progress<VlmConversionProgress>(p => row.ConversionText = VlmStageText(p));
+            var conversion = _host.CreateVlmConversion();
+            var token = _conversion.Token;
+            await Task.Run(() => conversion.ConvertAsync(row.Model.Id, progress, token), token);
+            row.IsInstalled = _host.Models.IsInstalled(row.Model.Id);
+            row.ConversionText = Strings.Get(await _host.ReloadModelsAsync(CancellationToken.None) ? "Vlm.Ready" : "Settings.Models.Restart");
+        }
+        catch (OperationCanceledException)
+        {
+            row.ConversionText = Strings.Get("Vlm.Cancelled");
+        }
+        catch (VlmConversionException e)
+        {
+            row.ConversionText = e.Stage == VlmConversionStage.Python
+                ? Strings.Get("Vlm.Error.Python")
+                : Strings.Format("Vlm.Error.Stopped", e.Message, e.LogPath ?? "—");
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException or System.ComponentModel.Win32Exception)
+        {
+            row.ConversionText = Strings.Format("Vlm.Error.Stopped", e.Message, "—");
+        }
+        finally
+        {
+            row.IsConverting = false;
+            row.EnvironmentExists = _host.CreateVlmConversion().EnvironmentExists;
+            IsBusy = false;
+            _conversion.Dispose();
+            _conversion = null;
+        }
+    }
+
+    /// <summary>First step: the row asks to confirm the removal of the environment.</summary>
+    [RelayCommand]
+    private static void RequestRemoveVlmEnvironment(ModelRowViewModel? row)
+    {
+        if (row is { CanRemoveEnvironment: true })
+        {
+            row.ConfirmingRemoval = true;
+        }
+    }
+
+    [RelayCommand]
+    private static void CancelRemoveVlmEnvironment(ModelRowViewModel? row)
+    {
+        if (row is not null)
+        {
+            row.ConfirmingRemoval = false;
+        }
+    }
+
+    /// <summary>Removes the private Python environment of the conversion once confirmed (internal files only, B1).</summary>
+    [RelayCommand]
+    private async Task RemoveVlmEnvironmentAsync(ModelRowViewModel? row)
+    {
+        if (row is not { ConfirmingRemoval: true, IsConverting: false })
+        {
+            return;
+        }
+
+        row.ConfirmingRemoval = false;
+        IsBusy = true;
+        try
+        {
+            var conversion = _host.CreateVlmConversion();
+            await Task.Run(conversion.RemoveEnvironment);
+            row.ConversionText = Strings.Get("Vlm.EnvironmentRemoved");
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            row.ConversionText = Strings.Format("Vlm.Error.Stopped", e.Message, "—");
+        }
+        finally
+        {
+            row.EnvironmentExists = _host.CreateVlmConversion().EnvironmentExists;
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
+    private void CancelConversion() => _conversion?.Cancel();
+
+    private static string VlmStageText(VlmConversionProgress p) => p.Stage switch
+    {
+        VlmConversionStage.Verify => Strings.Format("Vlm.Stage.Verify", (int)Math.Round((p.Fraction ?? 0) * 100)),
+        VlmConversionStage.Convert => Strings.Format("Vlm.Stage.Convert", (int)Math.Round((p.Fraction ?? 0) * 100), p.Detail ?? string.Empty),
+        VlmConversionStage.Done => Strings.Get("Vlm.Stage.Done"),
+        _ => Strings.Get("Vlm.Stage." + p.Stage),
+    };
 
     [RelayCommand]
     private async Task VerifyModelAsync(ModelRowViewModel? row)
@@ -998,6 +1175,75 @@ public sealed partial class SettingsViewModel : PageViewModel
             : Strings.Get("Settings.Catalog.NoBackup");
         SelectedBackup = Backups.FirstOrDefault();
         UpdatePendingRestore();
+        UpdateCatalogChange();
+    }
+
+    /// <summary>A move or another catalog waiting for the next start, or the outcome of the last one.</summary>
+    [ObservableProperty]
+    private string? _catalogChangeText;
+
+    [ObservableProperty]
+    private bool _hasPendingCatalogChange;
+
+    public bool CanChangeCatalogLocation => _host.CatalogLocation is not null;
+
+    [RelayCommand]
+    private void RequestMoveCatalog() => PickRequested?.Invoke(this, SettingsPick.MoveCatalog);
+
+    [RelayCommand]
+    private void RequestOpenCatalog() => PickRequested?.Invoke(this, SettingsPick.OpenCatalog);
+
+    /// <summary>Moves the catalog into <paramref name="folder"/> at the next start; the original stays where it is.</summary>
+    public void MoveCatalogTo(string folder)
+    {
+        try
+        {
+            _host.CatalogLocation?.RequestMove(folder);
+        }
+        catch (InvalidOperationException e)
+        {
+            Message = Strings.Format("Settings.Catalog.ChangeRefused", e.Message);
+        }
+
+        UpdateCatalogChange();
+    }
+
+    /// <summary>Uses another existing catalog from the next start; the current one stays as it is.</summary>
+    public async Task OpenCatalogAsync(string file)
+    {
+        if (_host.CatalogLocation is not { } location)
+        {
+            return;
+        }
+
+        try
+        {
+            await location.RequestOpenAsync(file, CancellationToken.None);
+        }
+        catch (InvalidOperationException e)
+        {
+            Message = Strings.Format("Settings.Catalog.ChangeRefused", e.Message);
+        }
+
+        UpdateCatalogChange();
+    }
+
+    [RelayCommand]
+    private void CancelCatalogChange()
+    {
+        _host.CatalogLocation?.CancelPending();
+        UpdateCatalogChange();
+    }
+
+    private void UpdateCatalogChange()
+    {
+        var location = _host.CatalogLocation;
+        HasPendingCatalogChange = location?.Pending is not null;
+        CatalogChangeText = location?.Pending is { } pending
+            ? Strings.Format(pending.Move ? "Settings.Catalog.MovePending" : "Settings.Catalog.OpenPending", pending.Target)
+            : location?.LastResult?.Split('|') is [var kind, var detail, var before]
+                ? Strings.Format("Settings.Catalog.Result." + kind, detail, before)
+                : null;
     }
 
     private void UpdatePendingRestore() =>

@@ -20,7 +20,7 @@ public sealed class ModelRegistryTests : IDisposable
     public void The_embedded_manifest_matches_the_repository_manifest()
     {
         var models = ModelRegistry.EmbeddedManifest();
-        Assert.Equal(9, models.Count);
+        Assert.Equal(10, models.Count);
         Assert.Equal(ModelFunction.Ocr, models.Single(m => m.Id == "ppocr-en").Function);
         Assert.True(models.Single(m => m.Id == "insightface-buffalo-l").License.RequiresAcceptance);
         Assert.Equal(ModelFunction.ObjectDetection, models.Single(m => m.Id == "dfine-s-obj2coco").Function);

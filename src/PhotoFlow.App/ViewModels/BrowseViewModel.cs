@@ -332,6 +332,10 @@ public sealed partial class BrowseViewModel : PageViewModel
     [ObservableProperty]
     private string _detailCaption = string.Empty;
 
+    /// <summary>The caption in the other languages (Florence-2 in English under the Italian one, U5), or empty.</summary>
+    [ObservableProperty]
+    private string _detailCaptionOther = string.Empty;
+
     /// <summary>Where the caption comes from: the model, or the user.</summary>
     [ObservableProperty]
     private string _detailCaptionOrigin = string.Empty;
@@ -694,11 +698,15 @@ public sealed partial class BrowseViewModel : PageViewModel
             DetailTags.Add(new DetailTagViewModel(tag.Tag.Id, tag.Tag.Reviewed && tag.Tag.Italian is { } it ? it : tag.Tag.English, tag.Assignment.Source == TagSource.Manual));
         }
 
-        _caption = await catalog.Captions.GetAsync(item.AssetId, CancellationToken.None);
-        if (_caption is null && await catalog.Assets.GetTwinAsync(item.AssetId, CancellationToken.None) is { } twin)
+        var captions = await catalog.Captions.GetAllAsync(item.AssetId, CancellationToken.None);
+        if (captions.Count == 0 && await catalog.Assets.GetTwinAsync(item.AssetId, CancellationToken.None) is { } twin)
         {
-            _caption = await catalog.Captions.GetAsync(twin, CancellationToken.None);
+            captions = await catalog.Captions.GetAllAsync(twin, CancellationToken.None);
         }
+
+        _caption = captions.FirstOrDefault();
+        DetailCaptionOther = string.Join("\n", captions.Skip(1).Where(c => c.Text.Length > 0)
+            .Select(c => $"{c.Language.ToUpperInvariant()} · {c.Text}"));
 
         DetailCaption = _caption is { Text.Length: > 0 } caption ? caption.Text : "—";
         DetailCaptionOrigin = _caption switch

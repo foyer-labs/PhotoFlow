@@ -70,7 +70,7 @@ public sealed class App : Application
                 _host?.DisposeAsync().AsTask().GetAwaiter().GetResult();
                 _services.Dispose();
             };
-            _ = StartHostAsync(window, _services.GetRequiredService<IAppPaths>(), logger);
+            _ = StartHostAsync(window, (DefaultAppPaths)_services.GetRequiredService<IAppPaths>(), logger);
         }
 
         base.OnFrameworkInitializationCompleted();
@@ -95,12 +95,27 @@ public sealed class App : Application
         }
     }
 
-    /// <summary>Opens catalog, exiftool and the other services off the UI thread, then shows the real pages.</summary>
-    private async Task StartHostAsync(MainWindow window, IAppPaths paths, Microsoft.Extensions.Logging.ILogger logger)
+    /// <summary>
+    /// Opens catalog, exiftool and the other services off the UI thread, then shows the real pages. At the very first
+    /// start the folder of the catalog is asked first (spec §9); a move or another catalog chosen in the settings is
+    /// applied before the catalog opens.
+    /// </summary>
+    private async Task StartHostAsync(MainWindow window, DefaultAppPaths defaults, Microsoft.Extensions.Logging.ILogger logger)
     {
+        var location = new CatalogLocationService(defaults);
+        if (location.NeedsFirstChoice)
+        {
+            ((MainWindowViewModel)window.DataContext!).ShowPage(new CatalogLocationViewModel(location, () => StartHostAsync(window, defaults, logger)));
+            return;
+        }
+
+        IAppPaths paths = defaults;
         try
         {
+            await Task.Run(() => location.ApplyPendingAsync(CancellationToken.None));
+            paths = location.Resolve();
             _host = await Task.Run(() => PhotoFlowHost.StartAsync(paths, CancellationToken.None));
+            _host.CatalogLocation = location;
             var viewModel = new MainWindowViewModel(_host);
             viewModel.RefreshStatus();
             window.DataContext = viewModel;
@@ -116,7 +131,7 @@ public sealed class App : Application
             logger.LogError(e, "Catalog damaged");
             var shell = (MainWindowViewModel)window.DataContext!;
             shell.StatusText = Strings.Format("Status.StartupFailed", e.Message);
-            shell.ShowPage(new CatalogProblemViewModel(e.Message, new CatalogRestoreService(paths), () => StartHostAsync(window, paths, logger)));
+            shell.ShowPage(new CatalogProblemViewModel(e.Message, new CatalogRestoreService(paths), () => StartHostAsync(window, defaults, logger)));
         }
         catch (Exception e) when (e is IOException or InvalidOperationException)
         {
