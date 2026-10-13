@@ -134,6 +134,62 @@ public sealed class SqliteCatalog : ICatalog
         return replaced;
     }
 
+    /// <summary>
+    /// Copies a closed catalog to a new place (spec §9: the catalog can be moved). The source lock is held during the
+    /// copy, the source is checked first and copied with SQLite's backup (journal files included); the source stays
+    /// where it is. Returns the full path of the copy.
+    /// </summary>
+    /// <exception cref="CatalogLockedException">The catalog is open in another window or on another PC.</exception>
+    /// <exception cref="CatalogCorruptException">The source is damaged; nothing was copied.</exception>
+    /// <exception cref="IOException">A file already exists at <paramref name="destinationPath"/>.</exception>
+    public static async Task<string> CopyAsync(string sourcePath, string destinationPath, CancellationToken ct)
+    {
+        var source = Path.GetFullPath(sourcePath);
+        var destination = Path.GetFullPath(destinationPath);
+        if (File.Exists(destination))
+        {
+            throw new IOException($"{destination} already exists.");
+        }
+
+        await using var lockStream = await AcquireLockAsync(source, ct).ConfigureAwait(false);
+        await CheckIntegrityAsync(source, ct).ConfigureAwait(false);
+        Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+        await using (var from = Connections.Open(source, readOnly: true))
+        await using (var to = Connections.Open(destination))
+        {
+            ct.ThrowIfCancellationRequested();
+            from.BackupDatabase(to);
+        }
+
+        await CheckIntegrityAsync(destination, ct).ConfigureAwait(false);
+        return destination;
+    }
+
+    /// <summary>True when <paramref name="path"/> is a PhotoFlow catalog in good health (read only, nothing changed).</summary>
+    public static async Task<bool> IsCatalogAsync(string path, CancellationToken ct)
+    {
+        if (!File.Exists(path) || new FileInfo(path).Length == 0)
+        {
+            return false;
+        }
+
+        try
+        {
+            await CheckIntegrityAsync(path, ct).ConfigureAwait(false);
+            await using var connection = Connections.Open(path, readOnly: true);
+            return await connection.ExecuteScalarAsync<long>(new CommandDefinition(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name IN ('SchemaVersion', 'Assets', 'Libraries');", cancellationToken: ct)).ConfigureAwait(false) == 3;
+        }
+        catch (CatalogCorruptException)
+        {
+            return false;
+        }
+        catch (SqliteException)
+        {
+            return false;
+        }
+    }
+
     public async Task<int> GetSchemaVersionAsync(CancellationToken ct) =>
         await RunAsync(c => c.ExecuteScalarAsync<int>(new CommandDefinition("SELECT COALESCE(MAX(Version), 0) FROM SchemaVersion;", cancellationToken: ct)), ct).ConfigureAwait(false);
 

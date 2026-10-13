@@ -123,6 +123,8 @@ public enum SettingsPick
     ExportCatalog,
     ImportCatalog,
     ImportRoot,
+    MoveCatalog,
+    OpenCatalog,
 }
 
 /// <summary>A library of a catalog to import, with the folder where its photos are now (spec §9: remapping).</summary>
@@ -1173,6 +1175,75 @@ public sealed partial class SettingsViewModel : PageViewModel
             : Strings.Get("Settings.Catalog.NoBackup");
         SelectedBackup = Backups.FirstOrDefault();
         UpdatePendingRestore();
+        UpdateCatalogChange();
+    }
+
+    /// <summary>A move or another catalog waiting for the next start, or the outcome of the last one.</summary>
+    [ObservableProperty]
+    private string? _catalogChangeText;
+
+    [ObservableProperty]
+    private bool _hasPendingCatalogChange;
+
+    public bool CanChangeCatalogLocation => _host.CatalogLocation is not null;
+
+    [RelayCommand]
+    private void RequestMoveCatalog() => PickRequested?.Invoke(this, SettingsPick.MoveCatalog);
+
+    [RelayCommand]
+    private void RequestOpenCatalog() => PickRequested?.Invoke(this, SettingsPick.OpenCatalog);
+
+    /// <summary>Moves the catalog into <paramref name="folder"/> at the next start; the original stays where it is.</summary>
+    public void MoveCatalogTo(string folder)
+    {
+        try
+        {
+            _host.CatalogLocation?.RequestMove(folder);
+        }
+        catch (InvalidOperationException e)
+        {
+            Message = Strings.Format("Settings.Catalog.ChangeRefused", e.Message);
+        }
+
+        UpdateCatalogChange();
+    }
+
+    /// <summary>Uses another existing catalog from the next start; the current one stays as it is.</summary>
+    public async Task OpenCatalogAsync(string file)
+    {
+        if (_host.CatalogLocation is not { } location)
+        {
+            return;
+        }
+
+        try
+        {
+            await location.RequestOpenAsync(file, CancellationToken.None);
+        }
+        catch (InvalidOperationException e)
+        {
+            Message = Strings.Format("Settings.Catalog.ChangeRefused", e.Message);
+        }
+
+        UpdateCatalogChange();
+    }
+
+    [RelayCommand]
+    private void CancelCatalogChange()
+    {
+        _host.CatalogLocation?.CancelPending();
+        UpdateCatalogChange();
+    }
+
+    private void UpdateCatalogChange()
+    {
+        var location = _host.CatalogLocation;
+        HasPendingCatalogChange = location?.Pending is not null;
+        CatalogChangeText = location?.Pending is { } pending
+            ? Strings.Format(pending.Move ? "Settings.Catalog.MovePending" : "Settings.Catalog.OpenPending", pending.Target)
+            : location?.LastResult?.Split('|') is [var kind, var detail, var before]
+                ? Strings.Format("Settings.Catalog.Result." + kind, detail, before)
+                : null;
     }
 
     private void UpdatePendingRestore() =>

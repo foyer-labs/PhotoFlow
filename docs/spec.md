@@ -554,7 +554,7 @@ Catalogo SQLite, foto identificate dall'hash del contenuto: tag, volti e decisio
 
 | Elemento | Posizione |
 | --- | --- |
-| Catalogo | Configurabile: locale (default) o percorso di rete |
+| Catalogo | Configurabile: locale (proposto) o percorso di rete. Si sceglie al primo avvio, prima che il catalogo venga creato, e si cambia in Impostazioni › Catalogo (vedi sotto) |
 | Miniature e cache | Sempre locali (\~2 GB per 60.000 foto), ricostruibili |
 | Profili e impostazioni | File JSON nella cartella dati utente |
 
@@ -564,6 +564,14 @@ Catalogo SQLite, foto identificate dall'hash del contenuto: tag, volti e decisio
 | Un PC alla volta | File di lock; apertura rifiutata con messaggio chiaro (dopo 2 s di nuovi tentativi: un processo appena terminato può rilasciare il lock in ritardo) |
 | Backup | A ogni chiusura e ogni giorno (all'avvio, se l'ultimo è più vecchio di 24 h); si tengono gli ultimi 10 (decisione B1); cache delle miniature entro 4 GB, temporanei oltre 24 h e archivi del pacchetto GPU installato ripuliti |
 | Integrità | Controllo all'apertura; ripristino proposto dall'ultimo backup. Un ripristino scelto nelle Impostazioni si applica al prossimo avvio; il catalogo sostituito si sposta in `backup/replaced-*` e non si cancella |
+
+**Scelta e cambio di posizione** (13 ott 2026, su richiesta dell'utente; la tavola 1a mostrava solo il percorso, "modificabile in Impostazioni"). La posizione scelta è salvata in `config/catalog-location.json`, nella cartella dati locale.
+
+- **Primo avvio.** Se non esiste ancora un catalogo, prima di crearlo PhotoFlow chiede la cartella e propone quella locale. Se nella cartella scelta c'è già un catalogo PhotoFlow valido, si usa quello.
+- **Sposta…** Il catalogo viene copiato nella nuova cartella al prossimo avvio, a catalogo chiuso: copia con il backup di SQLite e controllo d'integrità. L'originale resta dov'era e non viene mai cancellato. Se la cartella contiene già un catalogo, lo spostamento è rifiutato.
+- **Apri un catalogo esistente…** Si usa dal prossimo avvio, dopo averne verificato l'integrità; quello attuale resta intatto.
+- **Errori.** Se all'avvio la copia o l'apertura non riesce (lock, file danneggiato, cartella non raggiungibile), si resta sul catalogo di prima e il motivo compare nelle Impostazioni.
+- **Cosa resta locale.** Backup, miniature e cache restano nella cartella dati locale, qualunque sia la posizione del catalogo.
 
 Esportazione/importazione: file unico (es. `.pfcatalog`) con database, galleria persone e configurazione delle librerie; rimappatura dei percorsi all'importazione.
 

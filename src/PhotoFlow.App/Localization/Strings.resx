@@ -67,7 +67,7 @@
   <data name="FirstRun.Library" xml:space="preserve"><value>First library</value></data>
   <data name="FirstRun.LibraryIntro" xml:space="preserve"><value>A root folder where the photos live. Imports copy here, organized by event.</value></data>
   <data name="FirstRun.LibraryInvalid" xml:space="preserve"><value>Choose a full folder path for the library.</value></data>
-  <data name="FirstRun.CatalogLocation" xml:space="preserve"><value>The catalog will be created in {0}.</value></data>
+  <data name="FirstRun.CatalogLocation" xml:space="preserve"><value>The catalog is in {0}. You can move it in Settings › Catalog.</value></data>
   <data name="FirstRun.Finish" xml:space="preserve"><value>Start</value></data>
   <data name="Models.License.Commercial" xml:space="preserve"><value>{0} · commercial use allowed</value></data>
   <data name="Models.License.NonCommercial" xml:space="preserve"><value>{0} · non-commercial only</value></data>
@@ -941,4 +941,25 @@
   <data name="Vlm.EnvironmentRemoved" xml:space="preserve"><value>Python environment removed: a new conversion makes it again.</value></data>
   <data name="Settings.Models.RemoveEnvironmentConfirm" xml:space="preserve"><value>Remove the Python environment of the conversion (about 5 GB)? The model stays; a new conversion downloads the packages again.</value></data>
   <data name="Settings.Models.RemoveEnvironmentYes" xml:space="preserve"><value>Remove</value></data>
+  <data name="CatalogLocation.Title" xml:space="preserve"><value>Where should the catalog be saved?</value></data>
+  <data name="CatalogLocation.Body" xml:space="preserve"><value>The catalog holds decisions, tags, people and captions of your photos (not the photos themselves). Choose its folder before it is created: a local disk is the fastest; a network folder lets you use it from more PCs, one at a time.</value></data>
+  <data name="CatalogLocation.Folder" xml:space="preserve"><value>Folder of the catalog</value></data>
+  <data name="CatalogLocation.Choose" xml:space="preserve"><value>Choose folder…</value></data>
+  <data name="CatalogLocation.UseDefault" xml:space="preserve"><value>Use the proposed one</value></data>
+  <data name="CatalogLocation.Note" xml:space="preserve"><value>If the folder already holds a PhotoFlow catalog, that one is used. Backups, thumbnails and caches stay on this PC. You can move the catalog later in Settings › Catalog.</value></data>
+  <data name="CatalogLocation.Confirm" xml:space="preserve"><value>Continue</value></data>
+  <data name="CatalogLocation.Creating" xml:space="preserve"><value>Creating the catalog…</value></data>
+  <data name="CatalogLocation.Existing" xml:space="preserve"><value>Existing catalog found: opening it…</value></data>
+  <data name="CatalogLocation.Failed" xml:space="preserve"><value>This folder cannot be used: {0}</value></data>
+  <data name="Settings.Catalog.Move" xml:space="preserve"><value>Move…</value></data>
+  <data name="Settings.Catalog.OpenExisting" xml:space="preserve"><value>Open an existing catalog…</value></data>
+  <data name="Settings.Catalog.MoveNote" xml:space="preserve"><value>Changes apply at the next start, with the catalog closed. A move copies the catalog and leaves the original where it is.</value></data>
+  <data name="Settings.Catalog.CatalogFileType" xml:space="preserve"><value>PhotoFlow catalog</value></data>
+  <data name="Settings.Catalog.MovePending" xml:space="preserve"><value>At the next start the catalog will be copied to {0}.</value></data>
+  <data name="Settings.Catalog.OpenPending" xml:space="preserve"><value>At the next start PhotoFlow will use the catalog {0}.</value></data>
+  <data name="Settings.Catalog.CancelChange" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Settings.Catalog.ChangeRefused" xml:space="preserve"><value>Not possible: {0}</value></data>
+  <data name="Settings.Catalog.Result.moved" xml:space="preserve"><value>Catalog moved to {0}. The previous file is still in {1}.</value></data>
+  <data name="Settings.Catalog.Result.opened" xml:space="preserve"><value>Now using the catalog {0}. The previous one is still in {1}.</value></data>
+  <data name="Settings.Catalog.Result.failed" xml:space="preserve"><value>The change of catalog did not succeed ({0}); still using {1}.</value></data>
 </root>

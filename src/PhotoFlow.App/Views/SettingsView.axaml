@@ -171,6 +171,15 @@
           <StackPanel Spacing="4">
             <TextBlock Classes="data" TextWrapping="Wrap" Text="{Binding CatalogText}" />
             <TextBlock Classes="micro tertiary" Text="{l:Tr Settings.Catalog.CacheNote}" />
+            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0" IsVisible="{Binding CanChangeCatalogLocation}">
+              <Button Classes="secondary" IsEnabled="{Binding !IsBusy}" Command="{Binding RequestMoveCatalogCommand}" Content="{l:Tr Settings.Catalog.Move}" />
+              <Button Classes="ghost" IsEnabled="{Binding !IsBusy}" Command="{Binding RequestOpenCatalogCommand}" Content="{l:Tr Settings.Catalog.OpenExisting}" />
+            </StackPanel>
+            <TextBlock Classes="micro tertiary" TextWrapping="Wrap" Text="{l:Tr Settings.Catalog.MoveNote}" IsVisible="{Binding CanChangeCatalogLocation}" />
+            <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding CatalogChangeText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+              <TextBlock Classes="label" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="560" Text="{Binding CatalogChangeText}" />
+              <Button Classes="ghost" IsVisible="{Binding HasPendingCatalogChange}" Command="{Binding CancelCatalogChangeCommand}" Content="{l:Tr Settings.Catalog.CancelChange}" />
+            </StackPanel>
           </StackPanel>
 
           <TextBlock Classes="overline" Text="{l:Tr Settings.Catalog.Backup}" />

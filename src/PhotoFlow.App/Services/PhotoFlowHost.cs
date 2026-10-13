@@ -125,6 +125,9 @@ public sealed class PhotoFlowHost : IAsyncDisposable
 
     public IAppPaths Paths { get; }
 
+    /// <summary>Where the catalog lives and the changes waiting for the next start (spec §9); set by the application.</summary>
+    public CatalogLocationService? CatalogLocation { get; set; }
+
     public IFileSystem FileSystem { get; }
 
     public SettingsStore SettingsStore { get; }

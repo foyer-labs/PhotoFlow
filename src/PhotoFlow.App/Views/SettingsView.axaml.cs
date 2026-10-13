@@ -77,6 +77,27 @@ public sealed partial class SettingsView : UserControl
                 _viewModel.UseRoot(folder);
             }
         }
+        else if (pick == SettingsPick.MoveCatalog)
+        {
+            var folders = await storage.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = Strings.Get("Settings.Catalog.Move"), AllowMultiple = false });
+            if (folders.Count > 0 && folders[0].TryGetLocalPath() is { } folder)
+            {
+                _viewModel.MoveCatalogTo(folder);
+            }
+        }
+        else if (pick == SettingsPick.OpenCatalog)
+        {
+            var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
+            {
+                Title = Strings.Get("Settings.Catalog.OpenExisting"),
+                AllowMultiple = false,
+                FileTypeFilter = [new FilePickerFileType(Strings.Get("Settings.Catalog.CatalogFileType")) { Patterns = ["*.pfdb"] }],
+            });
+            if (files.Count > 0 && files[0].TryGetLocalPath() is { } file)
+            {
+                await _viewModel.OpenCatalogAsync(file);
+            }
+        }
         else if (pick == SettingsPick.OfflinePackage)
         {
             var folders = await storage.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = Strings.Get("Settings.Models.ImportOffline") });
