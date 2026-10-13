@@ -27,6 +27,9 @@ public interface ICatalog : IAsyncDisposable
 
     ITagStore Tags { get; }
 
+    /// <summary>Search over the photos of the catalog (spec §3: only through this interface).</summary>
+    Search.ISearchIndex Search { get; }
+
     /// <summary>Consistent copy of the open catalog into <paramref name="backupsDirectory"/> (spec §9); returns its path.</summary>
     Task<string> BackupAsync(string backupsDirectory, string reason, CancellationToken ct);
 }

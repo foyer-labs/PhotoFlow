@@ -37,6 +37,7 @@ public sealed class SqliteCatalog : ICatalog
         People = new PeopleStore(this);
         Labels = new LabelStore(this);
         Tags = new TagStore(this);
+        Search = new SqliteSearchIndex(this);
     }
 
     public ILibraryStore Libraries { get; }
@@ -60,6 +61,8 @@ public sealed class SqliteCatalog : ICatalog
     public ILabelStore Labels { get; }
 
     public ITagStore Tags { get; }
+
+    public Core.Search.ISearchIndex Search { get; }
 
     public static async Task<SqliteCatalog> OpenAsync(CatalogOpenOptions options, CancellationToken ct)
     {
