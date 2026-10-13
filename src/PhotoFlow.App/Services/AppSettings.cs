@@ -34,6 +34,9 @@ public sealed record AppSettings
 
     /// <summary>exiftool chosen by the user instead of the bundled one (board 5i); applied at the next start.</summary>
     public string? ExifToolPath { get; init; }
+
+    /// <summary>Last in-app benchmark (board 5f), shown in the settings and used for the estimates.</summary>
+    public BenchmarkResult? Benchmark { get; init; }
 }
 
 public enum ThemePreference
@@ -55,6 +58,9 @@ public sealed record ImportDefaults
     public string ProfileId { get; init; } = "events";
 
     public FaceMode Faces { get; init; } = FaceMode.Recognize;
+
+    /// <summary>Profile chosen per group by CLIP, with <see cref="ProfileId"/> as fallback (D8).</summary>
+    public bool AutomaticProfile { get; init; }
 
     public WritePolicy XmpPolicy { get; init; } = WritePolicy.EmbeddedForNonRaw;
 

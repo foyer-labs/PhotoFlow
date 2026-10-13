@@ -19,6 +19,7 @@ version (spec §16).
 | Microsoft.Data.Sqlite (SQLitePCLRaw, SQLite) | 10.0.12 | MIT (SQLitePCLRaw: Apache-2.0; SQLite: public domain) | Catalog |
 | Dapper | 2.1.89 | Apache-2.0 | Catalog queries |
 | System.IO.Hashing | 10.0.12 | MIT | xxHash3 verified copy |
+| System.Security.Cryptography.ProtectedData | 10.0.12 | MIT | DPAPI wrapping of the face fingerprint key (Windows) |
 | ExifTool by Phil Harvey | 13.59 | Artistic License or GPL (Perl terms) | Separate, unmodified executable shipped next to the application (`tools/exiftool`), run as an external process; the Windows build includes its own Perl runtime under the same terms |
 | IBM Plex Sans, IBM Plex Mono | — | SIL Open Font License 1.1 | `src/PhotoFlow.App/Assets/Fonts/OFL.txt` |
 

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Windows.Input;
 using Avalonia.Controls;
+using Avalonia.Input;
 using PhotoFlow.App.ViewModels;
 
 namespace PhotoFlow.App.Views;
@@ -23,7 +25,38 @@ public static class PageKeys
         {
             foreach (var binding in table.CreateKeyBindings(page.ResolveCommand))
             {
+                if (binding.Command is { } command && binding.Gesture is { } gesture && IsTyping(gesture))
+                {
+                    binding.Command = new TypingGuard(command, view);
+                }
+
                 view.KeyBindings.Add(binding);
+            }
+        }
+    }
+
+    /// <summary>Single keys that also type text (letters, digits, space, arrows, Delete): a text field keeps them.</summary>
+    private static bool IsTyping(KeyGesture gesture) =>
+        (gesture.KeyModifiers & (KeyModifiers.Control | KeyModifiers.Alt | KeyModifiers.Meta)) == 0
+        && gesture.Key is not (Key.Escape or Key.Enter) and not (>= Key.F1 and <= Key.F24);
+
+    /// <summary>Disables a typing key's command while the keyboard focus is in a text field of the page.</summary>
+    private sealed class TypingGuard(ICommand inner, Control view) : ICommand
+    {
+        public event EventHandler? CanExecuteChanged
+        {
+            add => inner.CanExecuteChanged += value;
+            remove => inner.CanExecuteChanged -= value;
+        }
+
+        public bool CanExecute(object? parameter) =>
+            TopLevel.GetTopLevel(view)?.FocusManager?.GetFocusedElement() is not TextBox && inner.CanExecute(parameter);
+
+        public void Execute(object? parameter)
+        {
+            if (CanExecute(parameter))
+            {
+                inner.Execute(parameter);
             }
         }
     }

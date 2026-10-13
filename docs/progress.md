@@ -6,11 +6,11 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 
 | Voce | Valore |
 |---|---|
-| Fase corrente | 1 — Import, analisi base, XMP, catalogo: **piano approvato, sviluppo in corso** ([docs/plans/fase-1.md](plans/fase-1.md)). Fase 0 approvata e unita in `main` (PR #1) |
-| Branch | `phase/1-import` |
+| Fase corrente | 2 — Raffiche, Revisione completa, Persone: **completata** (report in [docs/reports/fase-2.md](reports/fase-2.md)); prossima: fase 3 (tag, vocabolario, ricerca, duplicati) |
+| Branch | `phase/2-review-people` (PR verso `main`) |
 | Remoto | https://github.com/foyer-labs/PhotoFlow.git (pubblico) |
 | Autore dei commit | Foyer Labs <foyerlabs@gmail.com> (config locale del repository) |
-| Ultimo aggiornamento | 2026-10-12 |
+| Ultimo aggiornamento | 2026-10-13 |
 
 ## Ambiente di sviluppo rilevato (2026-10-12)
 
@@ -73,6 +73,8 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 | 2026-10-13 | Tecnica (fase 1b.6): sezione Librerie (cartella esistente → `SidecarOnly`, analisi in background a bassa priorità, passaggio a XMP incorporato solo dopo conferma con il numero di file non RAW, D21) e Impostazioni a schede (5f-5j). Decisioni prese in autonomia: ripristino del catalogo da backup **al prossimo avvio** (il catalogo è aperto durante la sessione; il catalogo sostituito si sposta in `backup/replaced-*`, mai cancellato; il backup scelto è escluso dalla rotazione; un backup danneggiato viene rifiutato senza toccare nulla); all'avvio con catalogo danneggiato una pagina propone il ripristino dell'ultimo backup (spec §9); pacchetto offline dei modelli = cartella con `<id>/<file>` o file sciolti, copia verificata SHA-256, licenze da accettare solo se già spuntate; lingua (applicata al riavvio, P18), tema (immediato), exiftool alternativo (verificato con `-ver`, attivo al prossimo avvio) e template dei percorsi nelle impostazioni; benchmark in-app rinviato alla fase 2 (tabella con tutte le fasi d'analisi); cifratura impronte (fase 2), esporta/importa (fase 5) e culling normale (fase 2) visibili e disattivati (F1-6) |
 | 2026-10-13 | Tecnica (fase 1b.7): scenario di 10.000 file misti (JPEG, gemelli RAW+JPEG, PNG, TIFF, WebP, HEIC, 80 estensioni sbagliate, 30 danneggiati) con l'analisi reale senza modelli, processo terminato a 2.500 e ripreso: nessuna foto rifatta, danneggiati e solo loro nel report, cartella identica byte per byte (~4 min in locale, catalogo ~45 foto/s). Decisione presa in autonomia: nell'analisi d'archivio un file con estensione da foto ma contenuto non riconosciuto resta nel job e finisce nel report come danneggiato (prima veniva ignorato in silenzio). Misura locale in background (4 analisi in parallelo, CUDA, RTX 3090): 8,2 foto/s, stima 1,9 h per 57.130 foto; passata dell'hash completo ~510 MB/s. Il subset d'archivio in `PHOTOFLOW_TESTDATA/archive` non c'è ancora: la misura usa `photos` e si ripete da sola quando il subset viene copiato |
 
+| 2026-10-13 | Fase 2 (tappe 2.0-2.12), decisioni prese in autonomia oltre a F2-1..F2-6 del piano: regole delle sequenze (bracketing ≥ 3 scatti su ≥ 0,3 EV di compensazione o ≥ 1 EV di EV100; timelapse ≥ 10 scatti a intervallo ≥ 1 s entro ±10%); soglie del riconoscimento (ArcFace 0,45, SFace 0,363, margine 0,05, fascia di suggerimento 0,10, 5 campioni per persona per anno, impronte da 48 px); regioni MWG scritte come struttura completa con exiftool conservando quelle di altri programmi, RAW con le persone del gemello; profili personalizzati come file versionati `custom-<nome>.v<n>.json` e profilo mancante sostituito da Eventi; rianalisi solo se cambia la chiave di misura del profilo, in parallelo (modalità automatica sul set locale da 95 s a 52 s); suggerimento della soglia di mosso da ≥ 30 correzioni (peso 3 agli scarti sbagliati); benchmark con VRAM da `nvidia-smi` e modelli che restano caricati; tasti di un carattere disattivati mentre si scrive in un campo. Scostamenti dalle tavole nel backlog (Ctrl Z e selezione a rettangolo in Persone, "Apri foto" dalla pagina persona, eliminazione dei profili personalizzati, caricamento dei modelli fase per fase). spec §5, §6, §7, §17 aggiornate |
+
 ## Problemi aperti
 
 | # | Tema | Sintesi |
@@ -80,6 +82,7 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 | N5-N6 | Modelli quantizzati | RAM++ int8/CLIP quantizzato non accelerano su GPU; RAM++ int8 non supera la parità (52 JPG reali: 12/52 insiemi identici, Jaccard 0,866) — fase 3 |
 | Z5 II | NEF Z5 II non disponibili | Prima attività della fase 1 (§13) da rinviare a dopo l'implementazione: proposta nel piano della fase 1 |
 | N1-N4 | Note per fasi successive | CLIP scheda modello (fase 2), DirectML (0.6→R3), GridSample fp16 CUDA (fase 1), YuNet ingresso fisso (fase 1) |
+| F2-auto | Costo della modalità automatica | +55% sul set locale per la rianalisi dei gruppi che cambiano profilo: classificare per foto prima dell'analisi (backlog §17) |
 
 ## Verifiche manuali in attesa (per l'utente)
 
@@ -90,4 +93,4 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 
 ## Prossimo passo
 
-Fase 1b completata (report in `docs/reports/fase-1b.md`): PR da unire dopo la CI verde, poi piano della fase 2 (in autonomia, come concordato).
+Fase 2 completata (report in `docs/reports/fase-2.md`, verifiche manuali elencate lì): PR da unire dopo la CI verde, poi piano della fase 3 (in autonomia, come concordato).

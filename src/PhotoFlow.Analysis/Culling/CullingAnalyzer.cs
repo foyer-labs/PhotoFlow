@@ -274,6 +274,19 @@ public sealed class CullingAnalyzer : IPhotoAnalyzer
 /// <summary>Flat score keys of <see cref="CullingSignals"/> for <c>AnalyzerResults</c>.</summary>
 public static class CullingScores
 {
+    /// <summary>
+    /// The parameters of a profile that change the measured signals (zones, subjects, faces on/off, eye thresholds):
+    /// two profiles with the same key give the same signals, so a photo moving between them needs no new analysis,
+    /// only a new decision.
+    /// </summary>
+    public static string MeasurementKey(SceneProfile profile)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+        var t = profile.Thresholds;
+        return string.Create(CultureInfo.InvariantCulture,
+            $"{string.Join(',', profile.SharpnessZones)}|{string.Join(',', profile.SubjectClasses)}|{profile.Faces != FaceMode.Off}|{t.EyesClosed}|{t.EyesOpen}|{t.EyesMinFaceSize}");
+    }
+
     public static IReadOnlyDictionary<string, double> ToScores(CullingSignals s)
     {
         ArgumentNullException.ThrowIfNull(s);

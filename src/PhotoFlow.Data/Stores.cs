@@ -129,6 +129,11 @@ internal sealed class AssetStore(SqliteCatalog catalog) : IAssetStore
         catalog.RunAsync(c => c.ExecuteAsync(new CommandDefinition(
             "UPDATE Assets SET FullHash = @fullHash WHERE Id = @assetId AND FullHash IS NULL;", new { assetId, fullHash }, cancellationToken: ct)), ct);
 
+    public Task MoveLocationAsync(long libraryId, string fromRelativePath, string toRelativePath, CancellationToken ct) =>
+        catalog.RunAsync(c => c.ExecuteAsync(new CommandDefinition(
+            "UPDATE AssetLocations SET RelativePath = @toRelativePath, LastSeenMs = @now WHERE LibraryId = @libraryId AND RelativePath = @fromRelativePath;",
+            new { libraryId, fromRelativePath, toRelativePath, now = Db.Now() }, cancellationToken: ct)), ct);
+
     public Task AddLocationAsync(AssetLocation location, CancellationToken ct) =>
         catalog.RunAsync(c => c.ExecuteAsync(new CommandDefinition(
             """
@@ -143,6 +148,11 @@ internal sealed class AssetStore(SqliteCatalog catalog) : IAssetStore
             "SELECT Id, AssetId, LibraryId, RelativePath, LastSeenMs FROM AssetLocations WHERE AssetId = @assetId ORDER BY Id;", new { assetId }, cancellationToken: ct)), ct).ConfigureAwait(false))
         .Select(r => new AssetLocation(r.Id, r.AssetId, r.LibraryId, r.RelativePath, Db.Instant(r.LastSeenMs)!.Value))
         .ToList();
+
+    public async Task<long?> GetTwinAsync(long assetId, CancellationToken ct) =>
+        (await catalog.RunAsync(c => c.QueryAsync<long>(new CommandDefinition(
+            "SELECT CASE WHEN RawAssetId = @assetId THEN JpegAssetId ELSE RawAssetId END FROM AssetPairs WHERE RawAssetId = @assetId OR JpegAssetId = @assetId LIMIT 1;",
+            new { assetId }, cancellationToken: ct)), ct).ConfigureAwait(false)).Cast<long?>().FirstOrDefault();
 
     public Task AddPairAsync(long rawAssetId, long jpegAssetId, CancellationToken ct) =>
         catalog.RunAsync(c => c.ExecuteAsync(new CommandDefinition(
@@ -258,6 +268,11 @@ internal sealed class JobStore(SqliteCatalog catalog) : IJobStore
     public Task SetStateAsync(long jobId, JobState state, CancellationToken ct) =>
         catalog.RunAsync(c => c.ExecuteAsync(new CommandDefinition(
             "UPDATE Jobs SET State = @state, UpdatedAtMs = @now WHERE Id = @jobId;", new { jobId, state = state.ToString(), now = Db.Now() }, cancellationToken: ct)), ct);
+
+    public Task SetAutomaticProfileAsync(long jobId, bool automatic, string? fallbackProfileId, CancellationToken ct) =>
+        catalog.RunAsync(c => c.ExecuteAsync(new CommandDefinition(
+            "UPDATE Jobs SET AutomaticProfile = @automatic, FallbackProfileId = @fallbackProfileId, UpdatedAtMs = @now WHERE Id = @jobId;",
+            new { jobId, automatic, fallbackProfileId, now = Db.Now() }, cancellationToken: ct)), ct);
 
     public async Task<IReadOnlyList<Job>> ListUnfinishedAsync(CancellationToken ct) =>
         (await catalog.RunAsync(c => c.QueryAsync<JobRow>(new CommandDefinition(
@@ -378,6 +393,33 @@ internal sealed class JobStore(SqliteCatalog catalog) : IJobStore
 /// <summary>Automatic and user columns are written by separate statements: the automatic one never touches user fields (I5).</summary>
 internal sealed class DecisionStore(SqliteCatalog catalog) : IDecisionStore
 {
+    public Task AddCorrectionAsync(Correction correction, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(correction);
+        return catalog.RunAsync(c => c.ExecuteAsync(new CommandDefinition(
+            """
+            INSERT INTO Corrections (AssetId, AutomaticOutcome, UserOutcome, ProfileId, SignalsJson, CorrectedAtMs)
+            VALUES (@AssetId, @AutomaticOutcome, @UserOutcome, @ProfileId, @SignalsJson, @CorrectedAtMs);
+            """,
+            new
+            {
+                correction.AssetId,
+                AutomaticOutcome = Db.Name(correction.AutomaticOutcome),
+                UserOutcome = correction.UserOutcome.ToString(),
+                correction.ProfileId,
+                SignalsJson = System.Text.Json.JsonSerializer.Serialize(correction.Signals),
+                CorrectedAtMs = Db.Ms(correction.CorrectedAt),
+            },
+            cancellationToken: ct)), ct);
+    }
+
+    public async Task<IReadOnlyList<Correction>> ListCorrectionsAsync(CancellationToken ct) =>
+        (await catalog.RunAsync(c => c.QueryAsync<(long Id, long AssetId, string? AutomaticOutcome, string UserOutcome, string ProfileId, string SignalsJson, long CorrectedAtMs)>(
+            new CommandDefinition("SELECT Id, AssetId, AutomaticOutcome, UserOutcome, ProfileId, SignalsJson, CorrectedAtMs FROM Corrections ORDER BY Id;", cancellationToken: ct)), ct).ConfigureAwait(false))
+        .Select(r => new Correction(r.Id, r.AssetId, Db.ParseOrNull<CullingOutcome>(r.AutomaticOutcome), Db.Parse<CullingOutcome>(r.UserOutcome), r.ProfileId,
+            System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, double>>(r.SignalsJson) ?? [], DateTimeOffset.FromUnixTimeMilliseconds(r.CorrectedAtMs)))
+        .ToList();
+
     public async Task<Decision?> GetAsync(long assetId, CancellationToken ct) =>
         (await catalog.RunAsync(c => c.QueryAsync<Row>(new CommandDefinition(
             "SELECT Id, AssetId, AutomaticOutcome, ReasonsJson, ModelVersion, UserOutcome, Rating, Label FROM Decisions WHERE AssetId = @assetId;",

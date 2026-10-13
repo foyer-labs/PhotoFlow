@@ -10,8 +10,11 @@ using CommunityToolkit.Mvvm.Input;
 using PhotoFlow.App.Commands;
 using PhotoFlow.App.Localization;
 using PhotoFlow.App.Services;
+using PhotoFlow.Analysis.Quality;
+using PhotoFlow.Core.Imaging;
 using PhotoFlow.Core.Inference;
 using PhotoFlow.Core.Pipeline;
+using PhotoFlow.Faces.Protection;
 using PhotoFlow.Inference.Gpu;
 using PhotoFlow.Inference.Models;
 using PhotoFlow.Metadata.ExifTool;
@@ -107,7 +110,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         Themes = Enum.GetValues<ThemePreference>().Select(t => new SettingChoice<ThemePreference>(t, Strings.Get("Settings.Theme." + t))).ToList();
         Models = new ObservableCollection<ModelRowViewModel>(host.Models.Models
             .OrderBy(m => m.Phase).ThenBy(m => m.Function)
-            .Select(m => new ModelRowViewModel(m, m.Phase <= 1 && PhotoFlowHost.ImplementedAdapters.Contains(m.Adapter))));
+            .Select(m => new ModelRowViewModel(m, PhotoFlowHost.ImplementedAdapters.Contains(m.Adapter))));
         _pathTemplate = host.Settings.Import.PathTemplate;
         _language = Languages.FirstOrDefault(l => l.Value == host.Settings.Language) ?? Languages[0];
         _theme = Themes.First(t => t.Value == host.Settings.Theme);
@@ -241,9 +244,186 @@ public sealed partial class SettingsViewModel : PageViewModel
 
     public IReadOnlyList<string> TemplateVariables { get; } = ["{yyyy}", "{MM}", "{yyyy-MM-dd}", "{evento}", "{seq:0000}", "{camera}", "{nomeoriginale}", "{ext}"];
 
+    // Benchmark (5f)
+
+    public ObservableCollection<BenchmarkRow> BenchmarkRows { get; } = [];
+
+    [ObservableProperty]
+    private string _benchmarkTitle = string.Empty;
+
+    [ObservableProperty]
+    private string _benchmarkEstimates = string.Empty;
+
+    [ObservableProperty]
+    private string? _benchmarkProgress;
+
+    public bool HasBenchmark => BenchmarkRows.Count > 0;
+
+    [RelayCommand]
+    private async Task RunBenchmarkAsync()
+    {
+        IsBusy = true;
+        try
+        {
+            var progress = new Progress<(int Done, int Total)>(p => BenchmarkProgress = Strings.Format("Settings.Benchmark.Running", p.Done, p.Total));
+            var result = await Task.Run(() => new BenchmarkRunner(_host).RunAsync(BenchmarkRunner.DefaultPhotos, progress, CancellationToken.None));
+            await _host.UpdateSettingsAsync(s => s with { Benchmark = result }, CancellationToken.None);
+            await ShowBenchmarkAsync(result);
+        }
+        catch (Exception e) when (e is InvalidOperationException or IOException or UnauthorizedAccessException or ImageDecodeException)
+        {
+            Message = Strings.Format("Settings.Benchmark.Failed", e.Message);
+        }
+        finally
+        {
+            BenchmarkProgress = null;
+            IsBusy = false;
+        }
+    }
+
+    private async Task ShowBenchmarkAsync(BenchmarkResult? result)
+    {
+        BenchmarkRows.Clear();
+        if (result is null)
+        {
+            BenchmarkTitle = Strings.Get("Settings.Benchmark.Never");
+            BenchmarkEstimates = string.Empty;
+            OnPropertyChanged(nameof(HasBenchmark));
+            return;
+        }
+
+        foreach (var stage in result.Stages)
+        {
+            BenchmarkRows.Add(new BenchmarkRow(
+                Strings.Get("Settings.Benchmark.Stage." + stage.Key),
+                stage.MsPerPhoto is { } ms ? ms.ToString("N0", CultureInfo.CurrentCulture) : Strings.Get("Settings.Benchmark.NoModel"),
+                stage.MsPerPhoto is null ? "—" : Formats.Bytes(stage.PeakRamBytes),
+                stage.PeakVramBytes is { } vram ? Formats.Bytes(vram) : "—"));
+        }
+
+        BenchmarkRows.Add(new BenchmarkRow(Strings.Get("Settings.Benchmark.Stage.Tags"), Strings.Get("Common.ComesWithPhase3"), "—", "—"));
+        BenchmarkRows.Add(new BenchmarkRow(Strings.Get("Settings.Benchmark.Stage.Captions"), Strings.Get("Common.ComesWithPhase5"), "—", "—"));
+        BenchmarkTitle = Strings.Format("Settings.Benchmark.Title", result.Photos, result.At.ToLocalTime().ToString("d MMM yyyy", CultureInfo.CurrentCulture), result.Backend);
+        var archive = 0;
+        foreach (var library in await _host.Catalog.Libraries.ListAsync(CancellationToken.None))
+        {
+            archive += await _host.Catalog.Libraries.CountAssetsAsync(library.Id, CancellationToken.None);
+        }
+
+        BenchmarkEstimates = Strings.Format("Settings.Benchmark.Estimates",
+            Formats.Duration(result.EstimateImport(1000)),
+            archive.ToString("N0", CultureInfo.CurrentCulture),
+            Formats.Duration(result.EstimateArchive(archive)),
+            result.ParallelMsPerPhoto.ToString("N0", CultureInfo.CurrentCulture),
+            result.Workers);
+        OnPropertyChanged(nameof(HasBenchmark));
+    }
+
     // Culling (5j)
 
     public bool PrudentMode => _host.Settings.PrudentMode;
+
+    public bool NormalMode => !_host.Settings.PrudentMode;
+
+    /// <summary>All three metrics of the labelled set are within target (D23).</summary>
+    [ObservableProperty]
+    private bool _normalModeAllowed;
+
+    public ObservableCollection<string> CullingMetrics { get; } = [];
+
+    [ObservableProperty]
+    private string _cullingNote = string.Empty;
+
+    [RelayCommand]
+    private async Task SetCullingModeAsync(string? mode)
+    {
+        var prudent = mode != "Normal";
+        if (!prudent && !NormalModeAllowed)
+        {
+            Message = Strings.Get("Settings.Culling.Locked");
+            OnPropertyChanged(nameof(PrudentMode));
+            OnPropertyChanged(nameof(NormalMode));
+            return;
+        }
+
+        await _host.UpdateSettingsAsync(s => s with { PrudentMode = prudent }, CancellationToken.None);
+        OnPropertyChanged(nameof(PrudentMode));
+        OnPropertyChanged(nameof(NormalMode));
+    }
+
+    private async Task RefreshCullingAsync()
+    {
+        var metrics = await LabelingViewModel.ComputeMetricsAsync(_host.Catalog);
+        NormalModeAllowed = metrics.NormalModeAllowed;
+        CullingMetrics.Clear();
+        foreach (var metric in new[] { metrics.WrongDiscards, metrics.Intercepted, metrics.ToReview })
+        {
+            var (low, high) = metric.Proportion.Interval;
+            CullingMetrics.Add(Strings.Format("Settings.Culling.Metric",
+                Strings.Get("Metric." + metric.Key),
+                metric.Proportion.Total == 0 ? "—" : $"{low.ToString("P1", CultureInfo.CurrentCulture)} – {high.ToString("P1", CultureInfo.CurrentCulture)}",
+                Strings.Format(metric.LowerIsBetter ? "Metric.TargetBelow" : "Metric.TargetAbove", metric.Target.ToString("P0", CultureInfo.CurrentCulture)),
+                Strings.Get("Metric.Verdict." + metric.Verdict)));
+        }
+
+        CullingNote = Strings.Format(metrics.NormalModeAllowed ? "Settings.Culling.Allowed" : "Settings.Culling.NotYet", metrics.Labeled.ToString("N0", CultureInfo.CurrentCulture));
+    }
+
+    // Encryption of the face fingerprints (D12)
+
+    public string EncryptionState => _host.FingerprintKeys.State switch
+    {
+        FingerprintKeyState.Locked => Strings.Get("Settings.Encryption.Locked"),
+        FingerprintKeyState.None => Strings.Get("Settings.Encryption.None"),
+        _ => Strings.Get(_host.FingerprintKeys.HasPassword ? "Settings.Encryption.WithPassword" : "Settings.Encryption.AccountOnly"),
+    };
+
+    [ObservableProperty]
+    private string _encryptionPassword = string.Empty;
+
+    [ObservableProperty]
+    private string _encryptionConfirm = string.Empty;
+
+    /// <summary>Adds or replaces the password that opens the key on other accounts or PCs (PBKDF2, 600k iterations).</summary>
+    [RelayCommand]
+    private async Task SetEncryptionPasswordAsync()
+    {
+        if (EncryptionPassword.Length < 8)
+        {
+            Message = Strings.Get("Settings.Encryption.TooShort");
+            return;
+        }
+
+        if (EncryptionPassword != EncryptionConfirm)
+        {
+            Message = Strings.Get("Settings.Encryption.Mismatch");
+            return;
+        }
+
+        var keys = _host.FingerprintKeys;
+        if (keys.State == FingerprintKeyState.Locked)
+        {
+            Message = Strings.Get("Settings.Encryption.LockedHint");
+            return;
+        }
+
+        var password = EncryptionPassword;
+        await Task.Run(() =>
+        {
+            if (keys.State == FingerprintKeyState.None)
+            {
+                keys.Create(password);
+            }
+            else
+            {
+                keys.SetPassword(password);
+            }
+        });
+        EncryptionPassword = string.Empty;
+        EncryptionConfirm = string.Empty;
+        Message = Strings.Get("Settings.Encryption.PasswordSet");
+        OnPropertyChanged(nameof(EncryptionState));
+    }
 
     public override async Task ActivateAsync()
     {
@@ -271,6 +451,9 @@ public sealed partial class SettingsViewModel : PageViewModel
             ModelsFolderText = Strings.Format("Settings.Models.Folder", Formats.Bytes(installedBytes), _host.Paths.ModelsDirectory);
 
             await RefreshCatalogAsync();
+            await RefreshCullingAsync();
+            await ShowBenchmarkAsync(_host.Settings.Benchmark);
+            OnPropertyChanged(nameof(EncryptionState));
             await CheckExifToolAsync();
         }
         finally
@@ -564,3 +747,6 @@ public sealed partial class SettingsViewModel : PageViewModel
         }
     }
 }
+
+/// <summary>A row of the benchmark table (board 5f).</summary>
+public sealed record BenchmarkRow(string Stage, string Time, string Ram, string Vram);

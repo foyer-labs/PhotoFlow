@@ -144,7 +144,7 @@ class ClipStage(Stage):
 
     def __init__(self, testdata: Path, provider: list[str]) -> None:
         super().__init__(testdata, provider)
-        self.sess = self.session(testdata / "models" / "clip-vit-b32-quantized" / "vision_model_quantized.onnx")
+        self.sess = self.session(testdata / "models" / "clip-vit-b32" / "vision_model.onnx")
 
     def run(self, image: Image.Image) -> dict:
         w, h = image.size

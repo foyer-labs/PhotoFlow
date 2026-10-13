@@ -57,7 +57,7 @@ public sealed partial class LibrariesViewModel : PageViewModel
     {
         _host = host;
         _navigator = navigator;
-        Profiles = BuiltInProfiles.All.Select(p => new ProfileChoice(p)).ToList();
+        Profiles = host.Profiles.All.Select(p => new ProfileChoice(p)).ToList();
         _analysisProfile = Profiles.First(p => p.Profile.Id == "archive");
     }
 

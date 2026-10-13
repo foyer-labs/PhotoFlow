@@ -19,6 +19,12 @@ public interface ICatalog : IAsyncDisposable
 
     IAnalysisStore Analysis { get; }
 
+    IGroupStore Groups { get; }
+
+    IPeopleStore People { get; }
+
+    ILabelStore Labels { get; }
+
     /// <summary>Consistent copy of the open catalog into <paramref name="backupsDirectory"/> (spec §9); returns its path.</summary>
     Task<string> BackupAsync(string backupsDirectory, string reason, CancellationToken ct);
 }
@@ -57,9 +63,15 @@ public interface IAssetStore
 
     Task AddLocationAsync(AssetLocation location, CancellationToken ct);
 
+    /// <summary>The file of the asset was moved inside its library (explicit user action, P6).</summary>
+    Task MoveLocationAsync(long libraryId, string fromRelativePath, string toRelativePath, CancellationToken ct);
+
     Task<IReadOnlyList<AssetLocation>> GetLocationsAsync(long assetId, CancellationToken ct);
 
     Task AddPairAsync(long rawAssetId, long jpegAssetId, CancellationToken ct);
+
+    /// <summary>The other asset of a RAW+JPEG pair, if any.</summary>
+    Task<long?> GetTwinAsync(long assetId, CancellationToken ct);
 
     /// <summary>Assets of a library still without the full hash (computed in background, spec §10).</summary>
     Task<IReadOnlyList<(long AssetId, string RelativePath)>> ListWithoutFullHashAsync(long libraryId, int limit, CancellationToken ct);
@@ -74,6 +86,9 @@ public interface IJobStore
     Task<Job?> GetAsync(long id, CancellationToken ct);
 
     Task SetStateAsync(long jobId, JobState state, CancellationToken ct);
+
+    /// <summary>Automatic profile per group (D8) with its mandatory fallback.</summary>
+    Task SetAutomaticProfileAsync(long jobId, bool automatic, string? fallbackProfileId, CancellationToken ct);
 
     /// <summary>Jobs left running or paused, e.g. after an unexpected shutdown (board 3c).</summary>
     Task<IReadOnlyList<Job>> ListUnfinishedAsync(CancellationToken ct);
@@ -101,6 +116,11 @@ public interface IDecisionStore
 
     /// <summary>Effective outcomes (the user's, else the automatic one) of the assets of a job, by outcome.</summary>
     Task<IReadOnlyDictionary<CullingOutcome, int>> CountOutcomesForJobAsync(long jobId, CancellationToken ct);
+
+    /// <summary>A correction of the user with the signals of the time (spec §6, learning from the corrections).</summary>
+    Task AddCorrectionAsync(Correction correction, CancellationToken ct);
+
+    Task<IReadOnlyList<Correction>> ListCorrectionsAsync(CancellationToken ct);
 }
 
 public interface IXmpSyncStore
@@ -134,10 +154,108 @@ public interface IAnalysisStore
 
     Task<AnalyzerResultRecord?> GetResultAsync(long assetId, string analyzerId, CancellationToken ct);
 
+    /// <summary>Latest result of the analyzer for each of the assets that have one.</summary>
+    Task<IReadOnlyDictionary<long, AnalyzerResultRecord>> GetResultsAsync(IReadOnlyCollection<long> assetIds, string analyzerId, CancellationToken ct);
+
     /// <summary>Replaces the automatically detected faces of the asset; faces with a manual assignment are kept.</summary>
     Task ReplaceAutomaticFacesAsync(long assetId, IReadOnlyList<Face> faces, CancellationToken ct);
 
     Task<IReadOnlyList<Face>> GetFacesAsync(long assetId, CancellationToken ct);
+
+    /// <summary>Stores the image embedding of the asset for a model version, replacing an earlier one of the same version.</summary>
+    Task SaveEmbeddingAsync(long assetId, string modelVersion, ReadOnlyMemory<float> vector, CancellationToken ct);
+
+    /// <summary>Embeddings of a model version for the given assets (assets without one are absent).</summary>
+    Task<IReadOnlyDictionary<long, float[]>> GetEmbeddingsAsync(IReadOnlyCollection<long> assetIds, string modelVersion, CancellationToken ct);
+}
+
+/// <summary>Groups of a job (spec §9 <c>Groups</c>, <c>GroupMembers</c>).</summary>
+public interface IGroupStore
+{
+    /// <summary>
+    /// Replaces the automatic groups of the job; manual groups (and their photos) are kept and the proposed groups
+    /// leave out the photos already in a manual group. Returns the new groups with their members.
+    /// </summary>
+    Task<IReadOnlyList<(AssetGroup Group, IReadOnlyList<GroupMember> Members)>> ReplaceAutomaticAsync(
+        long jobId, IReadOnlyList<(GroupType Type, IReadOnlyList<long> AssetIds)> groups, CancellationToken ct);
+
+    /// <summary>Groups of the job with their members in position order.</summary>
+    Task<IReadOnlyList<(AssetGroup Group, IReadOnlyList<GroupMember> Members)>> ListAsync(long jobId, CancellationToken ct);
+
+    Task<long> AddManualAsync(long jobId, GroupType type, IReadOnlyList<long> assetIds, CancellationToken ct);
+
+    Task SetScoresAsync(long groupId, IReadOnlyDictionary<long, double> scores, CancellationToken ct);
+
+    Task SetProfileAsync(long groupId, string? profileId, double? confidence, CancellationToken ct);
+
+    Task<IReadOnlyDictionary<long, PhotoProfile>> GetPhotoProfilesAsync(long jobId, CancellationToken ct);
+
+    /// <summary>Automatic profiles and suggestions; a profile chosen by the user is kept (only its suggestion changes).</summary>
+    Task SetAutomaticProfilesAsync(long jobId, IReadOnlyList<PhotoProfile> profiles, CancellationToken ct);
+
+    /// <summary>The user's profile for photos of the job ("re-analyze as…"); null gives them back to the automatic choice.</summary>
+    Task SetUserProfileAsync(long jobId, IReadOnlyList<long> assetIds, string? profileId, CancellationToken ct);
+}
+
+/// <summary>People and face assignments (spec §7). Automatic assignments never replace manual ones (I5).</summary>
+public interface IPeopleStore
+{
+    Task<IReadOnlyList<FaceFingerprint>> ListFingerprintsForAssetsAsync(IReadOnlyCollection<long> assetIds, CancellationToken ct);
+
+    /// <summary>Faces with a fingerprint, no person and no manual decision, captured in <paramref name="year"/> (null: unknown date).</summary>
+    Task<IReadOnlyList<FaceFingerprint>> ListUnassignedFingerprintsAsync(int? year, CancellationToken ct);
+
+    Task<IReadOnlyList<PersonPrototype>> ListPrototypesAsync(CancellationToken ct);
+
+    Task ReplacePrototypesAsync(long personId, IReadOnlyList<PersonPrototype> prototypes, CancellationToken ct);
+
+    Task<long> CreatePersonAsync(string? name, CancellationToken ct);
+
+    /// <summary>Automatic assignments (recognition, clustering): faces decided by the user are skipped.</summary>
+    Task AssignAutomaticAsync(IReadOnlyList<(long FaceId, long PersonId, double? Similarity)> faces, CancellationToken ct);
+
+    /// <summary>Suggestion below the threshold (amber chip, 4b) or none.</summary>
+    Task SuggestAsync(IReadOnlyList<(long FaceId, long? PersonId, double? Similarity)> faces, CancellationToken ct);
+
+    /// <summary>The user's assignment (or "not this person": null), always kept.</summary>
+    Task AssignManualAsync(IReadOnlyList<long> faceIds, long? personId, CancellationToken ct);
+
+    Task<IReadOnlyList<PersonSummary>> ListPersonsAsync(CancellationToken ct);
+
+    Task<Person?> GetPersonAsync(long personId, CancellationToken ct);
+
+    Task<IReadOnlyList<Face>> ListFacesOfPersonAsync(long personId, CancellationToken ct);
+
+    Task RenameAsync(long personId, string? name, CancellationToken ct);
+
+    Task SetIgnoredAsync(long personId, bool ignored, CancellationToken ct);
+
+    Task SetCoverAsync(long personId, long faceId, CancellationToken ct);
+
+    /// <summary>Moves faces and prototypes of <paramref name="sourceIds"/> into <paramref name="targetId"/> and removes the sources.</summary>
+    Task MergeAsync(long targetId, IReadOnlyList<long> sourceIds, CancellationToken ct);
+
+    /// <summary>Removes the person, its prototypes and every fingerprint of its faces (§7: no residue); the photos stay.</summary>
+    Task DeletePersonAsync(long personId, CancellationToken ct);
+
+    /// <summary>Faces with keypoints, for recomputing the fingerprints with a new key.</summary>
+    Task<IReadOnlyList<Face>> ListFacesWithKeypointsAsync(CancellationToken ct);
+
+    Task SetFingerprintAsync(long faceId, byte[]? encryptedEmbedding, string? embeddingModel, CancellationToken ct);
+
+    /// <summary>Drops every fingerprint and prototype (key reset): assignments and names stay.</summary>
+    Task ClearFingerprintsAsync(CancellationToken ct);
+}
+
+/// <summary>The labelled set of the culling metrics (spec §14).</summary>
+public interface ILabelStore
+{
+    Task SetAsync(long assetId, PhotoLabel label, string sessionId, CancellationToken ct);
+
+    /// <summary>Removes a label (undo in the labelling mode).</summary>
+    Task RemoveAsync(long assetId, CancellationToken ct);
+
+    Task<IReadOnlyList<LabeledPhoto>> ListAsync(CancellationToken ct);
 }
 
 public sealed class CatalogLockedException(string message) : IOException(message);

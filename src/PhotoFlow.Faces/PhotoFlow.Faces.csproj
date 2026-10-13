@@ -3,4 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\PhotoFlow.Core\PhotoFlow.Core.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" />
+  </ItemGroup>
 </Project>

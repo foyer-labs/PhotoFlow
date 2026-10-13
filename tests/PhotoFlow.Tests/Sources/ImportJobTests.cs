@@ -98,11 +98,12 @@ public sealed class ImportJobTests : IDisposable
     [Fact]
     public async Task A_paused_job_resumes_without_processing_completed_photos_again()
     {
-        var (card, library) = Card(photos: 6, withPair: false, withVideo: false);
+        var (card, library) = Card(photos: 24, withPair: false, withVideo: false);
         await using var catalog = await OpenCatalogAsync();
         var jobId = await CreateJobAsync(catalog, card, library);
 
         using var pause = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        // Enough photos that the pause lands while some are still waiting, even on a busy machine.
         var first = new RecordingProcessor { AfterProcessed = n => CancelAt(n, 2, pause) };
         var paused = await Runner(catalog, first).RunAsync(jobId, null, pause.Token);
         Assert.Equal(JobState.Paused, paused.State);
@@ -119,8 +120,8 @@ public sealed class ImportJobTests : IDisposable
         Assert.Equal(JobState.Completed, resumed.State);
         Assert.All(await catalog.Jobs.GetItemsAsync(jobId, Ct), i => Assert.Equal(JobItemState.Done, i.State));
         Assert.DoesNotContain(second.Processed, p => done.Contains(Path.GetRelativePath(library, p)));
-        Assert.Equal(6, first.Processed.Count(p => done.Contains(Path.GetRelativePath(library, p))) + second.Processed.Count);
-        Assert.Equal(6, Directory.EnumerateFiles(library, "*", SearchOption.AllDirectories).Count(f => !f.EndsWith(CopyEngine.TempExtension, StringComparison.Ordinal)));
+        Assert.Equal(24, first.Processed.Count(p => done.Contains(Path.GetRelativePath(library, p))) + second.Processed.Count);
+        Assert.Equal(24, Directory.EnumerateFiles(library, "*", SearchOption.AllDirectories).Count(f => !f.EndsWith(CopyEngine.TempExtension, StringComparison.Ordinal)));
     }
 
     [Fact]

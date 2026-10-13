@@ -102,20 +102,22 @@
                 </DataTemplate>
               </ListBox.ItemTemplate>
             </ListBox>
-            <Border Classes="card" Padding="12" Opacity="0.5" ToolTip.Tip="{l:Tr Common.ComesWithPhase2}">
+            <CheckBox IsChecked="{Binding AutomaticProfile}" IsEnabled="{Binding CanAutomaticProfile}">
               <StackPanel Spacing="2">
                 <TextBlock Classes="label" Text="{l:Tr Import.Profile.Automatic}" />
-                <TextBlock Classes="micro tertiary" TextWrapping="Wrap" Text="{l:Tr Common.ComesWithPhase2}" />
+                <TextBlock Classes="micro tertiary" TextWrapping="Wrap" Text="{l:Tr Import.Profile.AutomaticNote}" />
               </StackPanel>
-            </Border>
+            </CheckBox>
+            <TextBlock Classes="micro tertiary" TextWrapping="Wrap" Text="{l:Tr Import.Profile.NoClip}" IsVisible="{Binding !CanAutomaticProfile}" />
           </StackPanel>
           <StackPanel Grid.Column="1" Spacing="8">
             <TextBlock Classes="label" Text="{l:Tr Import.Faces}" />
             <StackPanel Orientation="Horizontal" Spacing="16">
               <RadioButton GroupName="faces" IsChecked="{Binding FacesOff}" Content="{l:Tr Import.Faces.Off}" />
               <RadioButton GroupName="faces" IsChecked="{Binding FacesDetect}" Content="{l:Tr Import.Faces.DetectOnly}" />
-              <RadioButton GroupName="faces" IsEnabled="False" Content="{l:Tr Import.Faces.Recognize}" ToolTip.Tip="{l:Tr Common.ComesWithPhase2}" />
+              <RadioButton GroupName="faces" IsChecked="{Binding FacesRecognize}" IsEnabled="{Binding CanRecognize}" Content="{l:Tr Import.Faces.Recognize}" />
             </StackPanel>
+            <TextBlock Classes="micro tertiary" TextWrapping="Wrap" Text="{l:Tr Import.Faces.NoRecognizer}" IsVisible="{Binding !CanRecognize}" />
             <TextBlock Classes="label tertiary" TextWrapping="Wrap" Text="{l:Tr Import.Faces.Note}" />
             <TextBlock Classes="label" Margin="0,16,0,0" Text="{l:Tr Import.Tags}" />
             <StackPanel Spacing="6" Opacity="0.5">

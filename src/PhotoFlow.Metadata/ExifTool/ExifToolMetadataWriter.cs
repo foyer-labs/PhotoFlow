@@ -41,6 +41,14 @@ public sealed class ExifToolMetadataWriter : IMetadataWriter
         }
 
         var tags = TagArguments(changes);
+        if (changes.Regions is { } regions)
+        {
+            var sidecar = SidecarPath(target.FilePath);
+            var source = (target.IsRaw || policy == WritePolicy.SidecarOnly) && _fileSystem.FileExists(sidecar) ? sidecar : target.FilePath;
+            // The MWG module gives the regions their tag names; a long-running session may not have loaded it yet.
+            tags = ["-use", "MWG", .. tags, RegionArgument(regions, await ReadRegionsAsync(source, ct).ConfigureAwait(false))];
+        }
+
         if (target.IsRaw || policy == WritePolicy.SidecarOnly)
         {
             return await WriteSidecarAsync(target.FilePath, tags, ct).ConfigureAwait(false);
@@ -94,6 +102,78 @@ public sealed class ExifToolMetadataWriter : IMetadataWriter
     }
 
     private static string SingleLine(string value) => value.Replace('\r', ' ').Replace('\n', ' ').Trim();
+
+    /// <summary>
+    /// The whole <c>RegionInfo</c> structure in exiftool's serialized form: the faces of PhotoFlow plus the regions of
+    /// other software (another name or type), so nothing written by others is lost.
+    /// </summary>
+    public static string RegionArgument(FaceRegions regions, IReadOnlyList<ExistingRegion> existing)
+    {
+        ArgumentNullException.ThrowIfNull(regions);
+        ArgumentNullException.ThrowIfNull(existing);
+        var ours = regions.Regions.Select(r => r.Name).ToHashSet(StringComparer.Ordinal);
+        var kept = existing.Where(e => e.Name is null || (!regions.ManagedNames.Contains(e.Name) && !ours.Contains(e.Name))).ToList();
+        var items = regions.Regions.Select(r => Region(r.CenterX, r.CenterY, r.Width, r.Height, r.Name, "Face"))
+            .Concat(kept.Select(e => Region(e.X, e.Y, e.W, e.H, e.Name, e.Type)));
+        return string.Create(CultureInfo.InvariantCulture,
+            $"-XMP-mwg-rs:RegionInfo={{AppliedToDimensions={{W={regions.ImageWidth},H={regions.ImageHeight},Unit=pixel}},RegionList=[{string.Join(',', items)}]}}");
+
+        static string Region(double x, double y, double w, double h, string? name, string? type) =>
+            string.Create(CultureInfo.InvariantCulture, $"{{Area={{X={x:0.#####},Y={y:0.#####},W={w:0.#####},H={h:0.#####},Unit=normalized}}")
+            + (name is null ? string.Empty : ",Name=" + Escape(SingleLine(name)))
+            + (type is null ? string.Empty : ",Type=" + Escape(type)) + "}";
+    }
+
+    /// <summary>exiftool serialized structures: the special characters are escaped with "|".</summary>
+    private static string Escape(string value) =>
+        string.Concat(value.Select(c => c is ',' or '[' or ']' or '{' or '}' or '|' or '=' ? "|" + c : c.ToString()));
+
+    /// <summary>A region already in the file (MWG, normalized centre and size).</summary>
+    public sealed record ExistingRegion(double X, double Y, double W, double H, string? Name, string? Type);
+
+    private async Task<IReadOnlyList<ExistingRegion>> ReadRegionsAsync(string path, CancellationToken ct)
+    {
+        if (!_fileSystem.FileExists(path))
+        {
+            return [];
+        }
+
+        var response = await _exifTool.ExecuteAsync(["-use", "MWG", "-j", "-struct", "-n", "-XMP-mwg-rs:all", path], ct).ConfigureAwait(false);
+        try
+        {
+            using var document = System.Text.Json.JsonDocument.Parse(response.Output);
+            if (document.RootElement.GetArrayLength() == 0
+                || !(document.RootElement[0].TryGetProperty("RegionInfo", out var info) || document.RootElement[0].TryGetProperty("Regions", out info))
+                || !info.TryGetProperty("RegionList", out var list))
+            {
+                return [];
+            }
+
+            var regions = new List<ExistingRegion>();
+            foreach (var region in list.EnumerateArray())
+            {
+                if (!region.TryGetProperty("Area", out var area))
+                {
+                    continue;
+                }
+
+                regions.Add(new ExistingRegion(
+                    Number(area, "X"), Number(area, "Y"), Number(area, "W"), Number(area, "H"),
+                    region.TryGetProperty("Name", out var name) ? name.ToString() : null,
+                    region.TryGetProperty("Type", out var type) ? type.ToString() : null));
+            }
+
+            return regions;
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return [];
+        }
+
+        static double Number(System.Text.Json.JsonElement element, string name) =>
+            element.TryGetProperty(name, out var value) && value.ValueKind == System.Text.Json.JsonValueKind.Number ? value.GetDouble()
+            : element.TryGetProperty(name, out var text) && double.TryParse(text.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed) ? parsed : 0;
+    }
 
     private async Task<MetadataWriteResult> WriteSidecarAsync(string filePath, IReadOnlyList<string> tags, CancellationToken ct)
     {

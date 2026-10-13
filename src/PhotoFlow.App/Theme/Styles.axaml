@@ -294,4 +294,33 @@
     <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="Opacity" Value="0.6" />
   </Style>
+
+  <!-- Filter chips (Review, People) -->
+  <Style Selector="Button.chip">
+    <Setter Property="MinHeight" Value="26" />
+    <Setter Property="Padding" Value="10,0" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderBrush" Value="{DynamicResource PF.Brush.Border}" />
+    <Setter Property="CornerRadius" Value="13" />
+  </Style>
+  <Style Selector="Button.chip.active">
+    <Setter Property="Background" Value="{DynamicResource PF.Brush.Control}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource PF.Brush.TextPrimary}" />
+  </Style>
+
+  <!-- Faces and people tiles: selected = accent border, focused = accent underline -->
+  <Style Selector="Border.tile">
+    <Setter Property="Margin" Value="0,0,8,8" />
+    <Setter Property="CornerRadius" Value="{StaticResource PF.Radius.Control}" />
+    <Setter Property="BorderThickness" Value="2" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Background" Value="{DynamicResource PF.Brush.Panel}" />
+  </Style>
+  <Style Selector="Border.tile.focused">
+    <Setter Property="BorderBrush" Value="{DynamicResource PF.Brush.BorderStrong}" />
+  </Style>
+  <Style Selector="Border.tile.selected">
+    <Setter Property="BorderBrush" Value="{DynamicResource PF.Brush.Accent}" />
+  </Style>
 </Styles>

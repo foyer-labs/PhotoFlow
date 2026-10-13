@@ -1,17 +1,22 @@
 // SPDX-License-Identifier: Apache-2.0
 
-using PhotoFlow.Core.Analysis;
 using PhotoFlow.Core.Catalog;
 
 namespace PhotoFlow.Core.Pipeline;
 
-/// <summary>Batch barrier stage (groupings, faces): waits for the whole set.</summary>
+/// <summary>
+/// Batch barrier stage (groupings, decisions per group, faces): runs when every photo of the job has been analyzed.
+/// Stages are idempotent: a resumed job runs them again on the whole set (F2-4).
+/// </summary>
 public interface IBatchStage
 {
-    Task RunAsync(JobContext job, IProgress<StageProgress> progress, CancellationToken ct);
+    PipelineStage Stage { get; }
+
+    Task RunAsync(JobContext job, IProgress<StageProgress>? progress, CancellationToken ct);
 }
 
-public sealed record JobContext(long JobId, JobType Type, SceneProfile Profile);
+/// <param name="ProfileId">Main profile of the job (the stage resolves it: profiles live outside Core).</param>
+public sealed record JobContext(long JobId, JobType Type, string ProfileId);
 
 public sealed record StageProgress(PipelineStage Stage, int Completed, int Total, string? CurrentItem);
 

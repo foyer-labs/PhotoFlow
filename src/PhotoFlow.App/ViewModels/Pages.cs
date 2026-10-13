@@ -46,11 +46,9 @@ public sealed class PlaceholderPageViewModel(Section section, string phase) : Pa
     /// <summary>Phase that brings each section (spec §13).</summary>
     public static readonly IReadOnlyDictionary<string, string> Phases = new Dictionary<string, string>
     {
-        [SectionCatalog.People] = "2",
         [SectionCatalog.Browse] = "3",
         [SectionCatalog.Duplicates] = "3",
         [SectionCatalog.Vocabulary] = "3",
-        [SectionCatalog.Profiles] = "2",
     };
 
     public Section Section { get; } = section;

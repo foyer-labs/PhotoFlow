@@ -1,0 +1,156 @@
+// SPDX-License-Identifier: Apache-2.0
+
+using Avalonia.Controls;
+using Avalonia.Headless;
+using Avalonia.Headless.XUnit;
+using Avalonia.Input;
+using Avalonia.Threading;
+using PhotoFlow.App.Services;
+using PhotoFlow.App.ViewModels;
+using PhotoFlow.App.Views;
+using PhotoFlow.Core.Analysis;
+using PhotoFlow.Core.Catalog;
+using PhotoFlow.Core.Paths;
+using PhotoFlow.Tests.Support;
+
+namespace PhotoFlow.Tests.App;
+
+/// <summary>
+/// People (boards 4a, 4b) with the keyboard: select and merge groups, rename with a name typed in the field (the
+/// letters go to the field, not to the commands), open the person page, separate a face, "not this person", back.
+/// </summary>
+[Collection(AvaloniaCollection.Name)]
+[Trait(TestCategory.Name, TestCategory.Integration)]
+public sealed class PeopleKeyboardTests : IDisposable
+{
+    private readonly TempFolder _temp = new("pf-people-keys");
+
+    [AvaloniaFact]
+    public async Task People_are_merged_named_and_separated_with_the_keyboard()
+    {
+        var paths = new DefaultAppPaths(_temp.Sub("profile"));
+        await using var host = await PhotoFlowHost.StartAsync(paths, CancellationToken.None);
+        await host.UpdateSettingsAsync(s => s with { SetupCompleted = true }, CancellationToken.None);
+        var ct = CancellationToken.None;
+
+        // Three automatic groups: 4, 3 and 2 faces (one face per photo).
+        var groups = new List<long>();
+        foreach (var size in new[] { 4, 3, 2 })
+        {
+            var person = await host.Catalog.People.CreatePersonAsync(null, ct);
+            groups.Add(person);
+            var assignments = new List<(long, long, double?)>();
+            for (var i = 0; i < size; i++)
+            {
+                var asset = await host.Catalog.Assets.AddAsync(new Asset(0, $"q{person}-{i}", $"f{person}-{i}", "JPG", "jpeg", 400, 300, new DateTimeOffset(2020 + i, 6, 1, 12, 0, 0, TimeSpan.Zero), DateSource.Exif, null, AssetState.Active), ct);
+                await host.Catalog.Analysis.ReplaceAutomaticFacesAsync(asset, [new Face(0, asset, new BoundingBox(0.3f, 0.3f, 0.5f, 0.6f), null, 0.9, EyeState.Open, EyeState.Open, null, null, null, null, "t")], ct);
+                var face = (await host.Catalog.Analysis.GetFacesAsync(asset, ct))[0];
+                assignments.Add((face.Id, person, 0.8 - (i * 0.1)));
+            }
+
+            await host.Catalog.People.AssignAutomaticAsync(assignments, ct);
+        }
+
+        using var shell = new MainWindowViewModel(host);
+        var window = new MainWindow { DataContext = shell, Width = 1440, Height = 900 };
+        window.Show();
+        shell.SelectedSection = SectionCatalog.All.First(s => s.Id == SectionCatalog.People);
+        var people = Assert.IsType<PeopleViewModel>(shell.CurrentPage);
+        await Settle(people.ActivateAsync());
+        Focus<PeopleView>(window);
+        Assert.False(people.IsEmpty);
+        Assert.Equal(PeopleFilter.Unnamed, people.Filter); // no import job: "new" is empty
+        Assert.Equal([4, 3, 2], people.Persons.Select(p => p.Summary.FaceCount));
+
+        // Space selects, → moves, Space selects again, M merges into the largest.
+        Press(window, PhysicalKey.Space);
+        Press(window, PhysicalKey.ArrowRight);
+        Press(window, PhysicalKey.Space);
+        Assert.True(people.HasSelection);
+        Press(window, PhysicalKey.M);
+        await WaitAsync(() => people.Persons.Count == 2);
+        Assert.Equal([7, 2], people.Persons.Select(p => p.Summary.FaceCount));
+
+        // F2 opens the name field: typed letters (M, I, S...) go to the field, Enter applies.
+        Press(window, PhysicalKey.F2);
+        Assert.True(people.IsRenaming);
+        Press(window, PhysicalKey.I); // would ignore the group if it reached the page
+        window.KeyTextInput("Mia Simi");
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(2, people.Persons.Count);
+        Assert.DoesNotContain((await host.Catalog.People.ListPersonsAsync(ct)), p => p.Person.Ignored);
+        people.RenameText = "Mia Simi";
+        Press(window, PhysicalKey.Enter);
+        await WaitAsync(() => !people.IsRenaming && people.Persons.All(p => p.Id != groups[0]));
+        var mia = (await host.Catalog.People.ListPersonsAsync(ct)).Single(p => p.Person.Name == "Mia Simi");
+        Assert.Equal(7, mia.FaceCount);
+        Assert.All(await host.Catalog.People.ListFacesOfPersonAsync(mia.Person.Id, ct), f => Assert.Equal(AssignmentOrigin.Manual, f.AssignmentOrigin));
+
+        // Named filter, Enter opens the person page.
+        Press(window, PhysicalKey.Digit3, RawInputModifiers.Alt);
+        await WaitAsync(() => people.IsNamedFilter && people.Persons.Count == 1);
+        Press(window, PhysicalKey.Enter);
+        var page = Assert.IsType<PersonPageViewModel>(shell.CurrentPage);
+        await WaitAsync(() => page.Years.Sum(y => y.Faces.Count) == 7);
+        Focus<PersonPageView>(window);
+        Assert.Equal("Mia Simi", page.Name);
+
+        // S separates the focused face into a new person; Del takes another away ("not this person").
+        Press(window, PhysicalKey.S);
+        await WaitAsync(() => page.Years.Sum(y => y.Faces.Count) == 6);
+        Press(window, PhysicalKey.Delete);
+        await WaitAsync(() => page.Years.Sum(y => y.Faces.Count) == 5);
+        var persons = await host.Catalog.People.ListPersonsAsync(ct);
+        Assert.Contains(persons, p => p.Person.Name is null && p.FaceCount == 1);
+        Assert.Equal(5, persons.Single(p => p.Person.Id == mia.Person.Id).FaceCount);
+
+        // Esc goes back to the list.
+        Press(window, PhysicalKey.Escape);
+        Assert.IsType<PeopleViewModel>(shell.CurrentPage);
+    }
+
+    public void Dispose() => _temp.Dispose();
+
+    private static void Focus<TView>(Window window)
+        where TView : Control
+    {
+        Dispatcher.UIThread.RunJobs();
+        window.GetVisualDescendantsOf<TView>()?.Focus();
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    private static void Press(Window window, PhysicalKey key, RawInputModifiers modifiers = RawInputModifiers.None)
+    {
+        window.KeyPressQwerty(key, modifiers);
+        for (var i = 0; i < 20; i++)
+        {
+            Dispatcher.UIThread.RunJobs();
+            Thread.Sleep(5);
+        }
+    }
+
+    private static async Task Settle(Task task)
+    {
+        while (!task.IsCompleted)
+        {
+            Dispatcher.UIThread.RunJobs();
+            await Task.Delay(10);
+        }
+
+        await task;
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    private static async Task WaitAsync(Func<bool> condition)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(30);
+        while (!condition())
+        {
+            Assert.True(DateTime.UtcNow < deadline, "Timed out waiting for the condition.");
+            Dispatcher.UIThread.RunJobs();
+            await Task.Delay(20);
+        }
+
+        Dispatcher.UIThread.RunJobs();
+    }
+}

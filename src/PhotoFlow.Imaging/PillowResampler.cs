@@ -26,7 +26,7 @@ public static class PillowResampler
     }
 
     /// <summary>
-    /// Pillow <c>Image.resize(size, BILINEAR, box)</c>: resamples the fractional source <paramref name="box"/>
+    /// Pillow <c>Image.resize(size, BILINEAR | BICUBIC, box)</c>: resamples the fractional source <paramref name="box"/>
     /// (single precision, as Pillow) to <paramref name="width"/> × <paramref name="height"/>. Filter taps outside the
     /// box but inside the image are used, as in Pillow.
     /// </summary>
@@ -35,10 +35,12 @@ public static class PillowResampler
         ArgumentNullException.ThrowIfNull(image);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
-        if (mode != ResampleMode.Bilinear)
+        var (filter, filterSupport) = mode switch
         {
-            throw new ArgumentOutOfRangeException(nameof(mode), mode, "Unsupported resample mode.");
-        }
+            ResampleMode.Bilinear => ((Func<double, double>)Triangle, 1.0),
+            ResampleMode.Bicubic => (Bicubic, 2.0),
+            _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, "Unsupported resample mode."),
+        };
 
         if (box.X0 < 0 || box.Y0 < 0 || box.X1 > image.Width || box.Y1 > image.Height || box.X1 < box.X0 || box.Y1 < box.Y0)
         {
@@ -53,7 +55,7 @@ public static class PillowResampler
         if (needHorizontal)
         {
             horizontal = new byte[width * image.Height * 3];
-            var (bounds, coeffs, kernelSize) = PrecomputeCoefficients(image.Width, box.X0, box.X1, width);
+            var (bounds, coeffs, kernelSize) = PrecomputeCoefficients(image.Width, box.X0, box.X1, width, filter, filterSupport);
             ResampleHorizontal(source, image.Width, image.Height, horizontal, width, bounds, coeffs, kernelSize);
         }
         else
@@ -67,7 +69,7 @@ public static class PillowResampler
         }
 
         var output = new byte[width * height * 3];
-        var (vBounds, vCoeffs, vKernelSize) = PrecomputeCoefficients(image.Height, box.Y0, box.Y1, height);
+        var (vBounds, vCoeffs, vKernelSize) = PrecomputeCoefficients(image.Height, box.Y0, box.Y1, height, filter, filterSupport);
         ResampleVertical(horizontal, width, output, height, vBounds, vCoeffs, vKernelSize);
         return new RgbImage(width, height, output);
     }
@@ -82,10 +84,32 @@ public static class PillowResampler
         return x < 1.0 ? 1.0 - x : 0.0;
     }
 
-    /// <summary>Port of <c>precompute_coeffs</c> + <c>normalize_coeffs_8bpc</c> for the bilinear (triangle) filter.</summary>
-    private static (int[] Bounds, int[] Coefficients, int KernelSize) PrecomputeCoefficients(int inSize, float in0, float in1, int outSize)
+    /// <summary>Pillow <c>bicubic_filter</c> (a = −0.5).</summary>
+    private static double Bicubic(double x)
     {
-        const double filterSupport = 1.0;
+        const double a = -0.5;
+        if (x < 0.0)
+        {
+            x = -x;
+        }
+
+        if (x < 1.0)
+        {
+            return ((((a + 2.0) * x) - (a + 3.0)) * x * x) + 1;
+        }
+
+        if (x < 2.0)
+        {
+            return ((((x - 5) * x) + 8) * x - 4) * a;
+        }
+
+        return 0.0;
+    }
+
+    /// <summary>Port of <c>precompute_coeffs</c> + <c>normalize_coeffs_8bpc</c>.</summary>
+    private static (int[] Bounds, int[] Coefficients, int KernelSize) PrecomputeCoefficients(
+        int inSize, float in0, float in1, int outSize, Func<double, double> filter, double filterSupport)
+    {
         var scale = (double)(in1 - in0) / outSize;
         var filterScale = Math.Max(scale, 1.0);
         var support = filterSupport * filterScale;
@@ -119,7 +143,7 @@ public static class PillowResampler
             Array.Clear(weights);
             for (var x = 0; x < xmax; x++)
             {
-                var w = Triangle((x + xmin - center + 0.5) * ss);
+                var w = filter((x + xmin - center + 0.5) * ss);
                 weights[x] = w;
                 total += w;
             }

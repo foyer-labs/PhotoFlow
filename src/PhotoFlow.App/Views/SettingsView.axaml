@@ -61,10 +61,35 @@
           </Border>
           <TextBlock Classes="overline" Text="{l:Tr Settings.Hardware.Limits}" />
           <TextBlock Classes="label secondary" TextWrapping="Wrap" Text="{Binding WorkersText}" />
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <Button Classes="secondary" IsEnabled="False" Content="{l:Tr Settings.Hardware.Benchmark}" />
-            <TextBlock Classes="micro tertiary" VerticalAlignment="Center" Text="{l:Tr Settings.Hardware.BenchmarkPhase}" />
-          </StackPanel>
+          <Border Classes="card" Padding="16">
+            <StackPanel Spacing="10">
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Classes="label" VerticalAlignment="Center" Text="{Binding BenchmarkTitle}" />
+                <Button Grid.Column="1" Classes="secondary" Command="{Binding RunBenchmarkCommand}" IsEnabled="{Binding !IsBusy}" Content="{l:Tr Settings.Hardware.Benchmark}" />
+              </Grid>
+              <TextBlock Classes="data tertiary" Text="{Binding BenchmarkProgress}" IsVisible="{Binding BenchmarkProgress, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+              <Grid ColumnDefinitions="*,110,110,110" IsVisible="{Binding HasBenchmark}">
+                <TextBlock Classes="micro tertiary" Text="{l:Tr Settings.Benchmark.Stage}" />
+                <TextBlock Grid.Column="1" Classes="micro tertiary" TextAlignment="Right" Text="{l:Tr Settings.Benchmark.Ms}" />
+                <TextBlock Grid.Column="2" Classes="micro tertiary" TextAlignment="Right" Text="{l:Tr Settings.Benchmark.Ram}" />
+                <TextBlock Grid.Column="3" Classes="micro tertiary" TextAlignment="Right" Text="{l:Tr Settings.Benchmark.Vram}" />
+              </Grid>
+              <ItemsControl ItemsSource="{Binding BenchmarkRows}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:BenchmarkRow">
+                    <Grid ColumnDefinitions="*,110,110,110" Margin="0,2">
+                      <TextBlock Classes="label" Text="{Binding Stage}" />
+                      <TextBlock Grid.Column="1" Classes="data" TextAlignment="Right" Text="{Binding Time}" />
+                      <TextBlock Grid.Column="2" Classes="data" TextAlignment="Right" Text="{Binding Ram}" />
+                      <TextBlock Grid.Column="3" Classes="data" TextAlignment="Right" Text="{Binding Vram}" />
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <TextBlock Classes="label secondary" TextWrapping="Wrap" Text="{Binding BenchmarkEstimates}" IsVisible="{Binding HasBenchmark}" />
+              <TextBlock Classes="micro tertiary" TextWrapping="Wrap" Text="{l:Tr Settings.Benchmark.Note}" />
+            </StackPanel>
+          </Border>
           <TextBlock Classes="micro tertiary" TextWrapping="Wrap" Text="{l:Tr Settings.Hardware.Note}" />
         </StackPanel>
 
@@ -138,10 +163,14 @@
           </Border>
 
           <TextBlock Classes="overline" Text="{l:Tr Settings.Catalog.Encryption}" />
-          <StackPanel Spacing="4" Opacity="0.6">
-            <RadioButton IsEnabled="False" IsChecked="True" Content="{l:Tr Settings.Catalog.EncryptionWindows}" />
-            <RadioButton IsEnabled="False" Content="{l:Tr Settings.Catalog.EncryptionPassword}" />
-            <TextBlock Classes="micro tertiary" Text="{l:Tr Settings.Phase2}" />
+          <StackPanel Spacing="8">
+            <TextBlock Classes="label" Text="{Binding EncryptionState}" />
+            <TextBlock Classes="micro tertiary" TextWrapping="Wrap" Text="{l:Tr Settings.Encryption.Note}" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <TextBox Classes="field" Width="200" PasswordChar="•" Text="{Binding EncryptionPassword}" PlaceholderText="{l:Tr Settings.Catalog.EncryptionPassword}" />
+              <TextBox Classes="field" Width="200" PasswordChar="•" Text="{Binding EncryptionConfirm}" PlaceholderText="{l:Tr Settings.Encryption.Confirm}" />
+              <Button Classes="secondary" Command="{Binding SetEncryptionPasswordCommand}" Content="{l:Tr Settings.Encryption.SetPassword}" />
+            </StackPanel>
           </StackPanel>
 
           <TextBlock Classes="overline" Text="{l:Tr Settings.Catalog.Export}" />
@@ -200,13 +229,19 @@
         <!-- 5j Culling -->
         <StackPanel Spacing="16" IsVisible="{Binding IsCulling}">
           <TextBlock Classes="overline" Text="{l:Tr Settings.Culling.Mode}" />
-          <RadioButton GroupName="culling" IsChecked="{Binding PrudentMode, Mode=OneWay}" IsEnabled="False">
+          <RadioButton GroupName="culling" IsChecked="{Binding PrudentMode, Mode=OneWay}" Command="{Binding SetCullingModeCommand}" CommandParameter="Prudent">
             <StackPanel><TextBlock Text="{l:Tr Settings.Culling.Prudent}" /><TextBlock Classes="micro tertiary" TextWrapping="Wrap" Text="{l:Tr Settings.Culling.PrudentNote}" /></StackPanel>
           </RadioButton>
-          <RadioButton GroupName="culling" IsEnabled="False">
+          <RadioButton GroupName="culling" IsChecked="{Binding NormalMode, Mode=OneWay}" IsEnabled="{Binding NormalModeAllowed}" Command="{Binding SetCullingModeCommand}" CommandParameter="Normal">
             <StackPanel><TextBlock Text="{l:Tr Settings.Culling.Normal}" /><TextBlock Classes="micro tertiary" TextWrapping="Wrap" Text="{l:Tr Settings.Culling.NormalNote}" /></StackPanel>
           </RadioButton>
-          <TextBlock Classes="micro tertiary" Text="{l:Tr Settings.Phase2}" />
+          <TextBlock Classes="overline" Text="{l:Tr Settings.Culling.Metrics}" />
+          <ItemsControl ItemsSource="{Binding CullingMetrics}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="x:String"><TextBlock Classes="data" Text="{Binding}" /></DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <TextBlock Classes="label tertiary" TextWrapping="Wrap" Text="{Binding CullingNote}" />
         </StackPanel>
       </Panel>
     </ScrollViewer>

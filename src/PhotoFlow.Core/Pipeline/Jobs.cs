@@ -64,7 +64,9 @@ public interface IJobRunner
 /// <param name="Total">Files of the job.</param>
 /// <param name="Copied">Files whose primary copy is verified (including earlier runs).</param>
 /// <param name="Completed">Files with every stage done.</param>
-public sealed record JobProgress(int Total, int Copied, int Completed, int Failed, string? CurrentItem);
+/// <param name="Stage">Batch stage in progress once every photo is analyzed (grouping, decisions, faces), with its own counts.</param>
+public sealed record JobProgress(int Total, int Copied, int Completed, int Failed, string? CurrentItem,
+    PipelineStage Stage = PipelineStage.None, int StageCompleted = 0, int StageTotal = 0);
 
 public sealed record JobRunSummary(JobState State, int Completed, int Failed, JobPauseReason? PauseReason);
 
@@ -102,4 +104,8 @@ public sealed record PhotoProcessingResult(
     AnalyzerResult Analysis,
     IReadOnlyList<Face> Faces,
     DecisionProposal Decision,
-    string DecisionVersion);
+    string DecisionVersion,
+    ImageEmbedding? Embedding = null);
+
+/// <summary>An L2-normalized image embedding and the model version that produced it.</summary>
+public sealed record ImageEmbedding(string ModelVersion, float[] Vector);

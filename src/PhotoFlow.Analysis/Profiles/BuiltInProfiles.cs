@@ -17,6 +17,8 @@ public static class BuiltInProfiles
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         Converters = { new JsonStringEnumConverter() },
         UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
+        WriteIndented = true,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
     /// <summary>All built-in profiles, in the order shown to the user.</summary>
@@ -45,8 +47,39 @@ public static class BuiltInProfiles
             throw new InvalidDataException($"Profile '{document.Id}': at least one sharpness zone.");
         }
 
+        var grouping = document.Grouping ?? GroupingParameters.Default;
+        if (grouping.MaxBurstGapSeconds <= 0 || grouping.MinSimilarity is <= 0 or > 1 || grouping.TieMargin < 0)
+        {
+            throw new InvalidDataException($"Profile '{document.Id}': grouping parameters out of range.");
+        }
+
+        var t = document.Thresholds;
+        if (t.BlurDiscard is < 0 or > 1 || t.BlurReview is < 0 or > 1 || t.BlurDiscard > t.BlurReview)
+        {
+            throw new InvalidDataException($"Profile '{document.Id}': the blur thresholds must be within 0..1, discard below review.");
+        }
+
+        if (string.IsNullOrWhiteSpace(document.Id) || string.IsNullOrWhiteSpace(document.Name) || document.Version < 1)
+        {
+            throw new InvalidDataException("Profile without id, name or version.");
+        }
+
         return new SceneProfile(document.Id, document.Name, document.Version, isBuiltIn, document.CullingEnabled, document.SharpnessZones,
-            document.Exposure, document.Faces, document.SubjectClasses, document.Ocr, document.AbsoluteSharpness, w, document.Thresholds);
+            document.Exposure, document.Faces, document.SubjectClasses, document.Ocr, document.AbsoluteSharpness, w, document.Thresholds)
+        {
+            Grouping = grouping,
+            BasedOn = document.BasedOn,
+        };
+    }
+
+    /// <summary>The JSON document of a profile (custom profiles, spec §6: versioned JSON files).</summary>
+    public static string Serialize(SceneProfile profile)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+        var document = new ProfileDocument(SchemaVersion, profile.Id, profile.Version, profile.Name, profile.CullingEnabled, profile.SharpnessZones,
+            profile.Exposure, profile.Faces, profile.SubjectClasses, profile.Ocr, profile.AbsoluteSharpness, profile.Weights, profile.Thresholds,
+            profile.Grouping, profile.BasedOn);
+        return JsonSerializer.Serialize(document, Options);
     }
 
     private static IReadOnlyList<SceneProfile> Load()
@@ -78,5 +111,7 @@ public static class BuiltInProfiles
         bool Ocr,
         bool AbsoluteSharpness,
         ProfileWeights Weights,
-        CullingThresholds Thresholds);
+        CullingThresholds Thresholds,
+        GroupingParameters? Grouping = null,
+        string? BasedOn = null);
 }

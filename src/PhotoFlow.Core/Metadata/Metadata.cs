@@ -29,9 +29,20 @@ public enum WritePolicy
     CatalogOnly,
 }
 
+/// <param name="Regions">Named face regions (MWG), or null to leave the regions untouched.</param>
 public sealed record MetadataChanges(
     int? Rating,
     string? Label,
     IReadOnlyList<string> FlatKeywords,
     IReadOnlyList<string> HierarchicalKeywords,
-    string? Description);
+    string? Description,
+    FaceRegions? Regions = null);
+
+/// <summary>
+/// Face regions to write (spec §4, §7: MWG regions with the name). Regions already in the file with a name that is
+/// not managed by PhotoFlow (<paramref name="ManagedNames"/>: the names of the catalog's people) are kept.
+/// </summary>
+public sealed record FaceRegions(int ImageWidth, int ImageHeight, IReadOnlyList<FaceRegion> Regions, IReadOnlyCollection<string> ManagedNames);
+
+/// <summary>A named face, MWG convention: centre and size normalized to the image (0..1).</summary>
+public sealed record FaceRegion(string Name, double CenterX, double CenterY, double Width, double Height);

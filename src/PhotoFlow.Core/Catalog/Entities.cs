@@ -185,7 +185,12 @@ public sealed record EmbeddingRecord(long Id, long AssetId, string ModelVersion,
 
 // --- Groups and decisions ---
 
-public sealed record AssetGroup(long Id, GroupType Type, string? ProfileId, double? ProfileConfidence, GroupOrigin Origin);
+/// <summary>A group of photos of a job (spec §9 <c>Groups</c>); the profile is the one assigned to the group (D8).</summary>
+public sealed record AssetGroup(long Id, long JobId, GroupType Type, string? ProfileId, double? ProfileConfidence, GroupOrigin Origin)
+{
+    /// <summary>Bracketing, timelapse and panorama are never ranked (spec §6, special sequences).</summary>
+    public bool IsRanked => Type == GroupType.Burst;
+}
 
 public enum GroupType
 {
@@ -203,6 +208,13 @@ public enum GroupOrigin
 }
 
 public sealed record GroupMember(long GroupId, long AssetId, int Position, double? Score);
+
+/// <summary>
+/// Profile of an analyzed photo in a job (D8): <paramref name="ProfileId"/> null means the job profile; set by CLIP in
+/// automatic mode or by the user for its group (<paramref name="ByUser"/>, never overwritten). The suggestion is shown in
+/// manual mode when the photo looks like another profile.
+/// </summary>
+public sealed record PhotoProfile(long JobId, long AssetId, string? ProfileId, double? Confidence, bool ByUser, string? SuggestedProfileId, double? SuggestedConfidence);
 
 /// <summary>Automatic proposal and user decision; the user decision always wins (invariant I5).</summary>
 public sealed record Decision(
@@ -228,6 +240,21 @@ public enum CullingOutcome
     Similar,
     Kept,
 }
+
+/// <summary>Labels of the labelling mode (spec §14: 1 good, 2 blurred, 3 eyes closed, 4 exposure, 5 other).</summary>
+public enum PhotoLabel
+{
+    Good,
+    Blurred,
+    EyesClosed,
+    Exposure,
+    Other,
+
+    /// <summary>Chosen as the best of its burst.</summary>
+    BurstBest,
+}
+
+public sealed record LabeledPhoto(long AssetId, PhotoLabel Label, string SessionId, DateTimeOffset LabeledAt);
 
 public sealed record Correction(
     long Id,
@@ -282,7 +309,10 @@ public sealed record Face(
     long? PersonId,
     AssignmentOrigin? AssignmentOrigin,
     double? Similarity,
-    string ModelVersion);
+    string ModelVersion,
+    IReadOnlyList<Point2>? Keypoints = null,
+    string? EmbeddingModel = null,
+    long? SuggestedPersonId = null);
 
 /// <summary>Unknown with sunglasses, small faces, or with YuNet/SFace (spec §6).</summary>
 public enum EyeState
@@ -300,7 +330,14 @@ public enum AssignmentOrigin
 
 public sealed record Person(long Id, string? Name, bool Ignored, long? CoverFaceId);
 
-public sealed record PersonPrototype(long Id, long PersonId, int? Year, byte[] EncryptedEmbedding, string ModelVersion);
+/// <summary>An encrypted fingerprint representing a person in a year (P12: the face changes over time).</summary>
+public sealed record PersonPrototype(long Id, long PersonId, long FaceId, int? Year, byte[] EncryptedEmbedding, string ModelVersion);
+
+/// <summary>A person with the size of its gallery (Persone, 4a): unnamed persons are clusters ("Persona N").</summary>
+public sealed record PersonSummary(Person Person, int FaceCount, int PhotoCount, int? FirstYear, int? LastYear, int ManualFaces);
+
+/// <summary>A face with its encrypted fingerprint, for recognition and clustering.</summary>
+public sealed record FaceFingerprint(long FaceId, long AssetId, int? Year, byte[] EncryptedEmbedding, string EmbeddingModel, long? PersonId, AssignmentOrigin? Origin);
 
 // --- Text ---
 

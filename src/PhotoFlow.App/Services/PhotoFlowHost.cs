@@ -2,6 +2,7 @@
 
 using PhotoFlow.Analysis.Culling;
 using PhotoFlow.Analysis.Detectors;
+using PhotoFlow.Analysis.Grouping;
 using PhotoFlow.Analysis.Profiles;
 using PhotoFlow.Core.Analysis;
 using PhotoFlow.Core.Catalog;
@@ -14,6 +15,8 @@ using PhotoFlow.Core.Pipeline;
 using PhotoFlow.Core.Sources;
 using PhotoFlow.Data;
 using PhotoFlow.Faces.Detection;
+using PhotoFlow.Faces.Protection;
+using PhotoFlow.Faces.Recognition;
 using PhotoFlow.Imaging;
 using PhotoFlow.Inference;
 using PhotoFlow.Inference.Gpu;
@@ -22,11 +25,15 @@ using PhotoFlow.Metadata.ExifTool;
 using PhotoFlow.Sources.Ingest;
 using PhotoFlow.Sources.Jobs;
 using PhotoFlow.Sources.Scanning;
+using PhotoFlow.Tagging.Clip;
 
 namespace PhotoFlow.App.Services;
 
 /// <summary>Which models the analysis uses, for the status bar and the first run (3b).</summary>
-public sealed record AnalysisSetup(string? ObjectDetector, string? FaceDetector, bool EyesAvailable, ExecutionBackend Backend);
+/// <summary>The loaded models of the analysis (null when not installed).</summary>
+public sealed record AnalysisComponents(IImageOperations Operations, IObjectDetector? Objects, IFaceDetector? Faces, IImageEmbedder? Embedder, IFaceEmbedder? Fingerprints);
+
+public sealed record AnalysisSetup(string? ObjectDetector, string? FaceDetector, bool EyesAvailable, ExecutionBackend Backend, string? Embedder = null, string? FaceRecognizer = null);
 
 /// <summary>
 /// Composition of the non-UI services (catalog, exiftool, handlers, models, jobs, card detection), started once at
@@ -40,12 +47,16 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     /// <summary>Model adapters this version can run: only these models can be downloaded or chosen (board 5g).</summary>
     public static readonly IReadOnlySet<string> ImplementedAdapters = new HashSet<string>(StringComparer.Ordinal)
     {
-        "dfine-hf-v1", "insightface-buffalo-v1", "yunet-v1",
+        "dfine-hf-v1", "insightface-buffalo-v1", "yunet-v1", "clip-hf-v1", "sface-v1",
     };
+
+    public const string ClipModelId = "clip-vit-b32";
+    public const string SFaceModelId = "opencv-sface-2021dec";
 
     private readonly SemaphoreSlim _sessionsGate = new(1, 1);
     private readonly List<IInferenceSession> _sessions = [];
     private CullingPhotoProcessor? _processor;
+    private AnalysisComponents? _components;
     private Task _maintenance = Task.CompletedTask;
 
     private PhotoFlowHost(IAppPaths paths, IFileSystem fileSystem, SettingsStore settingsStore, AppSettings settings, SqliteCatalog catalog, ExifToolSession exifTool)
@@ -68,12 +79,24 @@ public sealed class PhotoFlowHost : IAsyncDisposable
         Planner = new ImportPlanner(fileSystem, ExifReader, catalog.Assets);
         Jobs = new JobManager(() => new JobRunnerRouter(
             Catalog,
-            new ImportJobRunner(Catalog, new IngestService(new CopyEngine(FileSystem)), ExifReader, FileSystem, new LazyProcessor(this), Deferred),
-            new ArchiveJobRunner(Catalog, ExifReader, FileSystem, new LowPriorityProcessor(this))));
+            new ImportJobRunner(Catalog, new IngestService(new CopyEngine(FileSystem)), ExifReader, FileSystem, new LazyProcessor(this), Deferred, BatchStages()),
+            new ArchiveJobRunner(Catalog, ExifReader, FileSystem, new LowPriorityProcessor(this), BatchStages())));
         Cards = new PollingCardDetector();
         Maintenance = new MaintenanceService(paths, new InternalFileCleaner(paths), protectedBackup: () => Restore?.Pending);
         Restore = new CatalogRestoreService(paths);
+        FingerprintKeys = new FingerprintKeyStore(Path.Combine(paths.ConfigDirectory, "face-key.json"));
+        Profiles = new ProfileLibrary(paths.ProfilesDirectory);
+        FingerprintKeys.Open();
     }
+
+    /// <summary>Key of the face fingerprints (D12): locked on another account or PC until the password or a recompute.</summary>
+    public FingerprintKeyStore FingerprintKeys { get; }
+
+    /// <summary>Built-in and custom scene profiles (spec §6, board 5e).</summary>
+    public ProfileLibrary Profiles { get; }
+
+    /// <summary>Display name of a profile id (custom profiles have their own name).</summary>
+    public string ProfileName(string? id) => Profiles.Find(id) is { } p ? ViewModels.ProfileChoice.NameOf(p) : Localization.Strings.Get("Profile." + (id ?? ProfileLibrary.FallbackId));
 
     public IAppPaths Paths { get; }
 
@@ -207,6 +230,58 @@ public sealed class PhotoFlowHost : IAsyncDisposable
         return (models, gpu);
     }
 
+    /// <summary>Stages run once every photo of a job is analyzed: groupings, then decisions per group (spec §3, phases 4-5).</summary>
+    private IReadOnlyList<IBatchStage> BatchStages()
+    {
+        var embedder = DescribeAnalysis().Embedder is { } clip ? $"{clip}@{Models.Get(clip).Version}" : null;
+        return
+        [
+            new GroupingStage(Catalog, Profiles.Get, embedder),
+            new ProfileStage(Catalog, embedder is null ? null : new LazySceneClassifier(this), embedder),
+            new ReanalysisStage(Catalog, FileSystem, new LazyProcessor(this), null, Profiles.Get, PipelineDefaults.DefaultAnalysisWorkers),
+            new GroupDecisionStage(Catalog, Profiles.Get, new DecisionEngine()),
+            new FacesStage(Catalog, () => FingerprintKeys.Protector),
+        ];
+    }
+
+    /// <summary>
+    /// "Re-analyze as…" for a group (D8, board 2a): the user's profile for its photos, then the photos measured with
+    /// another profile are analyzed again and the job decided again (user decisions untouched, I5).
+    /// </summary>
+    public async Task ReanalyzeAsync(long jobId, IReadOnlyList<long> assetIds, string profileId, CancellationToken ct)
+    {
+        await Catalog.Groups.SetUserProfileAsync(jobId, assetIds, profileId, ct).ConfigureAwait(false);
+        var job = await Catalog.Jobs.GetAsync(jobId, ct).ConfigureAwait(false) ?? throw new InvalidOperationException($"Job {jobId} not found.");
+        var context = new JobContext(jobId, job.Type, job.ProfileId ?? "events");
+        await new ReanalysisStage(Catalog, FileSystem, new LazyProcessor(this), null, Profiles.Get, PipelineDefaults.DefaultAnalysisWorkers).RunAsync(context, null, ct).ConfigureAwait(false);
+        await new GroupDecisionStage(Catalog, Profiles.Get, new DecisionEngine()).RunAsync(context, null, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// The fingerprint key is lost (4c3): a new key, then every fingerprint is recomputed from the library previews;
+    /// names and assignments stay (spec §7). Needs the face recognition model.
+    /// </summary>
+    public async Task<(int Recomputed, int Missing)> RecomputeFingerprintsAsync(string? password, IProgress<(int Done, int Total)>? progress, CancellationToken ct)
+    {
+        var setup = DescribeAnalysis();
+        if (setup.FaceRecognizer is not { } recognizer)
+        {
+            throw new InvalidOperationException("No face recognition model installed.");
+        }
+
+        FingerprintKeys.Reset(password);
+        var session = await Inference.CreateSessionAsync(Models.Resolve(recognizer, recognizer == SFaceModelId ? SFaceEmbedder.File : ArcFaceEmbedder.File), ExecutionTarget.Auto, ct).ConfigureAwait(false);
+        try
+        {
+            IFaceEmbedder embedder = recognizer == SFaceModelId ? new SFaceEmbedder(session) : new ArcFaceEmbedder(session);
+            return await new FingerprintRecompute(Catalog, FileSystem, Previews, embedder, FingerprintKeys.Protector).RunAsync(progress, ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            session.Dispose();
+        }
+    }
+
     /// <summary>Models the analysis would use now (installed and, where needed, accepted).</summary>
     public AnalysisSetup DescribeAnalysis()
     {
@@ -215,7 +290,9 @@ public sealed class PhotoFlowHost : IAsyncDisposable
             : Models.IsInstalled("dfine-s-obj2coco") ? "dfine-s-obj2coco" : null;
         var buffalo = Models.IsInstalled("insightface-buffalo-l") && Settings.AcceptedModelLicenses.Contains("insightface-buffalo-l");
         var faces = buffalo ? "insightface-buffalo-l" : Models.IsInstalled("opencv-yunet-2023mar") ? "opencv-yunet-2023mar" : null;
-        return new AnalysisSetup(detector, faces, buffalo, gpu ? ExecutionBackend.Cuda : ExecutionBackend.Cpu);
+        var recognizer = buffalo ? "insightface-buffalo-l" : faces is not null && Models.IsInstalled(SFaceModelId) ? SFaceModelId : null;
+        return new AnalysisSetup(detector, faces, buffalo, gpu ? ExecutionBackend.Cuda : ExecutionBackend.Cpu,
+            Models.IsInstalled(ClipModelId) ? ClipModelId : null, recognizer);
     }
 
     public async ValueTask DisposeAsync()
@@ -245,12 +322,21 @@ public sealed class PhotoFlowHost : IAsyncDisposable
 
     private async Task<IPhotoProcessor> GetProcessorAsync(CancellationToken ct)
     {
+        var c = await GetAnalysisComponentsAsync(ct).ConfigureAwait(false);
+        var created = new CullingPhotoProcessor(Previews, new CullingAnalyzer(c.Operations, c.Objects, c.Faces), new DecisionEngine(), Profiles.Get, Thumbnails,
+            c.Embedder, c.Fingerprints, () => FingerprintKeys.Protector);
+        return Interlocked.CompareExchange(ref _processor, created, null) ?? created;
+    }
+
+    /// <summary>The models of the analysis, loaded once (shared by the pipeline and the benchmark).</summary>
+    public async Task<AnalysisComponents> GetAnalysisComponentsAsync(CancellationToken ct)
+    {
         await _sessionsGate.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            if (_processor is not null)
+            if (_components is not null)
             {
-                return _processor;
+                return _components;
             }
 
             var setup = DescribeAnalysis();
@@ -273,8 +359,17 @@ public sealed class PhotoFlowHost : IAsyncDisposable
                 faces = new YuNetFaceDetector(await Open(yunet, "face_detection_yunet_2023mar.onnx").ConfigureAwait(false), operations);
             }
 
-            _processor = new CullingPhotoProcessor(Previews, new CullingAnalyzer(operations, objects, faces), new DecisionEngine(), BuiltInProfiles.Get, Thumbnails);
-            return _processor;
+            IImageEmbedder? embedder = setup.Embedder is { } clip
+                ? new ClipImageEmbedder(await Open(clip, "vision_model.onnx").ConfigureAwait(false), operations)
+                : null;
+            IFaceEmbedder? fingerprints = setup.FaceRecognizer switch
+            {
+                "insightface-buffalo-l" => new ArcFaceEmbedder(await Open("insightface-buffalo-l", ArcFaceEmbedder.File).ConfigureAwait(false)),
+                SFaceModelId => new SFaceEmbedder(await Open(SFaceModelId, SFaceEmbedder.File).ConfigureAwait(false)),
+                _ => null,
+            };
+            _components = new AnalysisComponents(operations, objects, faces, embedder, fingerprints);
+            return _components;
         }
         finally
         {
@@ -295,7 +390,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     /// </summary>
     public async Task<long> StartArchiveAnalysisAsync(long libraryId, string profileId, ArchiveOrder order, CancellationToken ct)
     {
-        var settings = new ArchiveJobSettings(libraryId, profileId, order, FaceMode.DetectOnly,
+        var settings = new ArchiveJobSettings(libraryId, profileId, order, Settings.Import.Faces,
             Math.Max(1, PipelineDefaults.DefaultAnalysisWorkers / 2));
         var jobId = await ArchiveJobRunner.CreateAsync(Catalog, FileSystem, settings, ct).ConfigureAwait(false);
         _ = Jobs.StartAsync(jobId, JobPriority.Low);
@@ -309,6 +404,37 @@ public sealed class PhotoFlowHost : IAsyncDisposable
         {
             await host.Jobs.YieldToNormalAsync(ct).ConfigureAwait(false);
             return await (await host.GetProcessorAsync(ct).ConfigureAwait(false)).ProcessAsync(photo, options, ct).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>CLIP text model loaded on the first classification (the prompts are embedded once).</summary>
+    private sealed class LazySceneClassifier(PhotoFlowHost host) : ISceneClassifier
+    {
+        public string ModelVersion => $"{ClipModelId}+scenes-v1";
+
+        public async Task<IReadOnlyList<(string ProfileId, double Probability)>> ClassifyAsync(ReadOnlyMemory<float> imageEmbedding, CancellationToken ct) =>
+            await (await host.GetSceneClassifierAsync(ct).ConfigureAwait(false)).ClassifyAsync(imageEmbedding, ct).ConfigureAwait(false);
+    }
+
+    private ClipSceneClassifier? _sceneClassifier;
+
+    private async Task<ClipSceneClassifier> GetSceneClassifierAsync(CancellationToken ct)
+    {
+        await _sessionsGate.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            if (_sceneClassifier is null)
+            {
+                var session = await Inference.CreateSessionAsync(Models.Resolve(ClipModelId, "text_model.onnx"), ExecutionTarget.Auto, ct).ConfigureAwait(false);
+                _sessions.Add(session);
+                _sceneClassifier = new ClipSceneClassifier(new ClipTextEmbedder(session, ClipTokenizer.Load(Models.Resolve(ClipModelId, "tokenizer.json").FilePath)));
+            }
+
+            return _sceneClassifier;
+        }
+        finally
+        {
+            _sessionsGate.Release();
         }
     }
 
