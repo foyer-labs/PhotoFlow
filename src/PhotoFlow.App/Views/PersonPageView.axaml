@@ -6,6 +6,17 @@
              xmlns:l="using:PhotoFlow.App.Localization"
              x:Class="PhotoFlow.App.Views.PersonPageView"
              x:DataType="vm:PersonPageViewModel">
+  <UserControl.Styles>
+    <Style Selector="Border.photoTag">
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Padding" Value="8,2" />
+      <Setter Property="Margin" Value="0,0,6,6" />
+      <Setter Property="Background" Value="{DynamicResource PF.Brush.Control}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource PF.Brush.BorderStrong}" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+  </UserControl.Styles>
+
   <Grid ColumnDefinitions="*,320">
     <Grid RowDefinitions="Auto,Auto,*" Background="{DynamicResource PF.Brush.GridArea}">
       <Grid ColumnDefinitions="*,Auto" Margin="20,12,20,8">
@@ -74,10 +85,37 @@
             <Canvas Width="{Binding PhotoWidth}" Height="{Binding PhotoHeight}">
               <Image Source="{Binding Photo}" Width="{Binding PhotoWidth}" Height="{Binding PhotoHeight}" />
               <Rectangle Canvas.Left="{Binding FaceLeft}" Canvas.Top="{Binding FaceTop}" Width="{Binding FaceWidth}" Height="{Binding FaceHeight}"
-                         Stroke="{DynamicResource PF.Brush.Accent}" StrokeThickness="{Binding FaceStroke}" />
+                         IsVisible="{Binding ShowFaceBox}" Stroke="{DynamicResource PF.Brush.Accent}" StrokeThickness="{Binding FaceStroke}" />
             </Canvas>
           </Viewbox>
-          <TextBlock Grid.Row="2" Classes="micro secondary" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="16,8,16,12" Text="{l:Tr People.PhotoHint}" />
+          <!-- Where the photo is, when, who and what (tags); the face box can be hidden -->
+          <StackPanel Grid.Row="2" Margin="16,10,16,12" Spacing="6">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+              <SelectableTextBlock Classes="data" VerticalAlignment="Center" TextWrapping="Wrap" Text="{Binding PhotoPath}" IsVisible="{Binding HasPhotoPath}" />
+              <Button Grid.Column="1" Classes="secondary" IsVisible="{Binding HasPhotoPath}" Command="{Binding ShowPhotoInExplorerCommand}">
+                <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Text="{l:Tr Browse.Command.Explorer}" /><Border Classes="key"><TextBlock Text="Ctrl Maiusc E" /></Border></StackPanel>
+              </Button>
+            </Grid>
+            <StackPanel Orientation="Horizontal" Spacing="16">
+              <TextBlock Classes="label secondary" VerticalAlignment="Center" Text="{Binding PhotoFacts}" />
+              <TextBlock Classes="label" VerticalAlignment="Center" TextWrapping="Wrap" Text="{Binding PhotoPeople}" />
+            </StackPanel>
+            <ItemsControl ItemsSource="{Binding PhotoTags}" IsVisible="{Binding HasPhotoTags}">
+              <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="x:String">
+                  <Border Classes="photoTag"><TextBlock Classes="label" Text="{Binding}" /></Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Classes="label tertiary" IsVisible="{Binding !HasPhotoTags}" Text="{l:Tr People.PhotoNoTags}" />
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
+              <CheckBox IsChecked="{Binding ShowFaceBox}">
+                <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Classes="label" Text="{l:Tr People.ShowFaceBox}" /><Border Classes="key"><TextBlock Text="E" /></Border></StackPanel>
+              </CheckBox>
+              <TextBlock Grid.Column="1" Classes="micro secondary" VerticalAlignment="Center" TextWrapping="Wrap" Text="{l:Tr People.PhotoHint}" />
+            </Grid>
+          </StackPanel>
         </Grid>
       </Border>
     </Grid>

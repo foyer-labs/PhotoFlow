@@ -603,6 +603,8 @@ public sealed partial class PersonPageViewModel : PageViewModel
         new("Person.Enter", new KeyGesture(Key.Enter), "People.Command.OpenPhoto", StatusGroupKey: "People.Command.OpenPhoto"),
         new("Person.Order", new KeyGesture(Key.O), "People.Command.Order"),
         new("Person.Back", new KeyGesture(Key.Escape), "People.Command.Back", StatusGroupKey: "People.Command.Back"),
+        new("Person.FaceBox", new KeyGesture(Key.E), "People.Command.FaceBox"),
+        new("Person.Explorer", new KeyGesture(Key.E, KeyModifiers.Control | KeyModifiers.Shift), "Browse.Command.Explorer"),
     ]);
 
     private readonly PhotoFlowHost _host;
@@ -637,6 +639,8 @@ public sealed partial class PersonPageViewModel : PageViewModel
         "Person.Enter" => EnterCommand,
         "Person.Order" => ToggleOrderCommand,
         "Person.Back" => BackCommand,
+        "Person.FaceBox" => ToggleFaceBoxCommand,
+        "Person.Explorer" => ShowPhotoInExplorerCommand,
         _ => base.ResolveCommand(id),
     };
 
@@ -715,6 +719,31 @@ public sealed partial class PersonPageViewModel : PageViewModel
 
     [ObservableProperty]
     private double _faceStroke = 3;
+
+    /// <summary>The face is boxed on the photo (E); kept while going from face to face.</summary>
+    [ObservableProperty]
+    private bool _showFaceBox = true;
+
+    /// <summary>Where the photo is: its full path (empty when only the thumbnail could be shown).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasPhotoPath))]
+    private string? _photoPath;
+
+    public bool HasPhotoPath => PhotoPath is not null;
+
+    /// <summary>Date taken and event of the photo.</summary>
+    [ObservableProperty]
+    private string _photoFacts = string.Empty;
+
+    /// <summary>Named people on the photo.</summary>
+    [ObservableProperty]
+    private string _photoPeople = string.Empty;
+
+    /// <summary>Active tags of the photo (Italian when available), events apart.</summary>
+    public ObservableCollection<string> PhotoTags { get; } = [];
+
+    [ObservableProperty]
+    private bool _hasPhotoTags;
 
     public bool CanConfirmMove => MoveTarget is { Id: not null } || (IsNewPerson && !string.IsNullOrWhiteSpace(NewPersonName));
 
@@ -1027,6 +1056,7 @@ public sealed partial class PersonPageViewModel : PageViewModel
             return;
         }
 
+        await LoadPhotoInfoAsync(face.AssetId, asset, path);
         (PhotoWidth, PhotoHeight) = (bitmap.PixelSize.Width, bitmap.PixelSize.Height);
         (FaceLeft, FaceTop) = (face.Box.X1 * PhotoWidth, face.Box.Y1 * PhotoHeight);
         (FaceWidth, FaceHeight) = ((face.Box.X2 - face.Box.X1) * PhotoWidth, (face.Box.Y2 - face.Box.Y1) * PhotoHeight);
@@ -1039,6 +1069,61 @@ public sealed partial class PersonPageViewModel : PageViewModel
 
     [RelayCommand]
     private void ClosePhoto() => Photo = null;
+
+    [RelayCommand]
+    private void ToggleFaceBox() => ShowFaceBox = !ShowFaceBox;
+
+    /// <summary>Ctrl Shift E: Explorer on the folder of the photo, the file selected.</summary>
+    [RelayCommand]
+    private async Task ShowPhotoInExplorerAsync()
+    {
+        var path = PhotoPath ?? (Focused is { } tile ? await AssetFiles.LocateAsync(_host.Catalog, _host.FileSystem, tile.Face.AssetId, CancellationToken.None) : null);
+        if (path is null)
+        {
+            Message = Strings.Get("People.PhotoUnavailable");
+            return;
+        }
+
+        try
+        {
+            using var _ = OperatingSystem.IsWindows()
+                ? System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe") { ArgumentList = { "/select,", path }, UseShellExecute = false })
+                : System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(Path.GetDirectoryName(path) ?? path) { UseShellExecute = true });
+        }
+        catch (Exception e) when (e is System.ComponentModel.Win32Exception or InvalidOperationException or FileNotFoundException)
+        {
+            Message = Strings.Format("Browse.LaunchFailed", e.Message);
+        }
+    }
+
+    /// <summary>Where the photo is, when it was taken, its event, people and tags.</summary>
+    private async Task LoadPhotoInfoAsync(long assetId, Asset? asset, string? path)
+    {
+        var catalog = _host.Catalog;
+        PhotoPath = path;
+        var tags = await catalog.Tags.GetForAssetAsync(assetId, CancellationToken.None);
+        if (tags.Count == 0 && await catalog.Assets.GetTwinAsync(assetId, CancellationToken.None) is { } twin)
+        {
+            tags = await catalog.Tags.GetForAssetAsync(twin, CancellationToken.None);
+        }
+
+        var active = tags.Where(t => t.Assignment.State == AssetTagState.Active && !t.Tag.Blacklisted).ToList();
+        bool IsEvent(AssetTagInfo t) => t.Tag.Key.StartsWith(Tagging.Vocabulary.TaggingStage.EventPrefix, StringComparison.Ordinal);
+        var taken = asset?.CapturedAt?.ToLocalTime().ToString("d MMM yyyy · HH:mm", CultureInfo.CurrentCulture);
+        var eventName = active.Where(IsEvent).Select(t => t.Tag.Italian ?? t.Tag.English).FirstOrDefault();
+        PhotoFacts = string.Join(" · ", new[] { taken, eventName }.OfType<string>());
+        PhotoTags.Clear();
+        foreach (var label in active.Where(t => !IsEvent(t)).Select(t => t.Tag.Italian ?? t.Tag.English).Distinct(StringComparer.CurrentCultureIgnoreCase)
+                     .Order(StringComparer.CurrentCultureIgnoreCase))
+        {
+            PhotoTags.Add(label);
+        }
+
+        HasPhotoTags = PhotoTags.Count > 0;
+        var persons = (await catalog.People.ListPersonsAsync(CancellationToken.None)).ToDictionary(p => p.Person.Id, p => p.Person);
+        PhotoPeople = string.Join(", ", (await catalog.Analysis.GetFacesAsync(assetId, CancellationToken.None))
+            .Select(f => f.PersonId is { } id && persons.TryGetValue(id, out var p) && !p.Ignored ? p.Name : null).OfType<string>().Distinct());
+    }
 
     /// <summary>Enter: applies the move chosen in the list, or the rename being typed.</summary>
     [RelayCommand]

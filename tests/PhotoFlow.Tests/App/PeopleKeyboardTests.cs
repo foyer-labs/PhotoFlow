@@ -49,6 +49,7 @@ public sealed class PeopleKeyboardTests : IDisposable
                 await host.Catalog.Analysis.ReplaceAutomaticFacesAsync(asset, [new Face(0, asset, new BoundingBox(0.3f, 0.3f, 0.5f, 0.6f), null, 0.9, EyeState.Open, EyeState.Open, null, null, null, null, "t")], ct);
                 SyntheticImages.WriteJpeg(Path.Combine(root, $"p{person}-{i}.jpg"), 400, 300);
                 await host.Catalog.Assets.AddLocationAsync(new AssetLocation(0, asset, library, $"p{person}-{i}.jpg", DateTimeOffset.UtcNow), ct);
+                await host.Catalog.Tags.ReplaceAutomaticAsync(asset, TagSource.RamPlus, "r", [("beach", 0.9)], ct);
                 var face = (await host.Catalog.Analysis.GetFacesAsync(asset, ct))[0];
                 assignments.Add((face.Id, person, 0.8 - (i * 0.1)));
             }
@@ -115,7 +116,18 @@ public sealed class PeopleKeyboardTests : IDisposable
         Assert.Equal((400d, 300d), (page.PhotoWidth, page.PhotoHeight));
         Assert.Equal((120d, 90d, 80d, 90d), (page.FaceLeft, page.FaceTop, page.FaceWidth, page.FaceHeight), new ToleranceComparer());
         Assert.EndsWith(".jpg", page.PhotoTitle, StringComparison.Ordinal);
+
+        // Where it is, its tags (Italian when available); E hides and shows the face box.
+        Assert.StartsWith(root, page.PhotoPath, StringComparison.OrdinalIgnoreCase);
+        var beach = (await host.Catalog.Tags.FindAsync("beach", ct))!;
+        Assert.Equal([beach.Italian ?? beach.English], page.PhotoTags);
+        Assert.Contains("Mia Simi", page.PhotoPeople, StringComparison.Ordinal);
         SaveFrame(window, "people-photo");
+        Assert.True(page.ShowFaceBox);
+        Press(window, PhysicalKey.E);
+        Assert.False(page.ShowFaceBox);
+        Press(window, PhysicalKey.E);
+        Assert.True(page.ShowFaceBox);
         Press(window, PhysicalKey.Escape);
         Assert.False(page.IsShowingPhoto);
         Assert.IsType<PersonPageViewModel>(shell.CurrentPage); // Esc closed the photo, not the page
