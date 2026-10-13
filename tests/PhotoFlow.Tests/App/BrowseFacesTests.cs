@@ -7,6 +7,7 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using PhotoFlow.App.Localization;
 using PhotoFlow.App.Services;
 using PhotoFlow.App.ViewModels;
 using PhotoFlow.App.Views;
@@ -60,7 +61,7 @@ public sealed class BrowseFacesTests : IDisposable
         var browse = Assert.IsType<BrowseViewModel>(shell.CurrentPage);
         await WaitAsync(() => browse.FaceBoxes.Count == 2 && browse.DetailImage is not null);
         Assert.Equal(["Ripa", "?"], browse.FaceBoxes.Select(f => f.Label));
-        Assert.Equal("Ripa · 1 non riconosciuto", browse.DetailPeople);
+        Assert.Equal("Ripa · " + Strings.Format("Faces.UnknownOne", 1), browse.DetailPeople);
 
         // N: the large preview, then a box dragged on the right of the photo.
         await browse.StartAddFaceCommand.ExecuteAsync(null);
@@ -88,7 +89,7 @@ public sealed class BrowseFacesTests : IDisposable
         await browse.SaveFaceCommand.ExecuteAsync(null);
         await WaitAsync(() => browse.FaceBoxes.Count == 3);
         Assert.False(browse.IsDrawingFace);
-        Assert.Equal("Ripa, Luca · 1 non riconosciuto", browse.DetailPeople);
+        Assert.Equal("Ripa, Luca · " + Strings.Format("Faces.UnknownOne", 1), browse.DetailPeople);
         var added = (await catalog.Analysis.GetFacesAsync(asset, ct)).Single(f => f.ModelVersion == FaceDefaults.ManualModelVersion);
         Assert.Equal(AssignmentOrigin.Manual, added.AssignmentOrigin);
         Save(window, "faces-2-saved");
