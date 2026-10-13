@@ -104,6 +104,37 @@ public sealed class ProfileStageTests : IDisposable
         Assert.Contains("P_4:portrait", processor.Reanalyzed);
     }
 
+    [Fact]
+    public async Task A_profile_that_measures_the_same_way_changes_the_label_without_a_new_analysis()
+    {
+        var root = _temp.Sub("same");
+        SyntheticImages.WriteJpeg(Path.Combine(root, "P_1.JPG"), 64, 48, 1);
+        SyntheticImages.WriteJpeg(Path.Combine(root, "P_2.JPG"), 64, 48, 2);
+        await using var catalog = await SqliteCatalog.OpenAsync(new CatalogOpenOptions(Path.Combine(_temp.Path, "s.pfdb"), Path.Combine(_temp.Path, "sb")), Ct);
+        var libraryId = await catalog.Libraries.AddAsync(new Library(0, "A", root, WritePolicy.SidecarOnly, false, LibraryOrigin.ExistingArchive, null), Ct);
+        var fs = new PhysicalFileSystem();
+        var jobId = await ArchiveJobRunner.CreateAsync(catalog, fs, new ArchiveJobSettings(libraryId, "events", ArchiveOrder.ByFolder, FullHash: false), Ct);
+        await catalog.Jobs.SetAutomaticProfileAsync(jobId, true, "events", Ct);
+
+        // "custom-quiet" differs from Events only in weights and decision thresholds: same zones, subjects, faces, eyes.
+        var quiet = BuiltInProfiles.Get("events") with { Id = "custom-quiet", IsBuiltIn = false, Weights = new ProfileWeights(50, 20, 10, 10, 10) };
+        SceneProfile Resolve(string id) => id == quiet.Id ? quiet : BuiltInProfiles.Get(id);
+        var processor = new ProfileRecorder();
+        var classifier = new FixedClassifier(new Dictionary<string, (string, double)> { ["P_1"] = ("custom-quiet", 0.9), ["P_2"] = ("motorsport", 0.9) });
+        IReadOnlyList<IBatchStage> stages =
+        [
+            new ProfileStage(catalog, classifier, ProfileRecorder.EmbeddingVersion),
+            new ReanalysisStage(catalog, fs, processor, null, Resolve, parallelism: 4),
+        ];
+        await new ArchiveJobRunner(catalog, new FakeExifReader(_ => null), fs, processor, stages).RunAsync(jobId, null, Ct);
+
+        var assetOf = (await catalog.Jobs.GetItemsAsync(jobId, Ct)).ToDictionary(i => Path.GetFileNameWithoutExtension(i.SourcePath), i => i.AssetId!.Value);
+        Assert.Equal(["P_2:motorsport"], processor.Reanalyzed);
+        Assert.Equal("custom-quiet", (await catalog.Analysis.GetResultAsync(assetOf["P_1"], CullingAnalyzer.AnalyzerId, Ct))!.ProfileId);
+        Assert.Equal("motorsport", (await catalog.Analysis.GetResultAsync(assetOf["P_2"], CullingAnalyzer.AnalyzerId, Ct))!.ProfileId);
+        Assert.NotEqual(CullingScores.MeasurementKey(BuiltInProfiles.Get("events")), CullingScores.MeasurementKey(BuiltInProfiles.Get("motorsport")));
+    }
+
     public void Dispose() => _temp.Dispose();
 
     /// <summary>Text vectors on axes chosen by keywords of the prompts.</summary>

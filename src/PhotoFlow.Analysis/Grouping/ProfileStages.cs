@@ -78,9 +78,12 @@ public sealed class ProfileStage(ICatalog catalog, ISceneClassifier? classifier,
 /// Analyzes again, with their profile, the photos whose signals were measured with another one (the sharpness zone
 /// depends on the profile: AF point and faces for events, the vehicle for motorsport…). The original file is read
 /// where the catalog knows it (library copy, or the folder of an in-place analysis); faces with a manual assignment
-/// are kept; the user's decisions are untouched (I5).
+/// are kept; the user's decisions are untouched (I5). A photo whose new profile measures like the old one
+/// (<see cref="CullingScores.MeasurementKey"/>) keeps its signals and only changes profile; the others are analyzed
+/// <paramref name="parallelism"/> at a time.
 /// </summary>
-public sealed class ReanalysisStage(ICatalog catalog, IFileSystem fileSystem, IPhotoProcessor processor, FaceMode? faces) : IBatchStage
+public sealed class ReanalysisStage(ICatalog catalog, IFileSystem fileSystem, IPhotoProcessor processor, FaceMode? faces,
+    Func<string, SceneProfile>? resolveProfile = null, int parallelism = 1) : IBatchStage
 {
     public PipelineStage Stage => PipelineStage.Analyzers;
 
@@ -91,20 +94,29 @@ public sealed class ReanalysisStage(ICatalog catalog, IFileSystem fileSystem, IP
         var profiles = await catalog.Groups.GetPhotoProfilesAsync(job.JobId, ct).ConfigureAwait(false);
         var pending = photos.Where(p => (profiles.GetValueOrDefault(p.AnalyzedAssetId)?.ProfileId ?? job.ProfileId) != p.Analysis.ProfileId).ToList();
         var done = 0;
-        foreach (var photo in pending)
+        await Parallel.ForEachAsync(pending, new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, parallelism), CancellationToken = ct }, async (photo, token) =>
         {
             var profileId = profiles.GetValueOrDefault(photo.AnalyzedAssetId)?.ProfileId ?? job.ProfileId;
-            var asset = await catalog.Assets.GetAsync(photo.AnalyzedAssetId, ct).ConfigureAwait(false);
-            if (await AssetFiles.LocateAsync(catalog, fileSystem, photo.AnalyzedAssetId, ct).ConfigureAwait(false) is not { } path || asset is null)
+            var analysis = photo.Analysis;
+            if (resolveProfile is { } resolve && analysis.ProfileId is { } measuredWith
+                && CullingScores.MeasurementKey(resolve(measuredWith)) == CullingScores.MeasurementKey(resolve(profileId)))
             {
-                continue; // the file is not reachable now: the photo keeps its signals until a later run
+                await catalog.Analysis.SaveResultAsync(analysis with { Id = 0, ProfileId = profileId }, CancellationToken.None).ConfigureAwait(false);
+            }
+            else
+            {
+                var asset = await catalog.Assets.GetAsync(photo.AnalyzedAssetId, token).ConfigureAwait(false);
+                if (await AssetFiles.LocateAsync(catalog, fileSystem, photo.AnalyzedAssetId, token).ConfigureAwait(false) is not { } path || asset is null)
+                {
+                    return; // the file is not reachable now: the photo keeps its signals until a later run
+                }
+
+                var result = await processor.ProcessAsync(new PhotoInput(path, asset.FullHash ?? asset.QuickHash, asset.Exif), new ProcessingOptions(profileId, faces), token).ConfigureAwait(false);
+                await catalog.Analysis.SaveResultAsync(new AnalyzerResultRecord(0, photo.AnalyzedAssetId, result.Analysis.AnalyzerId, result.Analysis.ModelVersion, profileId, result.Analysis.Scores), CancellationToken.None).ConfigureAwait(false);
+                await catalog.Analysis.ReplaceAutomaticFacesAsync(photo.AnalyzedAssetId, result.Faces, CancellationToken.None).ConfigureAwait(false);
             }
 
-            var result = await processor.ProcessAsync(new PhotoInput(path, asset.FullHash ?? asset.QuickHash, asset.Exif), new ProcessingOptions(profileId, faces), ct).ConfigureAwait(false);
-            await catalog.Analysis.SaveResultAsync(new AnalyzerResultRecord(0, photo.AnalyzedAssetId, result.Analysis.AnalyzerId, result.Analysis.ModelVersion, profileId, result.Analysis.Scores), CancellationToken.None).ConfigureAwait(false);
-            await catalog.Analysis.ReplaceAutomaticFacesAsync(photo.AnalyzedAssetId, result.Faces, CancellationToken.None).ConfigureAwait(false);
-            done++;
-            progress?.Report(new StageProgress(Stage, done, pending.Count, path));
-        }
+            progress?.Report(new StageProgress(Stage, Interlocked.Increment(ref done), pending.Count, null));
+        }).ConfigureAwait(false);
     }
 }

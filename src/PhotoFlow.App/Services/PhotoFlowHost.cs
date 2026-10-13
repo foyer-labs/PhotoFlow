@@ -238,7 +238,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
         [
             new GroupingStage(Catalog, Profiles.Get, embedder),
             new ProfileStage(Catalog, embedder is null ? null : new LazySceneClassifier(this), embedder),
-            new ReanalysisStage(Catalog, FileSystem, new LazyProcessor(this), null),
+            new ReanalysisStage(Catalog, FileSystem, new LazyProcessor(this), null, Profiles.Get, PipelineDefaults.DefaultAnalysisWorkers),
             new GroupDecisionStage(Catalog, Profiles.Get, new DecisionEngine()),
             new FacesStage(Catalog, () => FingerprintKeys.Protector),
         ];
@@ -253,7 +253,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
         await Catalog.Groups.SetUserProfileAsync(jobId, assetIds, profileId, ct).ConfigureAwait(false);
         var job = await Catalog.Jobs.GetAsync(jobId, ct).ConfigureAwait(false) ?? throw new InvalidOperationException($"Job {jobId} not found.");
         var context = new JobContext(jobId, job.Type, job.ProfileId ?? "events");
-        await new ReanalysisStage(Catalog, FileSystem, new LazyProcessor(this), null).RunAsync(context, null, ct).ConfigureAwait(false);
+        await new ReanalysisStage(Catalog, FileSystem, new LazyProcessor(this), null, Profiles.Get, PipelineDefaults.DefaultAnalysisWorkers).RunAsync(context, null, ct).ConfigureAwait(false);
         await new GroupDecisionStage(Catalog, Profiles.Get, new DecisionEngine()).RunAsync(context, null, ct).ConfigureAwait(false);
     }
 

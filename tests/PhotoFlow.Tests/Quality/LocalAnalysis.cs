@@ -6,10 +6,14 @@ using PhotoFlow.Analysis.Profiles;
 using PhotoFlow.Core.Imaging;
 using PhotoFlow.Core.Inference;
 using PhotoFlow.Core.IO;
+using PhotoFlow.Core.Analysis;
 using PhotoFlow.Faces.Detection;
+using PhotoFlow.Faces.Protection;
+using PhotoFlow.Faces.Recognition;
 using PhotoFlow.Imaging;
 using PhotoFlow.Inference;
 using PhotoFlow.Metadata.ExifTool;
+using PhotoFlow.Tagging.Clip;
 using PhotoFlow.Tests.Parity;
 using PhotoFlow.Tests.Support;
 
@@ -30,13 +34,23 @@ public sealed class LocalAnalysis : IAsyncDisposable
         Backend = backend;
     }
 
+    /// <summary>CLIP scene classifier (phase 2, <c>recognition</c> only).</summary>
+    public ISceneClassifier? SceneClassifier { get; private init; }
+
+    /// <summary>Model version of the stored CLIP embeddings (phase 2, <c>recognition</c> only).</summary>
+    public string? EmbeddingVersion { get; private init; }
+
+    /// <summary>Fingerprint encryption with a key of the test (phase 2, <c>recognition</c> only).</summary>
+    public IFingerprintProtector Protector { get; private init; } = UnavailableProtector.Instance;
+
     public ExifToolSession ExifTool { get; }
 
     public CullingPhotoProcessor Processor { get; }
 
     public ExecutionBackend Backend { get; }
 
-    public static async Task<LocalAnalysis> CreateAsync(IFileSystem fileSystem, IThumbnailStore? thumbnails, CancellationToken ct)
+    /// <param name="recognition">Phase 2: CLIP image embeddings and scene classifier, ArcFace fingerprints with a random key.</param>
+    public static async Task<LocalAnalysis> CreateAsync(IFileSystem fileSystem, IThumbnailStore? thumbnails, CancellationToken ct, bool recognition = false)
     {
         var models = TestData.RequireDirectory("models");
         var provider = new OnnxRuntimeInferenceProvider(new InferenceOptions(GpuRuntime.Directory));
@@ -64,8 +78,27 @@ public sealed class LocalAnalysis : IAsyncDisposable
             await Open("insightface-buffalo-l", "2d106det.onnx", InsightFaceDetector.AdapterId),
             operations);
         var previews = new PreviewProvider(fileSystem, ImageHandlerRegistry.CreateDefault(fileSystem, new ExifToolPreviewSource(exifTool), new MagickRawDecoder()));
-        var processor = new CullingPhotoProcessor(previews, new CullingAnalyzer(operations, detector, faces), new DecisionEngine(), BuiltInProfiles.Get, thumbnails);
-        var analysis = new LocalAnalysis(exifTool, processor, target == ExecutionTarget.Gpu ? ExecutionBackend.Cuda : ExecutionBackend.Cpu);
+        ClipImageEmbedder? clip = null;
+        ArcFaceEmbedder? arcFace = null;
+        ClipSceneClassifier? scenes = null;
+        IFingerprintProtector protector = UnavailableProtector.Instance;
+        if (recognition)
+        {
+            clip = new ClipImageEmbedder(await Open("clip-vit-b32", "vision_model.onnx", ClipImageEmbedder.AdapterId), operations);
+            scenes = new ClipSceneClassifier(new ClipTextEmbedder(await Open("clip-vit-b32", "text_model.onnx", ClipImageEmbedder.AdapterId),
+                ClipTokenizer.Load(Path.Combine(models, "clip-vit-b32", "tokenizer.json"))));
+            arcFace = new ArcFaceEmbedder(await Open("insightface-buffalo-l", ArcFaceEmbedder.File, "arcface-v1"));
+            protector = new FingerprintCipher(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
+        }
+
+        var processor = new CullingPhotoProcessor(previews, new CullingAnalyzer(operations, detector, faces), new DecisionEngine(), BuiltInProfiles.Get, thumbnails,
+            clip, arcFace, () => protector);
+        var analysis = new LocalAnalysis(exifTool, processor, target == ExecutionTarget.Gpu ? ExecutionBackend.Cuda : ExecutionBackend.Cpu)
+        {
+            SceneClassifier = scenes,
+            EmbeddingVersion = clip?.ModelVersion,
+            Protector = protector,
+        };
         analysis._sessions.AddRange(sessions);
         return analysis;
     }
