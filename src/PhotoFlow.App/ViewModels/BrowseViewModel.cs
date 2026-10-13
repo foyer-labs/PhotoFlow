@@ -159,6 +159,8 @@ public sealed partial class BrowseViewModel : PageViewModel
     ]);
 
     private readonly PhotoFlowHost _host;
+    private readonly SemaphoreSlim _searchGate = new(1, 1);
+    private int _searchVersion;
     private List<SearchHit> _hits = [];
     private List<BrowseItemViewModel> _items = [];
     private int _shown;
@@ -497,6 +499,25 @@ public sealed partial class BrowseViewModel : PageViewModel
         int.MaxValue));
 
     public async Task SearchAsync()
+    {
+        // One search at a time, and only the latest: two searches started together (a switch, then a click) used to
+        // fill the grid with the photos of both.
+        var version = Interlocked.Increment(ref _searchVersion);
+        await _searchGate.WaitAsync();
+        try
+        {
+            if (version == _searchVersion)
+            {
+                await SearchCoreAsync();
+            }
+        }
+        finally
+        {
+            _searchGate.Release();
+        }
+    }
+
+    private async Task SearchCoreAsync()
     {
         IsSearching = true;
         SearchQuery query;

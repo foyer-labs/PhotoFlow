@@ -65,8 +65,40 @@
             <Button Grid.Column="1" Classes="ghost" IsVisible="{Binding HasSelection}" Command="{Binding ClearCommand}" Content="{l:Tr Browse.Reset}" />
           </Grid>
 
+          <!-- People (AND) -->
+          <TextBlock Classes="label" IsVisible="{Binding HasPersons}" Text="{l:Tr Browse.Facets.People}" />
+          <ItemsControl ItemsSource="{Binding Persons}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:FacetItemViewModel">
+                <Button Classes="facetRow" Classes.selected="{Binding IsSelected}"
+                        Command="{Binding $parent[UserControl].((vm:BrowseViewModel)DataContext).Facets.TogglePersonCommand}" CommandParameter="{Binding}">
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                    <TextBlock Classes="label" TextTrimming="CharacterEllipsis" Text="{Binding Label}" />
+                    <TextBlock Grid.Column="1" Classes="data secondary" Text="{Binding CountText}" />
+                  </Grid>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <!-- Events (OR) -->
+          <TextBlock Classes="label" Margin="0,6,0,0" IsVisible="{Binding HasEvents}" Text="{l:Tr Browse.Facets.Events}" />
+          <ItemsControl ItemsSource="{Binding Events}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:FacetItemViewModel">
+                <Button Classes="facetRow" Classes.selected="{Binding IsSelected}"
+                        Command="{Binding $parent[UserControl].((vm:BrowseViewModel)DataContext).Facets.ToggleEventCommand}" CommandParameter="{Binding}">
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                    <TextBlock Classes="label" TextTrimming="CharacterEllipsis" Text="{Binding Label}" />
+                    <TextBlock Grid.Column="1" Classes="data secondary" Text="{Binding CountText}" />
+                  </Grid>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+
+
           <!-- Tags -->
-          <Grid ColumnDefinitions="*,Auto">
+          <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
             <TextBlock Classes="label" VerticalAlignment="Center" Text="{l:Tr Browse.Facets.Tags}" />
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2" ToolTip.Tip="{l:Tr Browse.Facets.ModeTip}">
               <RadioButton Classes="facetMode" GroupName="FacetMode" IsChecked="{Binding IsAndMode}" Content="AND" />
@@ -117,38 +149,6 @@
           </ItemsControl>
           <TextBlock Classes="micro tertiary" TextWrapping="Wrap" IsVisible="{Binding MoreTagsText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" Text="{Binding MoreTagsText}" />
           <TextBlock Classes="micro tertiary" TextWrapping="Wrap" Text="{l:Tr Browse.Facets.Hint}" />
-
-          <!-- Events (OR) -->
-          <TextBlock Classes="label" Margin="0,6,0,0" IsVisible="{Binding HasEvents}" Text="{l:Tr Browse.Facets.Events}" />
-          <ItemsControl ItemsSource="{Binding Events}">
-            <ItemsControl.ItemTemplate>
-              <DataTemplate x:DataType="vm:FacetItemViewModel">
-                <Button Classes="facetRow" Classes.selected="{Binding IsSelected}"
-                        Command="{Binding $parent[UserControl].((vm:BrowseViewModel)DataContext).Facets.ToggleEventCommand}" CommandParameter="{Binding}">
-                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                    <TextBlock Classes="label" TextTrimming="CharacterEllipsis" Text="{Binding Label}" />
-                    <TextBlock Grid.Column="1" Classes="data secondary" Text="{Binding CountText}" />
-                  </Grid>
-                </Button>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-
-          <!-- People (AND) -->
-          <TextBlock Classes="label" Margin="0,6,0,0" IsVisible="{Binding HasPersons}" Text="{l:Tr Browse.Facets.People}" />
-          <ItemsControl ItemsSource="{Binding Persons}">
-            <ItemsControl.ItemTemplate>
-              <DataTemplate x:DataType="vm:FacetItemViewModel">
-                <Button Classes="facetRow" Classes.selected="{Binding IsSelected}"
-                        Command="{Binding $parent[UserControl].((vm:BrowseViewModel)DataContext).Facets.TogglePersonCommand}" CommandParameter="{Binding}">
-                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                    <TextBlock Classes="label" TextTrimming="CharacterEllipsis" Text="{Binding Label}" />
-                    <TextBlock Grid.Column="1" Classes="data secondary" Text="{Binding CountText}" />
-                  </Grid>
-                </Button>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
         </StackPanel>
       </ScrollViewer>
     </Border>

@@ -74,6 +74,15 @@ public sealed class BrowseFacetsTests : IDisposable
             await catalog.Tags.ReplaceAutomaticAsync(ids[i], TagSource.Job, null, [(i < 3 ? "event:Monza" : "event:Mugello", null)], ct);
         }
 
+        // Luca on photos 0 (car, track) and 5 (car, moto).
+        var luca = await catalog.People.CreatePersonAsync("Luca", ct);
+        foreach (var i in new[] { 0, 5 })
+        {
+            await catalog.Analysis.ReplaceAutomaticFacesAsync(ids[i], [new Face(0, ids[i], new PhotoFlow.Core.Analysis.BoundingBox(0.3f, 0.3f, 0.5f, 0.6f), null, 0.9,
+                EyeState.Open, EyeState.Open, null, null, null, null, "t")], ct);
+            await catalog.People.AssignManualAsync([(await catalog.Analysis.GetFacesAsync(ids[i], ct))[0].Id], luca, ct);
+        }
+
         var carTag = (await catalog.Tags.FindAsync("car", ct))!;
         await catalog.Tags.UpdateAsync(carTag.Id, "auto", reviewed: true, "Veicoli", blacklisted: false, ct);
 
@@ -138,6 +147,18 @@ public sealed class BrowseFacetsTests : IDisposable
         window.KeyPressQwerty(Avalonia.Input.PhysicalKey.Escape, Avalonia.Input.RawInputModifiers.None);
         Dispatcher.UIThread.RunJobs();
         Assert.False(browse.IsLargePreview);
+
+        // People: Luca alone, then Luca AND moto (the person combines with the tags).
+        await WaitAsync(() => facets.Persons.Any(p => p.Id == luca));
+        Assert.Equal("2", facets.Persons.Single(p => p.Id == luca).CountText);
+        await facets.TogglePersonCommand.ExecuteAsync(facets.Persons.Single(p => p.Id == luca));
+        await WaitAsync(() => browse.Rows.Sum(r => r.Items.Count) == 2);
+        facets.OrMode = false;
+        await WaitAsync(() => facets.Tags.Any(t => t.Id == tagIds["moto"] && t.CountText == "1"));
+        await facets.ClickTagAsync(Item("moto"), other: false);
+        await WaitAsync(() => browse.Rows.Sum(r => r.Items.Count) == 1);
+        Save(window, "facets-4-people");
+        await facets.ClearCommand.ExecuteAsync(null);
 
         // F hides and shows the panel.
         Assert.True(facets.IsOpen);
