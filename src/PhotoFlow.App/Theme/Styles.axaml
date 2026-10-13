@@ -317,10 +317,16 @@
     <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="Background" Value="{DynamicResource PF.Brush.Panel}" />
   </Style>
-  <Style Selector="Border.tile.focused">
+  <Style Selector="Border.tile:pointerover">
     <Setter Property="BorderBrush" Value="{DynamicResource PF.Brush.BorderStrong}" />
+  </Style>
+  <!-- The face the actions apply to: clearly marked (the user found the grey border hard to see). -->
+  <Style Selector="Border.tile.focused">
+    <Setter Property="BorderBrush" Value="{DynamicResource PF.Brush.Accent}" />
+    <Setter Property="BorderThickness" Value="3" />
   </Style>
   <Style Selector="Border.tile.selected">
     <Setter Property="BorderBrush" Value="{DynamicResource PF.Brush.Accent}" />
+    <Setter Property="BorderThickness" Value="3" />
   </Style>
 </Styles>

@@ -435,6 +435,13 @@ Valori della fase 2 (13 ott 2026): impronte ArcFace w600k\_r50 (buffalo\_l, 512 
 
 Scrittura (fase 2): solo le persone con nome e non ignorate, solo per foto confermate; `Nome` nelle keyword piatte e `Persone|Nome` in quelle gerarchiche; regioni MWG (`mwg-rs:RegionInfo`, area normalizzata al centro, tipo `Face`) scritte da exiftool come struttura completa: le regioni di altri programmi (nome non gestito da PhotoFlow) restano; un RAW riceve le persone del JPEG gemello (sidecar).
 
+**Volti nella foto e volti aggiunti a mano** (13 ott 2026, su richiesta dell'utente):
+
+- **Vedere chi c'è.** L'anteprima grande della Consultazione e la foto aperta dalla pagina di una persona mostrano un riquadro per ogni volto, con il nome sopra ("?" per un volto non riconosciuto), e l'elenco "Persone nella foto". In Persone il volto della pagina è evidenziato. Il tasto V mostra o nasconde i riquadri.
+- **Dire chi è un volto.** Nell'anteprima grande un clic su un riquadro (un "?" o un nome sbagliato) apre la stessa scelta della persona. L'assegnazione diventa manuale (I5). Le due persone, la nuova e l'eventuale precedente, rifanno i campioni: l'impronta del volto aiuta a riconoscere la persona nelle altre foto.
+- **Aggiungere un volto a mano.** Serve quando il rilevamento non ha trovato un volto. Nell'anteprima grande della Consultazione si preme N e si trascina un riquadro sul volto. Poi si sceglie la persona da un elenco: quelle con nome, in ordine alfabetico, oppure "+ Nuova persona…".
+- **Come viene salvato.** Il volto è dell'utente: assegnazione manuale, versione `manual`, nessuna impronta. Per I5 nessuna analisi lo cancella o lo riassegna. Se una rigenerazione con un altro modello trova lo stesso volto (IoU ≥ 0,5, come F5-3), il volto rilevato prende il posto del riquadro disegnato e tiene la persona e l'assegnazione manuale. Va nell'XMP come regione MWG con il nome, come gli altri volti con nome. Senza impronta non contribuisce ai campioni della persona, quindi non aiuta a riconoscerla altrove.
+
 ### Regole di qualità
 
 | Regola | Motivo |
@@ -765,7 +772,7 @@ Palette (con colori semantici per gli esiti: scarto, da rivedere, migliore, simi
 | 3 | Job | Avanzamento per fase, stima tempo, pausa/ripresa, priorità, log | Più job in parallelo |
 | 4 | Revisione | Griglia per raffiche, filtri per esito, confronto 2-4 affiancati con zoom sincronizzato, cambio profilo per gruppo, vista "Numeri", conferma e scrittura XMP | Schermata principale: velocità da tastiera |
 | 5 | Persone | Gruppi ordinati per dimensione; rinomina, unisci, separa, ignora; pagina persona | Volti ritagliati, selezione multipla |
-| 6 | Consultazione | Ricerca libera + filtri (tag, persona, data, evento, EXIF, rating, esito), griglia, pannello dettagli con tag modificabili e volti evidenziati, "Apri in Photoshop", "Apri con app predefinita", "Mostra in Esplora risorse" | Ricerca in linguaggio naturale nello stesso campo |
+| 6 | Consultazione | Ricerca libera + filtri (tag, persona, data, evento, EXIF, rating, esito), pannello delle faccette con conteggi (tag in gruppi AND/OR, eventi, persone), griglia, pannello dettagli con tag modificabili e volti evidenziati, "Apri in Photoshop", "Apri con app predefinita", "Mostra in Esplora risorse" | Ricerca in linguaggio naturale nello stesso campo |
 | 7 | Duplicati | Gruppi esatti e quasi-duplicati, scelta di quale tenere | Confronto affiancato |
 | 8 | Librerie | Radici, politica XMP, sola lettura, nuova scansione, rimappatura percorsi |  |
 | 9 | Vocabolario | Revisione traduzioni del nucleo, lista nera, tag CLIP personalizzati, mappatura categorie | Revisione rapida a righe |
@@ -773,6 +780,21 @@ Palette (con colori semantici per gli esiti: scarto, da rivedere, migliore, simi
 | 11 | Impostazioni | Hardware e benchmark, modelli (per funzione, con licenza e spazio), catalogo (posizione, backup, esporta/importa, cifratura impronte), lingua, template percorsi, exiftool, modalità prudente/normale | Sezioni a schede |
 
 Modalità aggiuntiva della schermata 4: **etichettatura** (sezione 14), con un tasto per foto, verdetto nascosto ("alla cieca"), sessioni da \~100 foto e pannello metriche.
+
+**Consultazione: pannello delle faccette** (13 ott 2026, su richiesta dell'utente; usa il componente "Filtri a faccette" del sistema visivo, che la tavola 4d non mostrava).
+
+Un pannello a sinistra della griglia, richiudibile con il tasto F, ha tre sezioni. Ogni sezione mostra i valori con il numero di foto e si aggiorna a ogni selezione. Il pannello si somma alla ricerca libera e agli altri filtri: data, fotocamera, stelle, esito e gettoni del campo di ricerca.
+
+- **Tag.** Etichetta italiana se disponibile, altrimenti l'inglese; eventi e tag in lista nera esclusi; casella per filtrare l'elenco.
+  - *Gruppi combinabili.* La selezione è fatta di gruppi: dentro un gruppo i tag sono in OR, tra i gruppi in AND. Esempio: (auto OR moto) AND pista.
+  - *Clic.* Un interruttore AND/OR dice cosa fa il clic: in AND il tag apre un nuovo gruppo, in OR si aggiunge all'ultimo gruppo. Ctrl+clic fa l'altra azione.
+  - *Conteggi.* Mostrano sempre l'effetto del clic. In AND: quante foto del risultato hanno il tag, cioè quante ne restano. In OR: quante foto si aggiungono al risultato ("+N").
+  - *Quali tag compaiono.* In AND solo i tag presenti nel risultato. In OR anche quelli che aggiungono foto; un tag del risultato che non aggiunge nulla resta in elenco con "+0", così con Ctrl+clic si può ancora restringere.
+  - *Rimozione.* I tag scelti compaiono come gettoni raggruppati sopra l'elenco; ✕ toglie un tag, e un gruppo rimasto vuoto sparisce.
+- **Eventi.** Sono alternativi tra loro, quindi in OR. Il conteggio di un evento è il numero di foto che ha tra quelle che passano gli altri filtri.
+- **Persone.** Sono in AND, come i gettoni (P14). Il conteggio è il numero di foto del risultato in cui la persona compare.
+
+I conteggi si calcolano in SQL sull'intero risultato, non solo sulla parte mostrata nella griglia. Due indici coprenti (migrazione 0018) li fanno leggere solo dall'indice. Su 60.000 foto sintetiche un aggiornamento del pannello richiede 0,42 s (0,44 s in OR): prima degli indici erano 5,4 s. Restano entro il limite di 1 s della ricerca (§10).
 
 ### Scorciatoie della revisione
 
@@ -1185,7 +1207,7 @@ Decisioni emerse in Design (confermate), funzioni rinviate a dopo la stabilizzaz
 | Annulla globale (Ctrl Z) oltre le decisioni della Revisione | Tappa 1.9 |
 | Profilo automatico: classificare la scena per foto con CLIP prima dell'analisi, così solo le foto il cui gruppo cambia profilo vanno rianalizzate (oggi +55% sul set locale) | Tappa 2.12 |
 | Suggerimenti dalle correzioni anche per le soglie degli occhi e dell'esposizione | Tappa 2.10 |
-| Persone: annulla (Ctrl Z) di unisci/separa/rinomina, selezione a rettangolo, "Apri foto" dalla pagina persona (tavole 4a, 4b) | Tappa 2.8 |
+| Persone: annulla (Ctrl Z) di unisci/separa/rinomina, selezione a rettangolo (tavole 4a, 4b); "Apri foto" fatto il 13 ott 2026 (↵ o doppio clic, foto intera con il riquadro del volto) | Tappa 2.8 |
 | Modelli caricati e scaricati fase per fase (tavola 5f: "bastano 4-6 GB di VRAM"); oggi restano caricati per tutta la sessione | Tappa 2.11 |
 | Portachiavi Mac/Linux per la chiave delle impronte (oggi password) | F2-3 |
 | Eliminare un profilo personalizzato (oggi si può solo smettere di usarlo; i file restano nella cartella dei profili) | Tappa 2.10 |

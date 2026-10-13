@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using PhotoFlow.App.Services;
 using PhotoFlow.App.ViewModels;
 using PhotoFlow.App.Views;
@@ -56,6 +58,16 @@ public sealed class DuplicatesKeyboardTests : IDisposable
         Press(window, PhysicalKey.Digit2);
         Assert.True(duplicates.Copies[1].IsKept);
         Assert.False(duplicates.Copies[0].IsKept);
+
+        // The mouse does the same: a click on a copy keeps it.
+        var tiles = window.GetVisualDescendants().OfType<Border>().Where(b => b.Classes.Contains("copy")).ToList();
+        Assert.Equal(2, tiles.Count);
+        Click(window, tiles[0]);
+        Assert.True(duplicates.Copies[0].IsKept);
+        Assert.False(duplicates.Copies[1].IsKept);
+        Click(window, tiles[1]);
+        Assert.True(duplicates.Copies[1].IsKept);
+        window.GetVisualDescendantsOf<DuplicatesView>()?.Focus();
         Press(window, PhysicalKey.Enter);
         await WaitAsync(() => duplicates.ExactGroups.Count == 1);
         Assert.True(File.Exists(Path.Combine(root, "_duplicati", "2023", "a.jpg")));
@@ -73,6 +85,16 @@ public sealed class DuplicatesKeyboardTests : IDisposable
     }
 
     public void Dispose() => _temp.Dispose();
+
+    /// <summary>A left click in the middle of <paramref name="target"/>, as the window receives it.</summary>
+    private static void Click(Window window, Control target)
+    {
+        Dispatcher.UIThread.RunJobs();
+        var center = target.TranslatePoint(new Avalonia.Point(target.Bounds.Width / 2, target.Bounds.Height / 2), window)!.Value;
+        window.MouseDown(center, MouseButton.Left);
+        window.MouseUp(center, MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+    }
 
     private static void Press(Window window, PhysicalKey key, RawInputModifiers modifiers = RawInputModifiers.None)
     {

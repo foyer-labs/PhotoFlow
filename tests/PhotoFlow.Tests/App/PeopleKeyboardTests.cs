@@ -10,6 +10,7 @@ using PhotoFlow.App.ViewModels;
 using PhotoFlow.App.Views;
 using PhotoFlow.Core.Analysis;
 using PhotoFlow.Core.Catalog;
+using PhotoFlow.Core.Metadata;
 using PhotoFlow.Core.Paths;
 using PhotoFlow.Tests.Support;
 
@@ -33,7 +34,9 @@ public sealed class PeopleKeyboardTests : IDisposable
         await host.UpdateSettingsAsync(s => s with { SetupCompleted = true }, CancellationToken.None);
         var ct = CancellationToken.None;
 
-        // Three automatic groups: 4, 3 and 2 faces (one face per photo).
+        // Three automatic groups: 4, 3 and 2 faces (one face per photo), each photo a real file of a library.
+        var root = _temp.Sub("photos");
+        var library = await host.Catalog.Libraries.AddAsync(new Library(0, "L", root, WritePolicy.SidecarOnly, false, LibraryOrigin.ExistingArchive, null), ct);
         var groups = new List<long>();
         foreach (var size in new[] { 4, 3, 2 })
         {
@@ -44,6 +47,9 @@ public sealed class PeopleKeyboardTests : IDisposable
             {
                 var asset = await host.Catalog.Assets.AddAsync(new Asset(0, $"q{person}-{i}", $"f{person}-{i}", "JPG", "jpeg", 400, 300, new DateTimeOffset(2020 + i, 6, 1, 12, 0, 0, TimeSpan.Zero), DateSource.Exif, null, AssetState.Active), ct);
                 await host.Catalog.Analysis.ReplaceAutomaticFacesAsync(asset, [new Face(0, asset, new BoundingBox(0.3f, 0.3f, 0.5f, 0.6f), null, 0.9, EyeState.Open, EyeState.Open, null, null, null, null, "t")], ct);
+                SyntheticImages.WriteJpeg(Path.Combine(root, $"p{person}-{i}.jpg"), 400, 300);
+                await host.Catalog.Assets.AddLocationAsync(new AssetLocation(0, asset, library, $"p{person}-{i}.jpg", DateTimeOffset.UtcNow), ct);
+                await host.Catalog.Tags.ReplaceAutomaticAsync(asset, TagSource.RamPlus, "r", [("beach", 0.9)], ct);
                 var face = (await host.Catalog.Analysis.GetFacesAsync(asset, ct))[0];
                 assignments.Add((face.Id, person, 0.8 - (i * 0.1)));
             }
@@ -104,12 +110,95 @@ public sealed class PeopleKeyboardTests : IDisposable
         Assert.Contains(persons, p => p.Person.Name is null && p.FaceCount == 1);
         Assert.Equal(5, persons.Single(p => p.Person.Id == mia.Person.Id).FaceCount);
 
+        // Enter (↵ Apri foto, board 4b): the photo of the focused face with the face boxed; Esc goes back to the faces.
+        Press(window, PhysicalKey.Enter);
+        await WaitAsync(() => page.IsShowingPhoto);
+        Assert.Equal((400d, 300d), (page.PhotoWidth, page.PhotoHeight));
+        Assert.Equal((120d, 90d, 80d, 90d), (page.FaceLeft, page.FaceTop, page.FaceWidth, page.FaceHeight), new ToleranceComparer());
+        Assert.EndsWith(".jpg", page.PhotoTitle, StringComparison.Ordinal);
+
+        // Where it is, its tags (Italian when available); V hides and shows the face boxes.
+        Assert.StartsWith(root, page.PhotoPath, StringComparison.OrdinalIgnoreCase);
+        var beach = (await host.Catalog.Tags.FindAsync("beach", ct))!;
+        Assert.Equal([beach.Italian ?? beach.English], page.PhotoTags);
+        Assert.Contains("Mia Simi", page.PhotoPeople, StringComparison.Ordinal);
+        SaveFrame(window, "people-photo");
+        Assert.True(page.ShowFaceBox);
+        Press(window, PhysicalKey.V);
+        Assert.False(page.ShowFaceBox);
+        Press(window, PhysicalKey.V);
+        Assert.True(page.ShowFaceBox);
+        Assert.Single(page.PhotoFaces, f => f.IsCurrent && f.Label == "Mia Simi");
+        Press(window, PhysicalKey.Escape);
+        Assert.False(page.IsShowingPhoto);
+        Assert.IsType<PersonPageViewModel>(shell.CurrentPage); // Esc closed the photo, not the page
+
+        // Ctrl M: a list of the people (new person first); a new one by name, then an existing one from the list.
+        Assert.Equal(1, page.ActionCount); // the focused face, clearly marked
+        Press(window, PhysicalKey.M, RawInputModifiers.Control);
+        await WaitAsync(() => page.IsMoving && page.MoveTargets.Count > 0);
+        Assert.Null(page.MoveTargets[0].Id);
+        Assert.DoesNotContain(page.MoveTargets, t => t.Id == mia.Person.Id);
+        page.MoveTarget = page.MoveTargets[0];
+        Assert.False(page.CanConfirmMove); // a new person needs a name
+        page.NewPersonName = "Luca Neri";
+        SaveFrame(window, "people-move");
+        await page.ConfirmMoveCommand.ExecuteAsync(null);
+        await WaitAsync(() => page.Years.Sum(y => y.Faces.Count) == 4 && !page.IsMoving);
+        var luca = (await host.Catalog.People.ListPersonsAsync(ct)).Single(p => p.Person.Name == "Luca Neri");
+        Assert.Equal(1, luca.FaceCount);
+
+        Focus<PersonPageView>(window);
+        Press(window, PhysicalKey.M, RawInputModifiers.Control);
+        await WaitAsync(() => page.IsMoving && page.MoveTargets.Any(t => t.Id == luca.Person.Id));
+        page.MoveTarget = page.MoveTargets.Single(t => t.Id == luca.Person.Id);
+        await page.ConfirmMoveCommand.ExecuteAsync(null);
+        await WaitAsync(() => page.Years.Sum(y => y.Faces.Count) == 3);
+        Assert.Equal(2, (await host.Catalog.People.ListPersonsAsync(ct)).Single(p => p.Person.Id == luca.Person.Id).FaceCount);
+
+        // F2 then a name typed letter by letter: every letter stays (a refocus at each letter used to keep only one).
+        Focus<PersonPageView>(window);
+        Press(window, PhysicalKey.F2);
+        Assert.True(page.IsEditing);
+        foreach (var letter in "Anna")
+        {
+            window.KeyTextInput(letter.ToString());
+            for (var i = 0; i < 10; i++)
+            {
+                Dispatcher.UIThread.RunJobs();
+                Thread.Sleep(5);
+            }
+        }
+
+        Assert.EndsWith("Anna", page.EditText, StringComparison.Ordinal);
+        page.BackCommand.Execute(null); // leave the rename
+
         // Esc goes back to the list.
+        Focus<PersonPageView>(window);
         Press(window, PhysicalKey.Escape);
         Assert.IsType<PeopleViewModel>(shell.CurrentPage);
     }
 
     public void Dispose() => _temp.Dispose();
+
+    private sealed class ToleranceComparer : IEqualityComparer<(double, double, double, double)>
+    {
+        public bool Equals((double, double, double, double) x, (double, double, double, double) y) =>
+            Math.Abs(x.Item1 - y.Item1) < 0.5 && Math.Abs(x.Item2 - y.Item2) < 0.5 && Math.Abs(x.Item3 - y.Item3) < 0.5 && Math.Abs(x.Item4 - y.Item4) < 0.5;
+
+        public int GetHashCode((double, double, double, double) obj) => 0;
+    }
+
+    private static void SaveFrame(Window window, string name)
+    {
+        Dispatcher.UIThread.RunJobs();
+        var frame = window.CaptureRenderedFrame();
+        if (frame is not null && Environment.GetEnvironmentVariable("PHOTOFLOW_SCREENSHOTS") is { Length: > 0 } folder)
+        {
+            Directory.CreateDirectory(folder);
+            frame.Save(Path.Combine(folder, name + ".png"), new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
+        }
+    }
 
     private static void Focus<TView>(Window window)
         where TView : Control

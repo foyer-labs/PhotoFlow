@@ -134,6 +134,33 @@ internal sealed class AnalysisStore(SqliteCatalog catalog) : IAnalysisStore
         }, ct);
     }
 
+    public Task<long> AddManualFaceAsync(long assetId, BoundingBox box, long? personId, CancellationToken ct)
+    {
+        if (box.X1 < 0 || box.Y1 < 0 || box.X2 > 1 || box.Y2 > 1 || box.X2 - box.X1 < FaceDefaults.MinManualSide || box.Y2 - box.Y1 < FaceDefaults.MinManualSide)
+        {
+            throw new ArgumentOutOfRangeException(nameof(box), box, "The face must be inside the photo and not empty.");
+        }
+
+        return catalog.RunAsync(c => c.ExecuteScalarAsync<long>(new CommandDefinition(
+            """
+            INSERT INTO Faces (AssetId, X1, Y1, X2, Y2, Confidence, LeftEye, RightEye, PersonId, AssignmentOrigin, ModelVersion)
+            VALUES (@assetId, @X1, @Y1, @X2, @Y2, 1, @unknown, @unknown, @personId, @manual, @version)
+            RETURNING Id;
+            """,
+            new
+            {
+                assetId,
+                box.X1,
+                box.Y1,
+                box.X2,
+                box.Y2,
+                unknown = nameof(EyeState.Unknown),
+                personId,
+                manual = nameof(AssignmentOrigin.Manual),
+                version = FaceDefaults.ManualModelVersion,
+            }, cancellationToken: ct)), ct);
+    }
+
     public Task<IReadOnlyList<long>> ReplaceFacesAsync(long assetId, IReadOnlyList<Face> faces, IReadOnlyCollection<long> keep,
         IReadOnlyDictionary<int, long> replaces, CancellationToken ct)
     {

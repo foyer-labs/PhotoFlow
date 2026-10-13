@@ -76,6 +76,62 @@ internal sealed class SqliteSearchIndex(SqliteCatalog catalog) : ISearchIndex
         return new SearchResults(ordered.Take(query.Limit).ToList(), ordered.Count, byMeaning, clock.Elapsed);
     }
 
+    public async Task<IReadOnlyDictionary<long, int>> CountTagsAsync(SearchQuery query, SearchQuery? excluding, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        var ids = await ResultIdsAsync(query, ct).ConfigureAwait(false);
+        if (excluding is not null)
+        {
+            var leave = (await ResultIdsAsync(excluding, ct).ConfigureAwait(false)).ToHashSet();
+            ids = ids.Where(id => !leave.Contains(id)).ToList();
+        }
+
+        return (await CountOverAsync(ids, persons: false, ct).ConfigureAwait(false)).Tags;
+    }
+
+    public async Task<IReadOnlyDictionary<long, int>> CountPersonsAsync(SearchQuery query, CancellationToken ct) =>
+        (await CountFacetsAsync(query, ct).ConfigureAwait(false)).Persons;
+
+    public async Task<FacetCounts> CountFacetsAsync(SearchQuery query, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        return await CountOverAsync(await ResultIdsAsync(query, ct).ConfigureAwait(false), persons: true, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>Every photo of the result (no limit), for the facets.</summary>
+    private async Task<List<long>> ResultIdsAsync(SearchQuery query, CancellationToken ct) =>
+        [.. (await SearchAsync(query with { Limit = int.MaxValue }, ct).ConfigureAwait(false)).Hits.Select(h => h.AssetId)];
+
+    /// <summary>
+    /// The counts over the photos <paramref name="ids"/>, held in a temporary table of this connection. Both counts read
+    /// only an index already in tag (person) order (migration 0018); blacklisted tags are left out afterwards.
+    /// </summary>
+    private Task<FacetCounts> CountOverAsync(IReadOnlyList<long> ids, bool persons, CancellationToken ct) =>
+        catalog.RunAsync(async c =>
+        {
+            await c.ExecuteAsync(new CommandDefinition("CREATE TEMP TABLE IF NOT EXISTS FacetIds (Id INTEGER PRIMARY KEY);", cancellationToken: ct)).ConfigureAwait(false);
+            await using var transaction = await c.BeginTransactionAsync(ct).ConfigureAwait(false);
+            await c.ExecuteAsync(new CommandDefinition("DELETE FROM temp.FacetIds;", transaction: transaction, cancellationToken: ct)).ConfigureAwait(false);
+            // One statement for any number of photos.
+            await c.ExecuteAsync(new CommandDefinition("INSERT INTO temp.FacetIds (Id) SELECT value FROM json_each(@ids);",
+                new { ids = "[" + string.Join(',', ids.Select(id => id.ToString(CultureInfo.InvariantCulture))) + "]" }, transaction, cancellationToken: ct)).ConfigureAwait(false);
+            var blacklisted = (await c.QueryAsync<long>(new CommandDefinition("SELECT Id FROM Tags WHERE Blacklisted = 1;", transaction: transaction, cancellationToken: ct))
+                .ConfigureAwait(false)).ToHashSet();
+            var tags = (await c.QueryAsync<(long Id, int Count)>(new CommandDefinition("""
+                SELECT x.TagId, COUNT(*) FROM AssetTags x INDEXED BY IX_AssetTags_Tag
+                WHERE x.State = 'Active' AND x.AssetId IN (SELECT Id FROM temp.FacetIds) GROUP BY x.TagId;
+                """, transaction: transaction, cancellationToken: ct)).ConfigureAwait(false))
+                .Where(r => !blacklisted.Contains(r.Id)).ToDictionary(r => r.Id, r => r.Count);
+            var people = persons
+                ? (await c.QueryAsync<(long Id, int Count)>(new CommandDefinition("""
+                    SELECT f.PersonId, COUNT(DISTINCT f.AssetId) FROM Faces f INDEXED BY IX_Faces_Person
+                    WHERE f.PersonId IS NOT NULL AND f.AssetId IN (SELECT Id FROM temp.FacetIds) GROUP BY f.PersonId;
+                    """, transaction: transaction, cancellationToken: ct)).ConfigureAwait(false)).ToDictionary(r => r.Id, r => r.Count)
+                : new Dictionary<long, int>();
+            await transaction.CommitAsync(ct).ConfigureAwait(false);
+            return new FacetCounts(tags, people);
+        }, ct);
+
     public async Task<(int Embedded, int Total)> CoverageAsync(string embeddingModelVersion, CancellationToken ct) =>
         await catalog.RunAsync(async c =>
         {
@@ -104,6 +160,12 @@ internal sealed class SqliteSearchIndex(SqliteCatalog catalog) : ISearchIndex
         {
             sql.Append(CultureInfo.InvariantCulture, $" AND a.Id IN (SELECT x.AssetId FROM AssetTags x WHERE x.TagId = @t{i} AND x.State = 'Active')");
             parameters.Add($"t{i}", query.TagIds[i]);
+        }
+
+        foreach (var (group, g) in (query.TagGroups ?? []).Where(group => group.Count > 0).Select((group, g) => (group, g)))
+        {
+            sql.Append(CultureInfo.InvariantCulture, $" AND a.Id IN (SELECT x.AssetId FROM AssetTags x WHERE x.TagId IN @g{g} AND x.State = 'Active')");
+            parameters.Add($"g{g}", group.ToArray());
         }
 
         if (query.From is { } from)

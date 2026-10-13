@@ -207,6 +207,13 @@ public interface IAnalysisStore
 
     Task<IReadOnlyList<Face>> GetFacesAsync(long assetId, CancellationToken ct);
 
+    /// <summary>
+    /// A face drawn by the user where no face was detected (spec §7): manual assignment to <paramref name="personId"/>,
+    /// version <see cref="FaceDefaults.ManualModelVersion"/>, no fingerprint; kept by every analysis (I5). Returns its id.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">The box is not inside the photo, or too small.</exception>
+    Task<long> AddManualFaceAsync(long assetId, Analysis.BoundingBox box, long? personId, CancellationToken ct);
+
     /// <summary>Stores the image embedding of the asset for a model version, replacing an earlier one of the same version.</summary>
     Task SaveEmbeddingAsync(long assetId, string modelVersion, ReadOnlyMemory<float> vector, CancellationToken ct);
 

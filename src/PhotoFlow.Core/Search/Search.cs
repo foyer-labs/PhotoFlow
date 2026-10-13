@@ -13,6 +13,18 @@ public interface ISearchIndex
 {
     Task<SearchResults> SearchAsync(SearchQuery query, CancellationToken ct);
 
+    /// <summary>
+    /// Facets of Consultazione: for every active tag, how many photos of the result of <paramref name="query"/> have it,
+    /// leaving out the photos also in the result of <paramref name="excluding"/> (the "+N" of an OR).
+    /// </summary>
+    Task<IReadOnlyDictionary<long, int>> CountTagsAsync(SearchQuery query, SearchQuery? excluding, CancellationToken ct);
+
+    /// <summary>Facets of Consultazione: for every person, on how many photos of the result of <paramref name="query"/> it appears.</summary>
+    Task<IReadOnlyDictionary<long, int>> CountPersonsAsync(SearchQuery query, CancellationToken ct);
+
+    /// <summary>Tags and people of the result of <paramref name="query"/> counted together (the result is computed once).</summary>
+    Task<FacetCounts> CountFacetsAsync(SearchQuery query, CancellationToken ct);
+
     /// <summary>Photos with an embedding of <paramref name="embeddingModelVersion"/> and photos in the catalog (4e2: index being built).</summary>
     Task<(int Embedded, int Total)> CoverageAsync(string embeddingModelVersion, CancellationToken ct);
 }
@@ -23,6 +35,7 @@ public interface ISearchIndex
 /// <param name="TextEmbedding">CLIP embedding of <paramref name="Text"/> (L2-normalized), computed by the caller.</param>
 /// <param name="SimilarTo">"Trova simili": ordered by similarity to this photo's embedding.</param>
 /// <param name="EmbeddingModelVersion">Embeddings to use for meaning and similarity.</param>
+/// <param name="TagGroups">Groups of tags of the facets: a photo has at least one tag of each group (OR inside a group, AND between groups).</param>
 public sealed record SearchQuery(
     IReadOnlyList<long> PersonIds,
     IReadOnlyList<long> TagIds,
@@ -35,10 +48,14 @@ public sealed record SearchQuery(
     int? MinRating = null,
     CullingOutcome? Outcome = null,
     string? EmbeddingModelVersion = null,
-    int Limit = 5000)
+    int Limit = 5000,
+    IReadOnlyList<IReadOnlyList<long>>? TagGroups = null)
 {
     public static SearchQuery Empty { get; } = new([], []);
 }
+
+/// <summary>Photos per tag and per person of a result (facets of Consultazione).</summary>
+public sealed record FacetCounts(IReadOnlyDictionary<long, int> Tags, IReadOnlyDictionary<long, int> Persons);
 
 public sealed record SearchHit(long AssetId, double Score);
 

@@ -103,6 +103,49 @@ public sealed partial class BrowseView : UserControl
         CaptionBox.CaretIndex = CaptionBox.Text?.Length ?? 0;
     });
 
+    /// <summary>A tag of the facets: the mode of the switch, the other one with Ctrl.</summary>
+    private async void OnFacetTagPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (sender is Control { Tag: FacetItemViewModel item } && DataContext is BrowseViewModel browse && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        {
+            e.Handled = true;
+            await browse.Facets.ClickTagAsync(item, e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta));
+        }
+    }
+
+    /// <summary>A face clicked on the large preview: who is it?</summary>
+    private async void OnFaceClicked(object? sender, FaceBoxViewModel face)
+    {
+        if (_viewModel is { IsLargePreview: true })
+        {
+            await _viewModel.IdentifyFaceAsync(face);
+            FacePersonBox.Focus();
+            FacePersonBox.IsDropDownOpen = true;
+        }
+    }
+
+    /// <summary>A box drawn on the large preview: the face to add, then its person.</summary>
+    private void OnFaceDrawn(object? sender, PhotoFlow.Core.Analysis.BoundingBox box)
+    {
+        _viewModel?.FaceDrawnOnPhoto(box);
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            FacePersonBox.Focus();
+            FacePersonBox.IsDropDownOpen = true;
+        });
+    }
+
+    /// <summary>A double click on the large preview goes back to the grid, as one on a thumbnail opened it (not while drawing a face).</summary>
+    private void OnLargePreviewPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (e.ClickCount == 2 && _viewModel is { IsLargePreview: true, IsDrawingFace: false })
+        {
+            e.Handled = true;
+            _viewModel.TogglePreviewCommand.Execute(null);
+            Focus();
+        }
+    }
+
     private void OnCellPressed(object? sender, PointerPressedEventArgs e)
     {
         if (sender is Control { Tag: BrowseItemViewModel item } && _viewModel is not null)

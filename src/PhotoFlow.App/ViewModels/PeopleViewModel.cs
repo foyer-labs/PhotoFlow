@@ -579,6 +579,12 @@ public sealed record FaceYearViewModel(string Title, IReadOnlyList<FaceTileViewM
 /// delete the person with all its fingerprints (the photos stay). Nothing is written in the photos until the review
 /// is confirmed.
 /// </summary>
+/// <summary>A person to move faces to; <see cref="Id"/> null is "new person".</summary>
+public sealed record PersonChoice(long? Id, string Label)
+{
+    public override string ToString() => Label;
+}
+
 public sealed partial class PersonPageViewModel : PageViewModel
 {
     private static readonly CommandTable Table = new(
@@ -594,9 +600,11 @@ public sealed partial class PersonPageViewModel : PageViewModel
         new("Person.NotThis", new KeyGesture(Key.Delete), "People.Command.NotThis", StatusGroupKey: "People.Command.NotThis"),
         new("Person.Cover", new KeyGesture(Key.C), "People.Command.Cover"),
         new("Person.Rename", new KeyGesture(Key.F2), "People.Command.Rename", StatusGroupKey: "People.Command.Rename"),
-        new("Person.Apply", new KeyGesture(Key.Enter), "People.Command.Apply"),
+        new("Person.Enter", new KeyGesture(Key.Enter), "People.Command.OpenPhoto", StatusGroupKey: "People.Command.OpenPhoto"),
         new("Person.Order", new KeyGesture(Key.O), "People.Command.Order"),
         new("Person.Back", new KeyGesture(Key.Escape), "People.Command.Back", StatusGroupKey: "People.Command.Back"),
+        new("Person.FaceBox", new KeyGesture(Key.V), "People.Command.FaceBox"),
+        new("Person.Explorer", new KeyGesture(Key.E, KeyModifiers.Control | KeyModifiers.Shift), "Browse.Command.Explorer"),
     ]);
 
     private readonly PhotoFlowHost _host;
@@ -628,9 +636,11 @@ public sealed partial class PersonPageViewModel : PageViewModel
         "Person.NotThis" => NotThisCommand,
         "Person.Cover" => CoverCommand,
         "Person.Rename" => StartRenameCommand,
-        "Person.Apply" => ApplyCommand,
+        "Person.Enter" => EnterCommand,
         "Person.Order" => ToggleOrderCommand,
         "Person.Back" => BackCommand,
+        "Person.FaceBox" => ToggleFaceBoxCommand,
+        "Person.Explorer" => ShowPhotoInExplorerCommand,
         _ => base.ResolveCommand(id),
     };
 
@@ -663,7 +673,88 @@ public sealed partial class PersonPageViewModel : PageViewModel
 
     public bool IsEditing => EditText is not null;
 
-    public string EditLabel => Strings.Get(IsMoving ? "People.MoveTo" : "People.Rename");
+    public string EditLabel => Strings.Get("People.Rename");
+
+    /// <summary>The people faces can be moved to (named, by name), "new person" first.</summary>
+    public ObservableCollection<PersonChoice> MoveTargets { get; } = [];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsNewPerson), nameof(CanConfirmMove))]
+    private PersonChoice? _moveTarget;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanConfirmMove))]
+    private string? _newPersonName;
+
+    public bool IsNewPerson => MoveTarget is { Id: null };
+
+    /// <summary>The photo of the focused face, shown over the page (board 4b, "↵ Apri foto").</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsShowingPhoto))]
+    private Bitmap? _photo;
+
+    public bool IsShowingPhoto => Photo is not null;
+
+    [ObservableProperty]
+    private string _photoTitle = string.Empty;
+
+    /// <summary>Size of the photo and box of the face on it, in the photo's pixels.</summary>
+    [ObservableProperty]
+    private double _photoWidth;
+
+    [ObservableProperty]
+    private double _photoHeight;
+
+    [ObservableProperty]
+    private double _faceLeft;
+
+    [ObservableProperty]
+    private double _faceTop;
+
+    [ObservableProperty]
+    private double _faceWidth;
+
+    [ObservableProperty]
+    private double _faceHeight;
+
+    [ObservableProperty]
+    private double _faceStroke = 3;
+
+    /// <summary>The faces are boxed on the photo (V); kept while going from face to face.</summary>
+    [ObservableProperty]
+    private bool _showFaceBox = true;
+
+    /// <summary>Where the photo is: its full path (empty when only the thumbnail could be shown).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasPhotoPath))]
+    private string? _photoPath;
+
+    public bool HasPhotoPath => PhotoPath is not null;
+
+    /// <summary>Date taken and event of the photo.</summary>
+    [ObservableProperty]
+    private string _photoFacts = string.Empty;
+
+    /// <summary>Named people on the photo.</summary>
+    [ObservableProperty]
+    private string _photoPeople = string.Empty;
+
+    /// <summary>Every face of the photo, the one of this page standing out (V hides them).</summary>
+    public ObservableCollection<FaceBoxViewModel> PhotoFaces { get; } = [];
+
+    private IReadOnlyList<Face> _photoFaces = [];
+    private IReadOnlyDictionary<long, Person> _photoPersons = new Dictionary<long, Person>();
+
+    /// <summary>Active tags of the photo (Italian when available), events apart.</summary>
+    public ObservableCollection<string> PhotoTags { get; } = [];
+
+    [ObservableProperty]
+    private bool _hasPhotoTags;
+
+    public bool CanConfirmMove => MoveTarget is { Id: not null } || (IsNewPerson && !string.IsNullOrWhiteSpace(NewPersonName));
+
+    /// <summary>The faces the actions apply to: the selected ones, or the focused one alone.</summary>
+    public int ActionCount => _faces.Count(f => f.IsSelected) is var n and > 0 ? n : Focused is null ? 0 : 1;
 
     [ObservableProperty]
     private string? _message;
@@ -671,7 +762,12 @@ public sealed partial class PersonPageViewModel : PageViewModel
     [ObservableProperty]
     private bool _isConfirmingDelete;
 
-    public string SelectionText => Strings.Format("People.FacesSelected", _faces.Count(f => f.IsSelected));
+    public string SelectionText => ActionCount switch
+    {
+        0 => Strings.Get("People.NoFaceChosen"),
+        _ when _faces.Any(f => f.IsSelected) => Strings.Format("People.FacesSelected", ActionCount),
+        _ => Strings.Get("People.OneFaceChosen"),
+    };
 
     public string MetadataText => Strings.Format("People.Metadata", Name);
 
@@ -743,6 +839,9 @@ public sealed partial class PersonPageViewModel : PageViewModel
         {
             newValue.IsFocused = true;
         }
+
+        OnPropertyChanged(nameof(SelectionText));
+        OnPropertyChanged(nameof(ActionCount));
     }
 
     [RelayCommand]
@@ -765,6 +864,7 @@ public sealed partial class PersonPageViewModel : PageViewModel
             face.IsSelected = !face.IsSelected;
             _anchor = Flat().IndexOf(face);
             OnPropertyChanged(nameof(SelectionText));
+            OnPropertyChanged(nameof(ActionCount));
         }
     }
 
@@ -855,17 +955,200 @@ public sealed partial class PersonPageViewModel : PageViewModel
         EditText = Name.StartsWith(Strings.Format("People.Unnamed", string.Empty).Trim(), StringComparison.Ordinal) ? string.Empty : Name;
     }
 
+    /// <summary>Ctrl M: the list of the people to move the chosen faces to.</summary>
     [RelayCommand]
-    private void StartMoveTo()
+    private async Task StartMoveToAsync()
     {
+        if (ActionCount == 0)
+        {
+            Message = Strings.Get("People.NoFaceChosen");
+            return;
+        }
+
+        EditText = null;
+        MoveTargets.Clear();
+        MoveTargets.Add(new PersonChoice(null, Strings.Get("People.NewPerson")));
+        foreach (var person in (await _host.Catalog.People.ListPersonsAsync(CancellationToken.None))
+                     .Where(p => p.Person.Id != _personId && p.Person.Name is not null && !p.Person.Ignored)
+                     .OrderBy(p => p.Person.Name, StringComparer.CurrentCulture))
+        {
+            MoveTargets.Add(new PersonChoice(person.Person.Id, Strings.Format("People.ChoiceLabel", person.Person.Name!, person.FaceCount)));
+        }
+
+        MoveTarget = null;
+        NewPersonName = null;
         IsMoving = true;
-        EditText = string.Empty;
     }
 
-    /// <summary>Enter: applies the rename or the move being typed.</summary>
+    /// <summary>Moves the chosen faces to the person picked in the list (or a new one with the name typed).</summary>
+    [RelayCommand]
+    private async Task ConfirmMoveAsync()
+    {
+        if (!IsMoving || !CanConfirmMove)
+        {
+            return;
+        }
+
+        var name = MoveTarget!.Id is null ? NewPersonName!.Trim() : null;
+        var target = MoveTarget.Id ?? await _host.Catalog.People.CreatePersonAsync(name, CancellationToken.None);
+        var label = name ?? (await _host.Catalog.People.GetPersonAsync(target, CancellationToken.None))?.Name ?? string.Empty;
+        var faces = SelectedFaces();
+        IsMoving = false;
+        await _host.Catalog.People.AssignManualAsync(faces, target, CancellationToken.None);
+        await RefreshAsync(target);
+        Message = Strings.Format("People.Moved", faces.Count, label);
+    }
+
+    [RelayCommand]
+    private void CancelMove() => IsMoving = false;
+
+    /// <summary>Enter: confirms the move or the rename in progress, otherwise opens the photo of the focused face.</summary>
+    [RelayCommand]
+    private async Task EnterAsync()
+    {
+        if (IsMoving || IsEditing)
+        {
+            await ApplyAsync();
+        }
+        else if (IsShowingPhoto)
+        {
+            ClosePhoto();
+        }
+        else
+        {
+            await OpenPhotoAsync();
+        }
+    }
+
+    /// <summary>
+    /// The whole photo the face comes from, with the face marked: the original when reachable (oriented as for the
+    /// analysis, so the box falls on the face), else the thumbnail of the catalog.
+    /// </summary>
+    [RelayCommand]
+    private async Task OpenPhotoAsync()
+    {
+        if (Focused is not { } tile)
+        {
+            Message = Strings.Get("People.NoFaceChosen");
+            return;
+        }
+
+        var face = tile.Face;
+        var asset = await _host.Catalog.Assets.GetAsync(face.AssetId, CancellationToken.None);
+        var path = await AssetFiles.LocateAsync(_host.Catalog, _host.FileSystem, face.AssetId, CancellationToken.None);
+        Bitmap? bitmap = null;
+        if (path is not null)
+        {
+            try
+            {
+                var preview = await _host.Previews.GetPreviewAsync(path, 2048, CancellationToken.None);
+                bitmap = await Task.Run(() => UiBitmaps.FromImage(preview.Image));
+            }
+            catch (Exception e) when (e is IOException or InvalidOperationException or UnauthorizedAccessException)
+            {
+                bitmap = null; // the thumbnail below
+            }
+        }
+
+        if (bitmap is null && asset is not null
+            && new[] { asset.FullHash, asset.QuickHash }.OfType<string>().Select(_host.Thumbnails.PathFor).FirstOrDefault(File.Exists) is { } thumbnail)
+        {
+            bitmap = await Task.Run(() => UiBitmaps.FromFile(thumbnail, 1600));
+        }
+
+        if (bitmap is null)
+        {
+            Message = Strings.Get("People.PhotoUnavailable");
+            return;
+        }
+
+        await LoadPhotoInfoAsync(face.AssetId, asset, path);
+        (PhotoWidth, PhotoHeight) = (bitmap.PixelSize.Width, bitmap.PixelSize.Height);
+        (FaceLeft, FaceTop) = (face.Box.X1 * PhotoWidth, face.Box.Y1 * PhotoHeight);
+        (FaceWidth, FaceHeight) = ((face.Box.X2 - face.Box.X1) * PhotoWidth, (face.Box.Y2 - face.Box.Y1) * PhotoHeight);
+        FaceStroke = Math.Max(2, Math.Max(PhotoWidth, PhotoHeight) / 300);
+        PhotoFaces.Clear();
+        foreach (var box in FaceBoxViewModel.From(_photoFaces, _photoPersons, PhotoWidth, PhotoHeight, face.Id))
+        {
+            PhotoFaces.Add(box);
+        }
+
+        PhotoTitle = path is null
+            ? Strings.Format("People.PhotoThumbnailOnly", tile.Year?.ToString(CultureInfo.InvariantCulture) ?? "—")
+            : Path.GetFileName(path);
+        Photo = bitmap;
+    }
+
+    [RelayCommand]
+    private void ClosePhoto() => Photo = null;
+
+    [RelayCommand]
+    private void ToggleFaceBox() => ShowFaceBox = !ShowFaceBox;
+
+    /// <summary>Ctrl Shift E: Explorer on the folder of the photo, the file selected.</summary>
+    [RelayCommand]
+    private async Task ShowPhotoInExplorerAsync()
+    {
+        var path = PhotoPath ?? (Focused is { } tile ? await AssetFiles.LocateAsync(_host.Catalog, _host.FileSystem, tile.Face.AssetId, CancellationToken.None) : null);
+        if (path is null)
+        {
+            Message = Strings.Get("People.PhotoUnavailable");
+            return;
+        }
+
+        try
+        {
+            using var _ = OperatingSystem.IsWindows()
+                ? System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe") { ArgumentList = { "/select,", path }, UseShellExecute = false })
+                : System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(Path.GetDirectoryName(path) ?? path) { UseShellExecute = true });
+        }
+        catch (Exception e) when (e is System.ComponentModel.Win32Exception or InvalidOperationException or FileNotFoundException)
+        {
+            Message = Strings.Format("Browse.LaunchFailed", e.Message);
+        }
+    }
+
+    /// <summary>Where the photo is, when it was taken, its event, people and tags.</summary>
+    private async Task LoadPhotoInfoAsync(long assetId, Asset? asset, string? path)
+    {
+        var catalog = _host.Catalog;
+        PhotoPath = path;
+        var tags = await catalog.Tags.GetForAssetAsync(assetId, CancellationToken.None);
+        if (tags.Count == 0 && await catalog.Assets.GetTwinAsync(assetId, CancellationToken.None) is { } twin)
+        {
+            tags = await catalog.Tags.GetForAssetAsync(twin, CancellationToken.None);
+        }
+
+        var active = tags.Where(t => t.Assignment.State == AssetTagState.Active && !t.Tag.Blacklisted).ToList();
+        bool IsEvent(AssetTagInfo t) => t.Tag.Key.StartsWith(Tagging.Vocabulary.TaggingStage.EventPrefix, StringComparison.Ordinal);
+        var taken = asset?.CapturedAt?.ToLocalTime().ToString("d MMM yyyy · HH:mm", CultureInfo.CurrentCulture);
+        var eventName = active.Where(IsEvent).Select(t => t.Tag.Italian ?? t.Tag.English).FirstOrDefault();
+        PhotoFacts = string.Join(" · ", new[] { taken, eventName }.OfType<string>());
+        PhotoTags.Clear();
+        foreach (var label in active.Where(t => !IsEvent(t)).Select(t => t.Tag.Italian ?? t.Tag.English).Distinct(StringComparer.CurrentCultureIgnoreCase)
+                     .Order(StringComparer.CurrentCultureIgnoreCase))
+        {
+            PhotoTags.Add(label);
+        }
+
+        HasPhotoTags = PhotoTags.Count > 0;
+        var persons = (await catalog.People.ListPersonsAsync(CancellationToken.None)).ToDictionary(p => p.Person.Id, p => p.Person);
+        var faces = await catalog.Analysis.GetFacesAsync(assetId, CancellationToken.None);
+        PhotoPeople = FaceBoxViewModel.People(faces, persons);
+        _photoFaces = faces;
+        _photoPersons = persons;
+    }
+
+    /// <summary>Enter: applies the move chosen in the list, or the rename being typed.</summary>
     [RelayCommand]
     private async Task ApplyAsync()
     {
+        if (IsMoving)
+        {
+            await ConfirmMoveAsync();
+            return;
+        }
+
         if (EditText is not { } text || text.Trim().Length == 0)
         {
             EditText = null;
@@ -876,15 +1159,6 @@ public sealed partial class PersonPageViewModel : PageViewModel
         EditText = null;
         var people = await _host.Catalog.People.ListPersonsAsync(CancellationToken.None);
         var existing = people.FirstOrDefault(p => string.Equals(p.Person.Name, name, StringComparison.CurrentCultureIgnoreCase))?.Person.Id;
-        if (IsMoving)
-        {
-            var target = existing ?? await _host.Catalog.People.CreatePersonAsync(name, CancellationToken.None);
-            var faces = SelectedFaces();
-            await _host.Catalog.People.AssignManualAsync(faces, target, CancellationToken.None);
-            await RefreshAsync(target);
-            Message = Strings.Format("People.Moved", faces.Count, name);
-            return;
-        }
 
         if (existing is { } other && other != _personId)
         {
@@ -925,7 +1199,15 @@ public sealed partial class PersonPageViewModel : PageViewModel
     [RelayCommand]
     private void Back()
     {
-        if (EditText is not null)
+        if (IsShowingPhoto)
+        {
+            ClosePhoto();
+        }
+        else if (IsMoving)
+        {
+            IsMoving = false;
+        }
+        else if (EditText is not null)
         {
             EditText = null;
         }
