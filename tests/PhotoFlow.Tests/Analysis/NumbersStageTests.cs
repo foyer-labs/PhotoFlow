@@ -3,6 +3,7 @@
 using PhotoFlow.Core.Analysis;
 using PhotoFlow.Core.Catalog;
 using PhotoFlow.Core.Pipeline;
+using PhotoFlow.Core.Search;
 using PhotoFlow.Data;
 using PhotoFlow.Tagging.Ocr;
 using PhotoFlow.Tests.Support;
@@ -49,7 +50,7 @@ public sealed class NumbersStageTests : IDisposable
         await catalog.Jobs.AddItemsAsync(jobId, assets.Select((a, i) => new JobItem(0, jobId, a, $"p{i}.jpg", null, null, PipelineStage.Decision, JobItemState.Done, null)).ToList(), Ct);
         await catalog.Groups.ReplaceAutomaticAsync(jobId, [(GroupType.Burst, (IReadOnlyList<long>)assets.Take(4).ToList())], Ct);
         var list = await catalog.Motorsport.CreateListAsync("Monza", null, Ct);
-        await catalog.Motorsport.ReplaceEntriesAsync(list, [new Entry(0, list, "9", ["Paolo Galli"], "Galli Racing", null, null), new Entry(0, list, "6", ["Andrea Neri"], "Neri Motorsport", null, null)], Ct);
+        await catalog.Motorsport.ReplaceEntriesAsync(list, [new Entry(0, list, "9", ["Paolo Galli"], "Galli Racing", null, null), new Entry(0, list, "6", ["Andrea Neri", "Nicolò Bianchi"], "Neri Motorsport", null, null)], Ct);
         await catalog.Motorsport.SetJobListAsync(jobId, list, Ct);
 
         await new NumbersStage(catalog).RunAsync(new JobContext(jobId, JobType.Import, "motorsport"), null, Ct);
@@ -69,6 +70,11 @@ public sealed class NumbersStageTests : IDisposable
         await new NumbersStage(catalog).RunAsync(new JobContext(jobId, JobType.Import, "motorsport"), null, Ct);
         Assert.Equal(("6", NumberOrigin.Manual), ((await Main(2)).Number, (await Main(2)).Origin));
         Assert.Contains("number:Numero 6", (await catalog.Tags.GetForAssetAsync(assets[2], Ct)).Select(t => t.Tag.Key));
+
+        // Every name of the list is searchable, also the crew's second driver that the XMP leaves out (D18).
+        async Task<long[]> Find(string text) => [.. (await catalog.Search.SearchAsync(SearchQuery.Empty with { Text = text }, Ct)).Hits.Select(h => h.AssetId).Order()];
+        Assert.Equal([assets[2]], await Find("Bianchi"));
+        Assert.Equal([assets[0], assets[1], assets[3]], await Find("Galli"));
     }
 
     public void Dispose() => _temp.Dispose();

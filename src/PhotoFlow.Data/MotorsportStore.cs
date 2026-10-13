@@ -126,8 +126,36 @@ internal sealed class MotorsportStore(SqliteCatalog catalog) : IMotorsportStore
         (await catalog.RunAsync(c => c.QueryAsync<NumberRow>(new CommandDefinition(
             "SELECT AssetId, Vehicle, X1, Y1, X2, Y2, Number, State, Origin, CandidatesJson FROM VehicleNumbers WHERE AssetId = @assetId ORDER BY Vehicle;",
             new { assetId }, cancellationToken: ct)), ct).ConfigureAwait(false))
-        .Select(r => new VehicleNumber(r.AssetId, r.Vehicle, new BoundingBox((float)r.X1, (float)r.Y1, (float)r.X2, (float)r.Y2), r.Number,
-            Db.Parse<NumberState>(r.State), Db.Parse<NumberOrigin>(r.Origin), JsonSerializer.Deserialize<NumberCandidate[]>(r.CandidatesJson) ?? [])).ToList();
+        .Select(ToNumber).ToList();
+
+    public async Task<IReadOnlyList<VehicleNumber>> GetJobNumbersAsync(long jobId, CancellationToken ct) =>
+        (await catalog.RunAsync(c => c.QueryAsync<NumberRow>(new CommandDefinition(
+            """
+            SELECT AssetId, Vehicle, X1, Y1, X2, Y2, Number, State, Origin, CandidatesJson FROM VehicleNumbers
+            WHERE AssetId IN (SELECT AssetId FROM JobItems WHERE JobId = @jobId AND AssetId IS NOT NULL) ORDER BY AssetId, Vehicle;
+            """,
+            new { jobId }, cancellationToken: ct)), ct).ConfigureAwait(false))
+        .Select(ToNumber).ToList();
+
+    public Task PutNumberAsync(long assetId, int vehicle, VehicleNumber? number, CancellationToken ct) =>
+        catalog.RunAsync(c => number is null
+            ? c.ExecuteAsync(new CommandDefinition("DELETE FROM VehicleNumbers WHERE AssetId = @assetId AND Vehicle = @vehicle;", new { assetId, vehicle }, cancellationToken: ct))
+            : c.ExecuteAsync(new CommandDefinition(
+                """
+                INSERT INTO VehicleNumbers (AssetId, Vehicle, X1, Y1, X2, Y2, Number, State, Origin, CandidatesJson, UpdatedAtMs)
+                VALUES (@assetId, @vehicle, @x1, @y1, @x2, @y2, @Number, @state, @origin, @candidates, @now)
+                ON CONFLICT (AssetId, Vehicle) DO UPDATE SET X1 = excluded.X1, Y1 = excluded.Y1, X2 = excluded.X2, Y2 = excluded.Y2, Number = excluded.Number,
+                    State = excluded.State, Origin = excluded.Origin, CandidatesJson = excluded.CandidatesJson, UpdatedAtMs = excluded.UpdatedAtMs;
+                """,
+                new
+                {
+                    assetId, vehicle, x1 = number.Box.X1, y1 = number.Box.Y1, x2 = number.Box.X2, y2 = number.Box.Y2, number.Number, state = number.State.ToString(),
+                    origin = number.Origin.ToString(), candidates = JsonSerializer.Serialize(number.Candidates), now = Db.Now(),
+                }, cancellationToken: ct)), ct);
+
+    private static VehicleNumber ToNumber(NumberRow r) =>
+        new(r.AssetId, r.Vehicle, new BoundingBox((float)r.X1, (float)r.Y1, (float)r.X2, (float)r.Y2), r.Number,
+            Db.Parse<NumberState>(r.State), Db.Parse<NumberOrigin>(r.Origin), JsonSerializer.Deserialize<NumberCandidate[]>(r.CandidatesJson) ?? []);
 
     private sealed class EntryRow
     {

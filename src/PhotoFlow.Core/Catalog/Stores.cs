@@ -373,4 +373,10 @@ public interface IMotorsportStore
     Task SetManualNumberAsync(long assetId, int vehicle, string? number, CancellationToken ct);
 
     Task<IReadOnlyList<VehicleNumber>> GetNumbersAsync(long assetId, CancellationToken ct);
+
+    /// <summary>Numbers of every vehicle of the photos of a job.</summary>
+    Task<IReadOnlyList<VehicleNumber>> GetJobNumbersAsync(long jobId, CancellationToken ct);
+
+    /// <summary>Writes a vehicle's number exactly as given, or removes it when null (undo of a correction).</summary>
+    Task PutNumberAsync(long assetId, int vehicle, VehicleNumber? number, CancellationToken ct);
 }
