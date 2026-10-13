@@ -29,6 +29,8 @@ public interface ICatalog : IAsyncDisposable
 
     IDuplicateStore Duplicates { get; }
 
+    IMotorsportStore Motorsport { get; }
+
     /// <summary>Search over the photos of the catalog (spec §3: only through this interface).</summary>
     Search.ISearchIndex Search { get; }
 
@@ -340,4 +342,35 @@ public interface IDuplicateStore
     Task<IReadOnlySet<string>> ListExclusionsAsync(CancellationToken ct);
 
     Task ExcludeAsync(string key, CancellationToken ct);
+}
+
+/// <summary>Entry lists, OCR readings and race numbers (spec §8, §9).</summary>
+public interface IMotorsportStore
+{
+    Task<long> CreateListAsync(string name, string? sourceFile, CancellationToken ct);
+
+    Task<IReadOnlyList<EntryList>> ListListsAsync(CancellationToken ct);
+
+    /// <summary>The entries of the list become <paramref name="entries"/> (numbers unique in a list).</summary>
+    Task ReplaceEntriesAsync(long listId, IReadOnlyList<Entry> entries, CancellationToken ct);
+
+    Task<IReadOnlyList<Entry>> GetEntriesAsync(long listId, CancellationToken ct);
+
+    /// <summary>The list used by a job (an event); null to detach it.</summary>
+    Task SetJobListAsync(long jobId, long? listId, CancellationToken ct);
+
+    Task<long?> GetJobListAsync(long jobId, CancellationToken ct);
+
+    /// <summary>The OCR readings of the photo become <paramref name="readings"/>.</summary>
+    Task ReplaceReadingsAsync(long assetId, IReadOnlyList<OcrReading> readings, CancellationToken ct);
+
+    Task<IReadOnlyList<OcrReading>> GetReadingsAsync(long assetId, CancellationToken ct);
+
+    /// <summary>The automatic numbers of the photo become <paramref name="numbers"/>; a vehicle with a manual number keeps it (I5).</summary>
+    Task ReplaceAutomaticNumbersAsync(long assetId, IReadOnlyList<VehicleNumber> numbers, CancellationToken ct);
+
+    /// <summary>The user's number for a vehicle (null: no number), always kept.</summary>
+    Task SetManualNumberAsync(long assetId, int vehicle, string? number, CancellationToken ct);
+
+    Task<IReadOnlyList<VehicleNumber>> GetNumbersAsync(long assetId, CancellationToken ct);
 }

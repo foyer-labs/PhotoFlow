@@ -311,6 +311,51 @@ public enum AssetTagState
 /// <summary>A personal tag recognized by CLIP zero-shot (level A, board 5d): English description for the model, threshold, margin over the second candidate.</summary>
 public sealed record CustomTag(long TagId, string ClipDescription, double Threshold, double Margin);
 
+// --- Motorsport ---
+
+/// <summary>An entry list (spec §8): reusable on several events.</summary>
+public sealed record EntryList(long Id, string Name, string? SourceFile, DateTimeOffset CreatedAt);
+
+/// <summary>A car of an entry list; two or more drivers are a crew (D18: only the number and team in the XMP).</summary>
+public sealed record Entry(long Id, long ListId, string Number, IReadOnlyList<string> Drivers, string? Team, string? Category, string? Car)
+{
+    public bool IsCrew => Drivers.Count > 1;
+}
+
+public enum NumberState
+{
+    /// <summary>One number of the list, clearly.</summary>
+    Certain,
+
+    /// <summary>Several candidates in the list, or a partial reading: the user decides in the Numbers view.</summary>
+    ToReview,
+
+    /// <summary>No readable number.</summary>
+    NoNumber,
+
+    /// <summary>Numbers read, none in the list (sponsors, plates): ignored.</summary>
+    OutOfList,
+}
+
+public enum NumberOrigin
+{
+    Automatic,
+
+    /// <summary>From the majority of the burst.</summary>
+    Propagated,
+
+    /// <summary>Typed or confirmed by the user: never replaced by an analysis (I5).</summary>
+    Manual,
+}
+
+public sealed record NumberCandidate(string Number, double Score);
+
+/// <summary>The race number of a vehicle of a photo; <see cref="Box"/> is the vehicle, normalized.</summary>
+public sealed record VehicleNumber(long AssetId, int Vehicle, BoundingBox Box, string? Number, NumberState State, NumberOrigin Origin, IReadOnlyList<NumberCandidate> Candidates);
+
+/// <summary>An OCR reading on a vehicle (<see cref="VehicleBox"/>) of a photo; <see cref="Box"/> in the photo, normalized.</summary>
+public sealed record OcrReading(long AssetId, int Vehicle, BoundingBox VehicleBox, BoundingBox Box, string Text, double Confidence, string ModelVersion);
+
 // --- Duplicates ---
 
 public enum DuplicateKind
