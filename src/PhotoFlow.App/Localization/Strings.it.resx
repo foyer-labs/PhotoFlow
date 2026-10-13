@@ -406,7 +406,6 @@
   <data name="Stage.Read" xml:space="preserve"><value>Lettura</value></data>
   <data name="Jobs.Background.Running" xml:space="preserve"><value>In background · bassa priorità</value></data>
   <data name="Jobs.Background.Waiting" xml:space="preserve"><value>In background · attende l'import</value></data>
-  <data name="Common.ComesWithPhase4" xml:space="preserve"><value>Arriva con la fase 4</value></data>
   <data name="Label.Good" xml:space="preserve"><value>Buona</value></data>
   <data name="Label.Blurred" xml:space="preserve"><value>Mossa</value></data>
   <data name="Label.EyesClosed" xml:space="preserve"><value>Occhi chiusi</value></data>
@@ -496,7 +495,6 @@
   <data name="Review.MoveDiscards.Done" xml:space="preserve"><value>{0} file spostati in _scarti, {1} lasciati dove sono.</value></data>
   <data name="Review.MoveDiscards.None" xml:space="preserve"><value>Nessuno scarto in questo job.</value></data>
   <data name="Review.MoveDiscards.Question" xml:space="preserve"><value>Spostare {0} foto scartate in _scarti?</value></data>
-  <data name="Review.NumbersPhase4" xml:space="preserve"><value>La vista Numeri arriva con la fase 4 (OCR motorsport).</value></data>
   <data name="Review.People" xml:space="preserve"><value>Persone</value></data>
   <data name="Review.People.Note" xml:space="preserve"><value>Tag e nomi si scrivono solo dopo la conferma.</value></data>
   <data name="Review.Reanalyzed" xml:space="preserve"><value>{0} rianalizzata come {1}.</value></data>
@@ -779,4 +777,64 @@
   <data name="Vocabulary.Custom.Margin" xml:space="preserve"><value>Margine sul 2° candidato</value></data>
   <data name="Vocabulary.Custom.TrialButton" xml:space="preserve"><value>Prova</value></data>
   <data name="Vocabulary.Custom.Save" xml:space="preserve"><value>Salva e rianalizza</value></data>
+  <data name="Key.PageUp" xml:space="preserve"><value>Pag ↑</value></data>
+  <data name="Key.PageDown" xml:space="preserve"><value>Pag ↓</value></data>
+  <data name="Numbers.Title" xml:space="preserve"><value>Numeri</value></data>
+  <data name="Numbers.Command.Type" xml:space="preserve"><value>digita il numero</value></data>
+  <data name="Numbers.Command.Erase" xml:space="preserve"><value>cancella una cifra</value></data>
+  <data name="Numbers.Command.Confirm" xml:space="preserve"><value>conferma e avanti</value></data>
+  <data name="Numbers.Command.None" xml:space="preserve"><value>nessun numero</value></data>
+  <data name="Numbers.Command.Cycle" xml:space="preserve"><value>numero in elenco</value></data>
+  <data name="Numbers.Command.Move" xml:space="preserve"><value>foto</value></data>
+  <data name="Numbers.Command.Group" xml:space="preserve"><value>elenco</value></data>
+  <data name="Numbers.Command.Propagate" xml:space="preserve"><value>propaga alla raffica</value></data>
+  <data name="Numbers.Command.Exit" xml:space="preserve"><value>torna alla revisione</value></data>
+  <data name="Numbers.Doubt.Confusion" xml:space="preserve"><value>confusione cifre</value></data>
+  <data name="Numbers.Doubt.Partial" xml:space="preserve"><value>lettura parziale o incerta</value></data>
+  <data name="Numbers.Doubt.Unknown" xml:space="preserve"><value>nessun candidato</value></data>
+  <data name="Numbers.Or" xml:space="preserve"><value> o </value></data>
+  <data name="Numbers.NotInList" xml:space="preserve"><value>non in elenco</value></data>
+  <data name="Numbers.InList" xml:space="preserve"><value>In elenco · {0} di {1}</value></data>
+  <data name="Numbers.NoNumber" xml:space="preserve"><value>Nessun numero leggibile</value></data>
+  <data name="Numbers.OutOfList" xml:space="preserve"><value>Fuori elenco, ignorati</value></data>
+  <data name="Numbers.Summary" xml:space="preserve"><value>{0} foto · {1} vetture · {2} da risolvere · {3} vetture in elenco</value></data>
+  <data name="Numbers.Crew" xml:space="preserve"><value>Equipaggio di {0} · {1} · solo numero in XMP</value></data>
+  <data name="Numbers.State.Certain" xml:space="preserve"><value>Numero {0}</value></data>
+  <data name="Numbers.State.ToReview" xml:space="preserve"><value>Da rivedere</value></data>
+  <data name="Numbers.State.NoNumber" xml:space="preserve"><value>Nessun numero</value></data>
+  <data name="Numbers.State.OutOfList" xml:space="preserve"><value>Fuori elenco</value></data>
+  <data name="Numbers.Origin.Manual" xml:space="preserve"><value>tuo</value></data>
+  <data name="Numbers.Origin.Propagated" xml:space="preserve"><value>dalla raffica</value></data>
+  <data name="Numbers.OtherVehicle" xml:space="preserve"><value>+ {0} certo</value></data>
+  <data name="Numbers.TypeFirst" xml:space="preserve"><value>Digita prima il numero, oppure Canc se non c'è.</value></data>
+  <data name="Numbers.Set" xml:space="preserve"><value>{0}: numero {1}.</value></data>
+  <data name="Numbers.SetBurst" xml:space="preserve"><value>{0}: numero {1}, anche su altre {2} foto della raffica.</value></data>
+  <data name="Numbers.SetNone" xml:space="preserve"><value>{0}: nessun numero.</value></data>
+  <data name="Numbers.Undone" xml:space="preserve"><value>Ultima correzione annullata.</value></data>
+  <data name="Numbers.List.Title" xml:space="preserve"><value>Elenco iscritti</value></data>
+  <data name="Numbers.List.Choose" xml:space="preserve"><value>Scegli un elenco</value></data>
+  <data name="Numbers.List.Info" xml:space="preserve"><value>{0} · {1} vetture</value></data>
+  <data name="Numbers.List.Manual" xml:space="preserve"><value>inserito a mano</value></data>
+  <data name="Numbers.List.None" xml:space="preserve"><value>Nessun elenco per questo lavoro: valgono solo le letture nitide.</value></data>
+  <data name="Numbers.List.Import" xml:space="preserve"><value>Importa CSV/Excel</value></data>
+  <data name="Numbers.List.Edit" xml:space="preserve"><value>Modifica</value></data>
+  <data name="Numbers.List.EditHint" xml:space="preserve"><value>Una vettura per riga: numero; piloti (separati da /); team; categoria; vettura.</value></data>
+  <data name="Numbers.List.Save" xml:space="preserve"><value>Salva e riabbina</value></data>
+  <data name="Numbers.List.FileType" xml:space="preserve"><value>Elenchi iscritti (CSV, Excel)</value></data>
+  <data name="Numbers.List.ImportFailed" xml:space="preserve"><value>Impossibile leggere {0}: {1}</value></data>
+  <data name="Numbers.List.ImportEmpty" xml:space="preserve"><value>{0} non contiene vetture con un numero.</value></data>
+  <data name="Numbers.List.Imported" xml:space="preserve"><value>Elenco {0} importato: {1} vetture; numeri riabbinati.</value></data>
+  <data name="Numbers.List.Saved" xml:space="preserve"><value>Elenco salvato: {0} vetture; numeri riabbinati.</value></data>
+  <data name="Numbers.Propagate" xml:space="preserve"><value>Propaga la correzione alla raffica</value></data>
+  <data name="Numbers.Back" xml:space="preserve"><value>Revisione</value></data>
+  <data name="Numbers.ToResolve" xml:space="preserve"><value>Da risolvere</value></data>
+  <data name="Numbers.NothingToResolve" xml:space="preserve"><value>Niente da risolvere.</value></data>
+  <data name="Numbers.Other" xml:space="preserve"><value>Altro</value></data>
+  <data name="Numbers.Empty" xml:space="preserve"><value>Nessun numero letto in questo lavoro: l'OCR gira sulle foto col profilo che lo prevede (Motorsport).</value></data>
+  <data name="Numbers.Number" xml:space="preserve"><value>Numero</value></data>
+  <data name="Numbers.Confirm" xml:space="preserve"><value>Conferma</value></data>
+  <data name="Numbers.None" xml:space="preserve"><value>Nessun numero</value></data>
+  <data name="Numbers.Hint" xml:space="preserve"><value>0-9 digita · Invio conferma (il numero digitato o il primo candidato) · ↑ ↓ numeri in elenco · ← → foto · Pag ↑ Pag ↓ elenco · Ctrl Z annulla. I tuoi numeri non vengono mai sostituiti da una nuova analisi.</value></data>
+  <data name="Numbers.Candidates" xml:space="preserve"><value>Candidati per la foto</value></data>
+  <data name="Numbers.CandidatesNote" xml:space="preserve"><value>Il colore e il modello aiutano a distinguere: arrivano dall'elenco iscritti.</value></data>
 </root>

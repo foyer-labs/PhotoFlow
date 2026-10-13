@@ -28,6 +28,7 @@
     <DataTemplate DataType="vm:SettingsViewModel"><v:SettingsView /></DataTemplate>
     <DataTemplate DataType="vm:CatalogProblemViewModel"><v:CatalogProblemView /></DataTemplate>
     <DataTemplate DataType="vm:LabelingViewModel"><v:LabelingView /></DataTemplate>
+    <DataTemplate DataType="vm:NumbersViewModel"><v:NumbersView /></DataTemplate>
     <DataTemplate DataType="vm:PeopleViewModel"><v:PeopleView /></DataTemplate>
     <DataTemplate DataType="vm:PersonPageViewModel"><v:PersonPageView /></DataTemplate>
     <DataTemplate DataType="vm:ProfilesViewModel"><v:ProfilesView /></DataTemplate>

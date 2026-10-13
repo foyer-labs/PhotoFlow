@@ -104,6 +104,10 @@ public sealed class CommandTable
         Key.Right => "→",
         Key.Up => "↑",
         Key.Down => "↓",
+        Key.Delete => Strings.Get("Key.Delete"),
+        Key.Back => "⌫",
+        Key.PageUp => Strings.Get("Key.PageUp"),
+        Key.PageDown => Strings.Get("Key.PageDown"),
         _ => key.ToString(),
     };
 }

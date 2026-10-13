@@ -535,7 +535,7 @@ public sealed partial class NumbersViewModel : PageViewModel
         }
 
         _undo.Push(before);
-        StatusMessage = Strings.Format(number is null ? "Numbers.SetNone" : "Numbers.Set", photo.Name, number ?? string.Empty, (targets.Count - 1).ToString(CultureInfo.CurrentCulture));
+        StatusMessage = Strings.Format(number is null ? "Numbers.SetNone" : targets.Count > 1 ? "Numbers.SetBurst" : "Numbers.Set", photo.Name, number ?? string.Empty, (targets.Count - 1).ToString(CultureInfo.CurrentCulture));
         var next = Photos.IndexOf(photo) + 1;
         var keep = next < Photos.Count ? (Photos[next].AssetId, Photos[next].Vehicle) : default;
         await ReloadKeepingAsync(keep);
