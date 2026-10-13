@@ -93,6 +93,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IShellNaviga
             ({ } host, SectionCatalog.Profiles) => new ProfilesViewModel(host),
             ({ } host, SectionCatalog.Browse) => new BrowseViewModel(host),
             ({ } host, SectionCatalog.Duplicates) => new DuplicatesViewModel(host),
+            ({ } host, SectionCatalog.Vocabulary) => new VocabularyViewModel(host),
             ({ } host, SectionCatalog.Settings) => new SettingsViewModel(host),
             _ => new PlaceholderPageViewModel(section, PlaceholderPageViewModel.Phases.GetValueOrDefault(section.Id, "1")),
         };

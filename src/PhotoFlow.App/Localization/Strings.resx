@@ -732,4 +732,51 @@
   <data name="Duplicates.Command.Confirm" xml:space="preserve"><value>Keep it, move the others</value></data>
   <data name="Duplicates.Command.Ignore" xml:space="preserve"><value>Not duplicates</value></data>
   <data name="Duplicates.Command.Rescan" xml:space="preserve"><value>Check again</value></data>
+  <data name="Vocabulary.State.Blacklisted" xml:space="preserve"><value>blacklist</value></data>
+  <data name="Vocabulary.State.Reviewed" xml:space="preserve"><value>reviewed</value></data>
+  <data name="Vocabulary.State.ToReview" xml:space="preserve"><value>to review</value></data>
+  <data name="Vocabulary.Command.Row" xml:space="preserve"><value>Row</value></data>
+  <data name="Vocabulary.Command.Approve" xml:space="preserve"><value>Approve and next</value></data>
+  <data name="Vocabulary.Command.Edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="Vocabulary.Command.Blacklist" xml:space="preserve"><value>Blacklist</value></data>
+  <data name="Vocabulary.Command.Category" xml:space="preserve"><value>Category</value></data>
+  <data name="Vocabulary.Command.Undo" xml:space="preserve"><value>Undo</value></data>
+  <data name="Vocabulary.Command.New" xml:space="preserve"><value>New personal tag</value></data>
+  <data name="Vocabulary.Command.Trial" xml:space="preserve"><value>Try on the archive</value></data>
+  <data name="Vocabulary.Command.Save" xml:space="preserve"><value>Save and re-analyze</value></data>
+  <data name="Vocabulary.CoreNotReady" xml:space="preserve"><value>{0} photos with tags: the core needs at least {1} to choose the 500 most frequent. Personal tags and the blacklist already work.</value></data>
+  <data name="Vocabulary.CoreNotReady.Title" xml:space="preserve"><value>The core forms after the first analysis</value></data>
+  <data name="Vocabulary.Tab.Core" xml:space="preserve"><value>Core to review {0}</value></data>
+  <data name="Vocabulary.Tab.All" xml:space="preserve"><value>All {0}</value></data>
+  <data name="Vocabulary.Tab.Custom" xml:space="preserve"><value>Personal {0}</value></data>
+  <data name="Vocabulary.Tab.Blacklist" xml:space="preserve"><value>Blacklist {0}</value></data>
+  <data name="Vocabulary.Tab.Categories" xml:space="preserve"><value>Categories {0}</value></data>
+  <data name="Vocabulary.Summary" xml:space="preserve"><value>Core: the 500 most frequent tags of your archive · Italian labels prepared with an LLM, to review · {0} / {1} reviewed</value></data>
+  <data name="Vocabulary.NeverWritten" xml:space="preserve"><value>In the blacklist: never written.</value></data>
+  <data name="Vocabulary.WrittenAs" xml:space="preserve"><value>Written as dc:subject {0}</value></data>
+  <data name="Vocabulary.Hierarchy" xml:space="preserve"><value>lr:hierarchicalSubject {0}</value></data>
+  <data name="Vocabulary.Threshold" xml:space="preserve"><value>Source RAM++ · official threshold {0} · global adjustment {1}</value></data>
+  <data name="Vocabulary.Undone" xml:space="preserve"><value>Change to "{0}" undone.</value></data>
+  <data name="Vocabulary.AdjustmentNext" xml:space="preserve"><value>The global adjustment applies to the next analyses (after a restart).</value></data>
+  <data name="Vocabulary.Custom.Incomplete" xml:space="preserve"><value>A personal tag needs an Italian label and an English description for the model.</value></data>
+  <data name="Vocabulary.Custom.NoClip" xml:space="preserve"><value>Personal tags need the CLIP model (Settings › Models).</value></data>
+  <data name="Vocabulary.Custom.Trial" xml:space="preserve"><value>Trial on the archive · {0} photos above the threshold</value></data>
+  <data name="Vocabulary.Custom.Saved" xml:space="preserve"><value>Saved; {0} photos have personal tags now.</value></data>
+  <data name="Vocabulary.Custom.SavedNoClip" xml:space="preserve"><value>Saved; it will be assigned when the CLIP model is installed.</value></data>
+  <data name="Vocabulary.Column.Id" xml:space="preserve"><value>ID (English)</value></data>
+  <data name="Vocabulary.Column.Italian" xml:space="preserve"><value>Italian</value></data>
+  <data name="Vocabulary.Column.Category" xml:space="preserve"><value>Category</value></data>
+  <data name="Vocabulary.Column.Photos" xml:space="preserve"><value>Photos</value></data>
+  <data name="Vocabulary.Column.State" xml:space="preserve"><value>State</value></data>
+  <data name="Vocabulary.Custom.New" xml:space="preserve"><value>New personal tag</value></data>
+  <data name="Vocabulary.Examples" xml:space="preserve"><value>Examples with the lowest confidence above the threshold</value></data>
+  <data name="Vocabulary.EnglishUntilReviewed" xml:space="preserve"><value>Until it is reviewed, only the English key is written.</value></data>
+  <data name="Vocabulary.Adjustment" xml:space="preserve"><value>Global adjustment</value></data>
+  <data name="Vocabulary.Custom.Title" xml:space="preserve"><value>Personal tag (CLIP)</value></data>
+  <data name="Vocabulary.Custom.Label" xml:space="preserve"><value>Label (Italian)</value></data>
+  <data name="Vocabulary.Custom.Description" xml:space="preserve"><value>Description for the model (English)</value></data>
+  <data name="Vocabulary.Custom.Threshold" xml:space="preserve"><value>Threshold</value></data>
+  <data name="Vocabulary.Custom.Margin" xml:space="preserve"><value>Margin over the 2nd candidate</value></data>
+  <data name="Vocabulary.Custom.TrialButton" xml:space="preserve"><value>Try</value></data>
+  <data name="Vocabulary.Custom.Save" xml:space="preserve"><value>Save and re-analyze</value></data>
 </root>

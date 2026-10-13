@@ -163,6 +163,11 @@ internal sealed class TagStore(SqliteCatalog catalog) : ITagStore
             transaction.Commit();
         }, ct);
 
+    public async Task<IReadOnlyList<(long AssetId, double? Confidence)>> ListExamplesAsync(long tagId, int count, CancellationToken ct) =>
+        (await catalog.RunAsync(c => c.QueryAsync<(long AssetId, double? Confidence)>(new CommandDefinition(
+            "SELECT AssetId, Confidence FROM AssetTags WHERE TagId = @tagId AND State = 'Active' ORDER BY Confidence IS NULL, Confidence LIMIT @count;",
+            new { tagId, count }, cancellationToken: ct)), ct).ConfigureAwait(false)).ToList();
+
     public Task<int> CountTaggedAssetsAsync(CancellationToken ct) =>
         catalog.RunAsync(c => c.ExecuteScalarAsync<int>(new CommandDefinition(
             "SELECT COUNT(DISTINCT AssetId) FROM AssetTags WHERE State = 'Active' AND Source IN ('RamPlus', 'ClipZeroShot');", cancellationToken: ct)), ct);

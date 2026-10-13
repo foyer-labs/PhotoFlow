@@ -441,6 +441,21 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     private ClipTextEmbedder? _textEmbedder;
     private CustomTagClassifier? _customTags;
 
+    private RamPlusClasses? _ramPlusClasses;
+
+    /// <summary>The official RAM++ threshold of a tag (board 5c), when the model is installed.</summary>
+    public double? RamPlusThreshold(string key)
+    {
+        if (!Models.IsInstalled(RamPlusModelId))
+        {
+            return null;
+        }
+
+        _ramPlusClasses ??= RamPlusClasses.Load(Models.Resolve(RamPlusModelId, RamPlusTagger.TagListFile).FilePath, Models.Resolve(RamPlusModelId, RamPlusTagger.ThresholdsFile).FilePath);
+        var index = _ramPlusClasses.Tags.ToList().IndexOf(key);
+        return index < 0 ? null : _ramPlusClasses.Thresholds[index];
+    }
+
     /// <summary>Model version of the stored CLIP embeddings (search by meaning, similar photos); null without CLIP.</summary>
     public string? EmbeddingModelVersion => Models.IsInstalled(ClipModelId) ? $"{ClipModelId}@{Models.Get(ClipModelId).Version}" : null;
 

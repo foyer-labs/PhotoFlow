@@ -314,6 +314,9 @@ public interface ITagStore
     /// <summary>Vocabulary review (board 5c): Italian label, reviewed, category, blacklist.</summary>
     Task UpdateAsync(long tagId, string? italian, bool reviewed, string? category, bool blacklisted, CancellationToken ct);
 
+    /// <summary>Photos where the tag is active with the lowest confidence (board 5c: the doubtful examples above the threshold).</summary>
+    Task<IReadOnlyList<(long AssetId, double? Confidence)>> ListExamplesAsync(long tagId, int count, CancellationToken ct);
+
     /// <summary>Photos with at least one active automatic tag (P15: the core vocabulary forms after 1,000).</summary>
     Task<int> CountTaggedAssetsAsync(CancellationToken ct);
 
