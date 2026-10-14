@@ -135,7 +135,7 @@
   <data name="Import.Tags.A" xml:space="preserve"><value>A · Vocabolario personale (CLIP)</value></data>
   <data name="Import.Tags.B" xml:space="preserve"><value>B · Tag generici (RAM++)</value></data>
   <data name="Import.Tags.C" xml:space="preserve"><value>C · Didascalie (Florence-2)</value></data>
-  <data name="Import.Tags.D" xml:space="preserve"><value>D · Didascalie in italiano (Qwen2.5-VL)</value></data>
+  <data name="Import.Tags.D" xml:space="preserve"><value>D · Didascalie in italiano (Qwen)</value></data>
   <data name="Import.Destinations" xml:space="preserve"><value>Destinazioni · copia verificata con impronta xxHash3</value></data>
   <data name="Import.Destination.Primary" xml:space="preserve"><value>Principale</value></data>
   <data name="Import.Destination.Secondary" xml:space="preserve"><value>Backup</value></data>
@@ -918,9 +918,9 @@
   <data name="Regeneration.Discard" xml:space="preserve"><value>Scarta</value></data>
   <data name="Regeneration.Applied" xml:space="preserve"><value>Applicato a {0} foto; {1} assegnazioni di persone trasferite; {2} XMP riscritti.</value></data>
   <data name="Regeneration.Discarded" xml:space="preserve"><value>Scartato: il catalogo è come prima.</value></data>
-  <data name="Import.Tags.DNoModel" xml:space="preserve"><value>Le didascalie in italiano richiedono il modello Qwen2.5-VL convertito su questo PC (Impostazioni › Modelli) e una GPU NVIDIA da 12 GB; circa 2 secondi per foto, in una passata dopo l'analisi.</value></data>
+  <data name="Import.Tags.DNoModel" xml:space="preserve"><value>Le didascalie in italiano richiedono un modello Qwen convertito su questo PC (Impostazioni › Modelli) e una GPU NVIDIA da 12 GB; circa 2 secondi per foto, in una passata dopo l'analisi.</value></data>
   <data name="Models.Status.ToConvert" xml:space="preserve"><value>da convertire</value></data>
-  <data name="Settings.Models.ManualNote" xml:space="preserve"><value>Scarica da Hugging Face questi file originali (Qwen/Qwen2.5-VL-7B-Instruct, circa 16,6 GB) nella cartella qui sotto, poi Verifica e converti: PhotoFlow li controlla e li converte con Python 3.10-3.13 già installato (circa 15 minuti; servono circa 45 GB liberi durante la conversione, ne restano occupati circa 7). I file originali vengono solo letti.</value></data>
+  <data name="Settings.Models.ManualNote" xml:space="preserve"><value>Scarica da Hugging Face questi file originali ({0}, circa {1}) nella cartella qui sotto, poi Verifica e converti: PhotoFlow li controlla e li converte con Python 3.10-3.13 già installato (10-30 minuti; servono circa 45 GB liberi durante la conversione, ne restano occupati circa 6). I file originali vengono solo letti.</value></data>
   <data name="Settings.Models.OpenFolder" xml:space="preserve"><value>Apri cartella</value></data>
   <data name="Settings.Models.Convert" xml:space="preserve"><value>Verifica e converti</value></data>
   <data name="Settings.Models.CancelConversion" xml:space="preserve"><value>Annulla</value></data>
@@ -936,7 +936,7 @@
   <data name="Vlm.Cancelled" xml:space="preserve"><value>Conversione annullata: non è cambiato nulla.</value></data>
   <data name="Vlm.Error.Python" xml:space="preserve"><value>Python 3.10-3.13 non trovato. Installa Python 3.12 da python.org (lascia attiva l'opzione del launcher "py"), poi riprova.</value></data>
   <data name="Vlm.Error.Stopped" xml:space="preserve"><value>Conversione interrotta: {0} Registro: {1}</value></data>
-  <data name="Settings.Benchmark.Stage.VlmCaptions" xml:space="preserve"><value>Didascalie D (Qwen2.5-VL)</value></data>
+  <data name="Settings.Benchmark.Stage.VlmCaptions" xml:space="preserve"><value>Didascalie D (Qwen)</value></data>
   <data name="Settings.Models.RemoveEnvironment" xml:space="preserve"><value>Elimina l'ambiente Python</value></data>
   <data name="Vlm.EnvironmentRemoved" xml:space="preserve"><value>Ambiente Python eliminato: una nuova conversione lo ricrea.</value></data>
   <data name="Settings.Models.RemoveEnvironmentConfirm" xml:space="preserve"><value>Eliminare l'ambiente Python della conversione (circa 5 GB)? Il modello resta; una nuova conversione riscarica i pacchetti.</value></data>

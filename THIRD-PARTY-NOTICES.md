@@ -19,7 +19,8 @@ in its `licenses` folder; the LGPL libraries are described in [LGPL libraries in
 | Velopack | 1.2.161 | MIT | Installer, updates and uninstall (spec §11) |
 | Microsoft.ML.OnnxRuntime.Gpu | 1.31.0 | MIT | Inference (CPU and CUDA execution providers) |
 | Microsoft.ML.OnnxRuntimeGenAI.Cuda | 0.17.1 | MIT | Level D captions, only in the separate `PhotoFlow.Vlm` process (phase 5b, exception U4) |
-| Olive recipe for Qwen2.5-VL (`microsoft/olive-recipes@232aa122155f`) | — | MIT (`tools/vlm/recipe/LICENSE`); `codes/modeling_qwen2_5_vl.py`: Apache-2.0 (Qwen Team, Hugging Face) | Conversion scripts shipped as `vlm/`, run with the Python of the user's PC |
+| Olive recipe for Qwen3.5 (`microsoft/olive-recipes@38e17a606cda`) | — | MIT (`tools/vlm/recipes/qwen3_5/LICENSE`); `codes/modeling_qwen3_5.py`: Apache-2.0 (Qwen Team, Hugging Face) | Conversion scripts shipped as `vlm/`, run with the Python of the user's PC |
+| Olive recipe for Qwen2.5-VL (`microsoft/olive-recipes@232aa122155f`) | — | MIT (`tools/vlm/recipes/qwen2_5_vl/LICENSE`); `codes/modeling_qwen2_5_vl.py`: Apache-2.0 (Qwen Team, Hugging Face) | Conversion scripts shipped as `vlm/`, run with the Python of the user's PC |
 | Microsoft.Data.Sqlite (SQLitePCLRaw, SQLite) | 10.0.12 | MIT (SQLitePCLRaw: Apache-2.0; SQLite: public domain) | Catalog |
 | Dapper | 2.1.89 | Apache-2.0 | Catalog queries |
 | System.IO.Hashing | 10.0.12 | MIT | xxHash3 verified copy |
@@ -63,6 +64,7 @@ Public License (the version of each one, and its full text, is in `licenses/Magi
 | --- | --- | --- |
 | NVIDIA CUDA runtime libraries (cudart, cuBLAS, cuFFT, cuRAND, NVRTC, nvJitLink) and cuDNN — the "GPU pack" (`models/gpu-runtime.json`) | NVIDIA CUDA Toolkit EULA, NVIDIA cuDNN Software License Agreement | Downloaded from NVIDIA's redistribution archives only after the user accepts the licenses in the first run; verified with SHA-256; kept unmodified with their `LICENSE.txt`; used only by PhotoFlow and only on NVIDIA GPUs |
 | Python packages of the level D conversion (`tools/vlm/requirements.txt`: PyTorch, transformers, ONNX, ONNX Runtime, ONNX Runtime GenAI, Olive) | BSD-3-Clause, Apache-2.0, MIT | Installed by `pip` from PyPI and the PyTorch index into a private environment of PhotoFlow, only when the user starts the conversion; never bundled |
+| Qwen3.5-9B original weights | Apache-2.0 | Downloaded from Hugging Face into the models folder; PhotoFlow verifies them (SHA-256) and converts them on the PC |
 | Qwen2.5-VL-7B-Instruct original weights | Apache-2.0 | Downloaded by the user from Hugging Face; PhotoFlow verifies them (SHA-256) and converts them on the PC |
 | Machine-learning models (`models/manifest.json`) | Per model, shown before download (Apache-2.0, MIT; InsightFace buffalo_l: non-commercial research only) | Downloaded with SHA-256 verification; licenses that require it (buffalo_l) are accepted explicitly before the download |
 

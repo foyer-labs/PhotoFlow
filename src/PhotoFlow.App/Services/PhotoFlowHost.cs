@@ -55,6 +55,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     public static readonly IReadOnlySet<string> ImplementedAdapters = new HashSet<string>(StringComparer.Ordinal)
     {
         "dfine-hf-v1", "insightface-buffalo-v1", "yunet-v1", "clip-hf-v1", "sface-v1", "ramplus-v1", "ppocr-v1", "florence2-v1", "qwen2.5-vl-genai",
+        "qwen3.5-genai",
     };
 
     public const string ClipModelId = "clip-vit-b32";
@@ -62,7 +63,14 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     public const string OcrModelId = "ppocr-en";
     public const string CaptionModelId = "florence2-base-ft";
     public const string SFaceModelId = "opencv-sface-2021dec";
-    public const string VlmModelId = "qwen2.5-vl-7b";
+
+    /// <summary>
+    /// Level D models (spec §5, U1 revised on 15 Oct 2026): Qwen3.5-9B for a new installation; Qwen2.5-VL-7B stays in
+    /// use where it is already converted until the user chooses the newer one — a model never changes on its own.
+    /// </summary>
+    public const string VlmModelId = "qwen3.5-9b";
+
+    public const string PreviousVlmModelId = "qwen2.5-vl-7b";
 
     /// <summary>
     /// Level D needs an NVIDIA GPU with 12 GB (P16 as revised on 13 Oct 2026): the 7B int4 alone peaks at ~10 GB
@@ -176,8 +184,26 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     /// <summary>The conversion of the level D model with the scripts next to the application (folder <c>vlm</c>).</summary>
     public VlmConversion CreateVlmConversion() => new(Models, Paths, new ProcessVlmToolchain(), Path.Combine(AppContext.BaseDirectory, "vlm"));
 
-    /// <summary>Level D can run: the model is converted and the GPU allows it.</summary>
-    public bool VlmAvailable => VlmGpuReady && Models.IsInstalled(VlmModelId);
+    /// <summary>Level D can run: a model is converted and the GPU allows it.</summary>
+    public bool VlmAvailable => VlmGpuReady && ActiveVlmModelId is not null;
+
+    /// <summary>
+    /// The level D model in use: the one chosen in Settings › Models when it is converted; otherwise Qwen2.5-VL when it
+    /// was already converted (no silent change of the captions), otherwise Qwen3.5. Null when none is converted.
+    /// </summary>
+    public string? ActiveVlmModelId
+    {
+        get
+        {
+            if (Settings.ModelChoices.GetValueOrDefault(nameof(ModelFunction.Vlm)) is { } chosen
+                && Models.Models.Any(m => m.Id == chosen && m.Function == ModelFunction.Vlm) && Models.IsInstalled(chosen))
+            {
+                return chosen;
+            }
+
+            return new[] { PreviousVlmModelId, VlmModelId }.Where(id => Models.Models.Any(m => m.Id == id)).FirstOrDefault(Models.IsInstalled);
+        }
+    }
 
     /// <summary>Level D in a pass of its own, with the GPU free of the other models.</summary>
     public IExclusiveCaptioning Vlm => _vlmPass ??= new VlmPass(this);
@@ -216,7 +242,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     /// </summary>
     private sealed class VlmPass(PhotoFlowHost host) : IExclusiveCaptioning
     {
-        public string? ModelVersion => host.VlmAvailable ? $"{VlmModelId}@{host.Models.Get(VlmModelId).Version}" : null;
+        public string? ModelVersion => host.VlmAvailable && host.ActiveVlmModelId is { } id ? $"{id}@{host.Models.Get(id).Version}" : null;
 
         public string Language => "it";
 
@@ -230,7 +256,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
 
             using var turn = await host._gpuTurns.EnterExclusiveAsync(ct).ConfigureAwait(false);
             await host.ReleaseAnalysisModelsAsync(ct).ConfigureAwait(false);
-            await using var captioner = new VlmCaptioner(host.Models.InstallDirectory(VlmModelId), version,
+            await using var captioner = new VlmCaptioner(host.Models.InstallDirectory(version.Split('@')[0]), version,
                 Path.Combine(host.Paths.GpuRuntimeDirectory, GpuPackFolder), new SkiaImageOperations(), host.Paths);
             await work(captioner).ConfigureAwait(false);
         }

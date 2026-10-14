@@ -135,7 +135,7 @@
   <data name="Import.Tags.A" xml:space="preserve"><value>A · Personal vocabulary (CLIP)</value></data>
   <data name="Import.Tags.B" xml:space="preserve"><value>B · Generic tags (RAM++)</value></data>
   <data name="Import.Tags.C" xml:space="preserve"><value>C · Captions (Florence-2)</value></data>
-  <data name="Import.Tags.D" xml:space="preserve"><value>D · Italian captions (Qwen2.5-VL)</value></data>
+  <data name="Import.Tags.D" xml:space="preserve"><value>D · Italian captions (Qwen)</value></data>
   <data name="Import.Destinations" xml:space="preserve"><value>Destinations · verified copy with xxHash3 fingerprint</value></data>
   <data name="Import.Destination.Primary" xml:space="preserve"><value>Main</value></data>
   <data name="Import.Destination.Secondary" xml:space="preserve"><value>Backup</value></data>
@@ -918,9 +918,9 @@
   <data name="Regeneration.Discard" xml:space="preserve"><value>Discard</value></data>
   <data name="Regeneration.Applied" xml:space="preserve"><value>Applied to {0} photos; {1} people assignments moved; {2} XMP written again.</value></data>
   <data name="Regeneration.Discarded" xml:space="preserve"><value>Discarded: the catalog is as before.</value></data>
-  <data name="Import.Tags.DNoModel" xml:space="preserve"><value>Italian captions need the Qwen2.5-VL model converted on this PC (Settings › Models) and an NVIDIA GPU with 12 GB; about 2 seconds per photo, in a pass after the analysis.</value></data>
+  <data name="Import.Tags.DNoModel" xml:space="preserve"><value>Italian captions need a Qwen model converted on this PC (Settings › Models) and an NVIDIA GPU with 12 GB; about 2 seconds per photo, in a pass after the analysis.</value></data>
   <data name="Models.Status.ToConvert" xml:space="preserve"><value>to convert</value></data>
-  <data name="Settings.Models.ManualNote" xml:space="preserve"><value>Download these original files from Hugging Face (Qwen/Qwen2.5-VL-7B-Instruct, about 16.6 GB) into the folder below, then Verify and convert: PhotoFlow checks them and converts them with Python 3.10-3.13 already installed (about 15 minutes; about 45 GB free during the conversion, about 7 GB stay). The original files are only read.</value></data>
+  <data name="Settings.Models.ManualNote" xml:space="preserve"><value>Download these original files from Hugging Face ({0}, about {1}) into the folder below, then Verify and convert: PhotoFlow checks them and converts them with Python 3.10-3.13 already installed (10-30 minutes; about 45 GB free during the conversion, about 6 GB stay). The original files are only read.</value></data>
   <data name="Settings.Models.OpenFolder" xml:space="preserve"><value>Open folder</value></data>
   <data name="Settings.Models.Convert" xml:space="preserve"><value>Verify and convert</value></data>
   <data name="Settings.Models.CancelConversion" xml:space="preserve"><value>Cancel</value></data>
@@ -936,7 +936,7 @@
   <data name="Vlm.Cancelled" xml:space="preserve"><value>Conversion cancelled: nothing was changed.</value></data>
   <data name="Vlm.Error.Python" xml:space="preserve"><value>Python 3.10-3.13 was not found. Install Python 3.12 from python.org (keep the "py" launcher option), then try again.</value></data>
   <data name="Vlm.Error.Stopped" xml:space="preserve"><value>Conversion stopped: {0} Log: {1}</value></data>
-  <data name="Settings.Benchmark.Stage.VlmCaptions" xml:space="preserve"><value>Captions D (Qwen2.5-VL)</value></data>
+  <data name="Settings.Benchmark.Stage.VlmCaptions" xml:space="preserve"><value>Captions D (Qwen)</value></data>
   <data name="Settings.Models.RemoveEnvironment" xml:space="preserve"><value>Remove the Python environment</value></data>
   <data name="Vlm.EnvironmentRemoved" xml:space="preserve"><value>Python environment removed: a new conversion makes it again.</value></data>
   <data name="Settings.Models.RemoveEnvironmentConfirm" xml:space="preserve"><value>Remove the Python environment of the conversion (about 5 GB)? The model stays; a new conversion downloads the packages again.</value></data>

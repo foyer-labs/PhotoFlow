@@ -114,7 +114,7 @@
                         <TextBlock Classes="micro" TextWrapping="Wrap" Text="{l:Tr Settings.Models.AcceptLicense}" />
                       </CheckBox>
                       <StackPanel Spacing="4" IsVisible="{Binding IsManualConvert}">
-                        <TextBlock Classes="micro secondary" TextWrapping="Wrap" Text="{l:Tr Settings.Models.ManualNote}" />
+                        <TextBlock Classes="micro secondary" TextWrapping="Wrap" Text="{Binding ManualNote}" />
                         <TextBlock Classes="micro tertiary" TextWrapping="Wrap" Text="{Binding SourceFilesText}" />
                         <TextBlock Classes="data micro" TextWrapping="Wrap" Text="{Binding SourceFolder}" />
                         <TextBlock Classes="micro" TextWrapping="Wrap" Text="{Binding ConversionText}" IsVisible="{Binding ConversionText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />

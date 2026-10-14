@@ -8,7 +8,7 @@ Riferimenti: spec §5 (livelli di tagging, modelli), §8 (didascalie), §17 P16 
 
 | # | Decisione |
 |---|---|
-| U1 | Livello D con **Qwen2.5-VL-7B-Instruct** (Apache-2.0, scheda Hugging Face verificata il 13 ott 2026; il 3B è escluso: licenza "qwen-research", non commerciale) |
+| U1 | Livello D con **Qwen2.5-VL-7B-Instruct** (Apache-2.0, scheda Hugging Face verificata il 13 ott 2026; il 3B è escluso: licenza "qwen-research", non commerciale). **Rivista il 15 ott 2026** su richiesta dell'utente: **Qwen3.5-9B** (Apache-2.0, multimodale nativo) per le nuove installazioni; Qwen2.5-VL resta dove è già convertito finché l'utente non sceglie il nuovo (spec §5) |
 | U2 | L'utente scarica a mano i pesi originali in una cartella; **l'app li rileva e li converte** in ONNX |
 | U3 | La conversione usa **Python già installato** sul PC; se manca, l'app spiega come installarlo |
 | U4 | Il modello gira con **ONNX Runtime GenAI in un processo separato**, dietro l'interfaccia delle didascalie: **eccezione a CLAUDE.md §3**, con verifica approssimata invece della parità esatta |

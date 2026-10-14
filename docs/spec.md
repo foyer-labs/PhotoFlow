@@ -228,7 +228,7 @@ Tutti i modelli girano in ONNX Runtime; ogni funzione ha un modello attivo selez
 | Embedding (raffiche, ricerca, duplicati, zero-shot) | CLIP ViT-B/32 fp32 (F2-1) | — | 606 MB (immagine 352 MB + testo 254 MB) | Disponibile (Xenova, fissato per commit + SHA-256); la conversione quantizzata è esclusa (coseno 0,87-0,97 con l'originale) |
 | Tagger | RAM++ fp32 (F3-1) | — | 1,86 GB | Export `CannotFindObject/RAM_ONNX` fissato per commit + SHA-256 (mirror `imagent/ram-plus-onnx`); stessi tag dell'originale su 52/52 foto; la int8 è esclusa |
 | Didascalie | Florence-2 base-ft fp32 (F5-1) | Florence-2 large (da adattare) | 1,09 GB | Encoder del testo, decoder e tokenizer `onnx-community` fissati per commit; encoder visivo esportato da noi (`tools/lab/export_florence_vision.py`) perché quello della conversione non corrisponde all'originale (coseno 0,94); adattatori nostri su `IInferenceProvider`, parità esatta delle didascalie con PyTorch su CPU e CUDA |
-| VLM (livello D) | Qwen2.5-VL-7B-Instruct int4 (fase 5b, U1) | — | ~6 GB convertito (16,6 GB di pesi originali) | Pesi originali scaricati dall'utente e convertiti dall'app con il Model Builder di ONNX Runtime GenAI (U2, U3); esecuzione con ONNX Runtime GenAI in un processo separato (U4, eccezione a CLAUDE.md §3); il 3B è escluso (licenza "qwen-research", non commerciale) |
+| VLM (livello D) | **Qwen3.5-9B** int4 (U1 rivista il 15 ott 2026 su richiesta dell'utente: multimodale nativo, Apache-2.0, migliore su testi nelle foto e dettagli, inventa meno marchi; tabella di embedding int8, picco GPU 9,8 GB). Qwen2.5-VL-7B-Instruct (fase 5b) resta in uso dove è già convertito finché l'utente non sceglie il nuovo in Impostazioni › Modelli: un modello non cambia mai da solo | — | ~6 GB convertito (18 GB di pesi originali; Qwen2.5-VL ~6 e 16,6 GB) | Pesi originali scaricati dall'utente e convertiti dall'app con il Model Builder di ONNX Runtime GenAI (U2, U3); esecuzione con ONNX Runtime GenAI in un processo separato (U4, eccezione a CLAUDE.md §3); il 3B è escluso (licenza "qwen-research", non commerciale) |
 | OCR | PP-OCRv4 det + PP-OCRv3 rec inglese (F4-1) | PP-OCRv5 latina (rilevatore da 88 MB) | 14 MB | Modelli RapidOCR fissati per commit + SHA-256 (`SWHL/RapidOCR`), adattatori nostri su `IInferenceProvider`; parità esatta con RapidOCR Python; riconoscitore su CPU (F4-4) |
 | Estetica | Predittore LAION su embedding CLIP | — | < 5 MB | Riscrivibile in poche righe |
 
@@ -515,14 +515,14 @@ Fase 3: una riga per foto e tag (`AssetTags`) con fonte, confidenza, versione de
 
 ### Didascalie
 
-Florence-2 produce solo inglese; Qwen2.5-VL può produrre italiano ma solo con GPU. Scrittura in `dc:description` opzionale.
+Florence-2 produce solo inglese; il VLM del livello D (Qwen3.5-9B, prima Qwen2.5-VL) può produrre italiano ma solo con GPU. Scrittura in `dc:description` opzionale.
 
 Fase 5 (13 ott 2026, F5-1, F5-2):
 
 - **Come si genera.** Livello C con Florence-2 base-ft, compito "didascalia dettagliata". La ricerca a fascio è identica a transformers: 3 fasci, nessun trigramma ripetuto, chiusura anticipata. Costo: 0,9 s per foto su GPU (2,5 s su CPU); nell'analisi con 4 lavori in parallelo +644 ms per foto. È facoltativo e si sceglie nell'import.
 - **Conservazione (I5).** Le didascalie si salvano in `Captions` con la versione del modello. Quella scritta o cancellata dall'utente (D in Consultazione, o la descrizione cambiata in un altro programma) non viene mai sostituita.
 - **Ricerca e XMP.** Il testo delle didascalie è cercabile. `dc:description` si scrive solo con la preferenza attiva (spenta per default).
-- **Livello D.** Rinviato (F5-2), poi riaperto dall'utente il 13 ott 2026: fase 5b (`docs/plans/fase-5b.md`). Qwen2.5-VL-7B scrive una didascalia in italiano (una o due frasi, oggettive), solo con GPU NVIDIA ≥ 12 GB (P16, rivista il 13 ott 2026). Il livello C (inglese) resta. In Consultazione e in `dc:description` l'italiano è x-default, l'inglese la lingua alternativa.
+- **Livello D.** Rinviato (F5-2), poi riaperto dall'utente il 13 ott 2026: fase 5b (`docs/plans/fase-5b.md`). Qwen2.5-VL-7B scrive una didascalia in italiano (una o due frasi, oggettive), solo con GPU NVIDIA ≥ 12 GB (P16, rivista il 13 ott 2026). Dal 15 ott 2026 il modello predefinito è Qwen3.5-9B (U1 rivista): stesso prompt, risposta senza «ragionamento» (blocco think vuoto), penalità di ripetizione 1,05 contro le frasi ripetute della decodifica greedy. Il livello C (inglese) resta. In Consultazione e in `dc:description` l'italiano è x-default, l'inglese la lingua alternativa.
 - **Come gira il livello D** (fase 5b). Pesi originali scaricati dall'utente e convertiti dall'app (Impostazioni › Modelli) con il Python del PC in un ambiente privato. Il modello gira in un processo separato (ONNX Runtime GenAI, eccezione U4). Non gira per foto insieme agli altri modelli (insieme superano i 21 GB): è una **passata a fine job**, che aspetta le analisi in corso e libera la GPU dagli altri modelli (~10,6 GB per il solo VLM, ~2 s per foto). Nella rigenerazione funziona allo stesso modo, e le didascalie passano dall'anteprima come le altre. Dopo 3 errori di fila la passata si ferma, senza far fallire il job: le foto rimaste aspettano la passata successiva.
 
 ### OCR motorsport
@@ -719,7 +719,7 @@ Pacchetto self-contained con Velopack, modelli scaricati al primo uso; durante l
 | Fase 1 | D-FINE, buffalo\_l | \~0,4 GB |
 | + raffiche e tagging A+B | + CLIP, RAM++ int8 | \~1,5-2 GB |
 | + didascalie e OCR | + Florence-2, PaddleOCR | \~3-3,5 GB |
-| + VLM | + Qwen2.5-VL | +3-5 GB |
+| + VLM | + Qwen3.5-9B convertito (U1 rivista il 15 ott 2026) | \~6 GB, più 18 GB di pesi originali da tenere per riconvertire |
 
 ### Dati sul disco
 
@@ -1129,6 +1129,7 @@ Il progetto è Apache 2.0; l'unico componente non commerciale (buffalo\_l) è op
 | [Florence-2](https://huggingface.co/microsoft/Florence-2-base-ft) (base-ft: `onnx-community` e nostro export dell'encoder visivo da `florence-community`) | MIT (verificato il 13 ott 2026) | Sì |
 | PaddleOCR (modelli ONNX di `SWHL/RapidOCR`) | Apache 2.0 (repository RapidOCR e PaddleOCR) | Sì |
 | Qwen2.5-VL | 3B: "qwen-research" (non commerciale); 7B: Apache-2.0 (schede Hugging Face, verificate il 13 ott 2026) | 3B no; 7B sì |
+| Qwen3.5-9B | Apache-2.0, repository non soggetto ad accettazione (scheda e API di Hugging Face, verificate il 15 ott 2026) | Sì |
 | Predittore estetico LAION | Da verificare | Da verificare |
 | [InsightFace buffalo\_l](https://pypi.org/project/insightface/) | Solo ricerca non commerciale | No |
 | YuNet (OpenCV Zoo) | MIT (LICENSE in opencv\_zoo, verificato il 12 ott 2026) | Sì |
@@ -1185,7 +1186,7 @@ Decisioni emerse in Design (confermate), funzioni rinviate a dopo la stabilizzaz
 | P13 | Persone | Chiave impronte non disponibile: galleria consultabile, riconoscimento sospeso fino a password o ricalcolo | Coerente con D12 |
 | P14 | Consultazione | Persone e tag sono filtri esatti; il testo libero ordina per significato; azione "Trova simili" |  |
 | P15 | Vocabolario | Il nucleo si forma dopo almeno 1.000 foto con tag |  |
-| P16 | Tagging | Didascalie VLM (livello D) disponibili solo con GPU NVIDIA ≥ 12 GB | Rivista il 13 ott 2026 su indicazione dell'utente (era ≥ 8 GB): misurato Qwen2.5-VL-7B int4 da solo con picco ~10 GB (pesi 6,5 GB, ONNX Runtime GenAI, generazione), oltre a Windows e agli altri modelli |
+| P16 | Tagging | Didascalie VLM (livello D) disponibili solo con GPU NVIDIA ≥ 12 GB | Rivista il 13 ott 2026 su indicazione dell'utente (era ≥ 8 GB): misurato Qwen2.5-VL-7B int4 da solo con picco ~10 GB (pesi 6,5 GB, ONNX Runtime GenAI, generazione), oltre a Windows e agli altri modelli. Confermata il 15 ott 2026 per Qwen3.5-9B: picco 11,7 GB con la tabella di embedding fp16 della ricetta, 9,8 GB con la tabella int8 adottata (RTX 3090, 12 foto a 1024 px) |
 | P17 | Profili | Parametri esposti: scarto per mosso sotto soglia, intervallo massimo raffica (2,0 s), similarità minima (0,90), pari merito entro 0,02 | Valori iniziali da tarare |
 | P18 | Impostazioni | Cambio lingua applicato al riavvio della finestra (non a caldo) | Semplifica la localizzazione |
 | P19 | Catalogo | Estensione del file catalogo `.pfdb` |  |
@@ -1228,6 +1229,8 @@ Decisioni emerse in Design (confermate), funzioni rinviate a dopo la stabilizzaz
 | Didascalie più veloci: cache dell'encoder sulla GPU (IO binding) invece di ricopiarla a ogni passo del decoder; Florence-2 large come alternativa | Tappa 5.1 |
 | Rigenerazione: scambio dell'indice embedding quando ci sarà un secondo modello di embedding | Tappa 5.4 |
 | Registro della sincronizzazione XMP consultabile nell'interfaccia (oggi nel catalogo e nel riepilogo delle Impostazioni) | Tappa 5.6 |
+| Scaricare dall'app i pesi originali del VLM (oggi a mano, U2): URL fissati a una revisione e SHA-256 sono già nel manifest; serve una conferma esplicita per i ~18 GB | Passaggio a Qwen3.5-9B, 15 ott 2026 |
+| Qwen3.5-4B come alternativa per GPU da 8 GB (stessa ricetta; punteggi vicini al 9B secondo la scheda): permetterebbe di abbassare P16 | Passaggio a Qwen3.5-9B, 15 ott 2026 |
 | Area AF dai punti usati (`AFPointsUsed`) quando la Z5 II non registra le coordinate (area automatica): serve la griglia dei punti AF del modello | NEF Z5 II, 14 ott 2026 |
 | `FocusResult` di Nikon ("Out of Focus") come segnale in più per il culling | NEF Z5 II, 14 ott 2026 |
 

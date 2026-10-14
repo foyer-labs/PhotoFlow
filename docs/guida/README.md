@@ -410,17 +410,20 @@ Un tag automatico che hai tolto **non viene più rimesso** dalle analisi success
 Una didascalia è una breve frase che descrive la foto. Si cerca anche a parole nella Consultazione.
 
 - **In inglese** (livello C, Florence-2): sceglilo nell'import. Circa un secondo per foto con la GPU, qualche secondo su CPU.
-- **In italiano** (livello D, Qwen2.5-VL-7B): solo con una scheda **NVIDIA da almeno 12 GB** e il pacchetto GPU installato.
+- **In italiano** (livello D, Qwen3.5-9B): solo con una scheda **NVIDIA da almeno 12 GB** e il pacchetto GPU installato.
 
 **Attivare le didascalie in italiano** (una volta sola)
 
-1. Apri **Impostazioni › Modelli** e trova il modello Qwen2.5-VL.
-2. Segui le istruzioni: scarica da Hugging Face i file originali (Qwen/Qwen2.5-VL-7B-Instruct, circa 16,6 GB) nella cartella indicata (**«Apri cartella»**).
+1. Apri **Impostazioni › Modelli** e trova il modello Qwen3.5-9B.
+2. Segui le istruzioni: scarica da Hugging Face i file originali (Qwen/Qwen3.5-9B, circa 18 GB) nella cartella indicata (**«Apri cartella»**).
 3. Clicca **«Verifica e converti»**. Serve Python 3.10-3.13 installato sul PC.
-4. Aspetta circa **15 minuti**. Servono circa **45 GB liberi** durante la conversione.
+4. Aspetta **10-30 minuti**. Servono circa **45 GB liberi** durante la conversione.
 5. Quando vedi **«Convertito ✓»**, scegli il livello D nell'import.
 
-Le didascalie in italiano si creano in una passata **alla fine del lavoro**, circa 2 secondi per foto.
+Le didascalie in italiano si creano in una passata **alla fine del lavoro**, circa un secondo per foto.
+
+> 💡 **Consiglio**
+> Hai già convertito il modello precedente, **Qwen2.5-VL-7B**? PhotoFlow continua a usarlo: il modello delle didascalie non cambia mai da solo. Quando hai convertito Qwen3.5-9B, premi **«Usa questo modello»**: PhotoFlow ti propone di rigenerare le didascalie automatiche (le tue restano).
 
 Per scrivere o correggere una didascalia premi `D` nella Consultazione (`Invio` salva, `Esc` annulla).
 
