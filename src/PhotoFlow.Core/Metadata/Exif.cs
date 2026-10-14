@@ -11,6 +11,27 @@ public interface IExifReader
     Task<IReadOnlyList<ExifInfo>> ReadAsync(IReadOnlyList<string> paths, CancellationToken ct);
 }
 
+/// <summary>Nikon High Efficiency NEF (TicoRAW, "High Efficiency" and "High Efficiency*"), from the NEFCompression tag.</summary>
+public static class HighEfficiencyRaw
+{
+    public static bool Matches(string? nefCompression) =>
+        nefCompression is { } c && c.Contains("High Efficiency", StringComparison.OrdinalIgnoreCase);
+}
+
+/// <summary>The format recorded for an asset: the file type read by exiftool, else the extension.</summary>
+public static class AssetFormat
+{
+    public static string Of(string? exifFileType, string path)
+    {
+        var extension = Path.GetExtension(path).TrimStart('.').ToUpperInvariant();
+
+        // exiftool names some Nikon Z NEFs "NRW" (e.g. the Z5 II High Efficiency ones): the camera wrote a NEF.
+        return exifFileType is null || (exifFileType.Equals("NRW", StringComparison.OrdinalIgnoreCase) && extension == "NEF")
+            ? extension
+            : exifFileType.ToUpperInvariant();
+    }
+}
+
 /// <summary>EXIF data used by PhotoFlow. Capture time keeps its sub-seconds (burst order) and records its source.</summary>
 public sealed record ExifInfo(
     string Path,
@@ -35,8 +56,7 @@ public sealed record ExifInfo(
     BoundingBox? AfArea = null)
 {
     /// <summary>Nikon High Efficiency NEF (TicoRAW): not decodable by LibRaw, preview only (R15).</summary>
-    public bool IsHighEfficiencyRaw =>
-        RawCompression is { } c && c.Contains("High Efficiency", StringComparison.OrdinalIgnoreCase);
+    public bool IsHighEfficiencyRaw => HighEfficiencyRaw.Matches(RawCompression);
 
     public ExifSummary ToSummary() =>
         new(Model, Lens, Iso, ExposureTimeSeconds, Aperture, FocalLengthMm, ExposureCompensationEv, AfPoint, AfArea);

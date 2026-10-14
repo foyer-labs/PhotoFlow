@@ -58,6 +58,46 @@ public sealed class RawHandlerTests
         Assert.Equal(bytes, await File.ReadAllBytesAsync(bad, Ct)); // reported, never modified
     }
 
+    [Theory]
+    [InlineData("nikon-z8-high-efficiency", false)]
+    [InlineData("nikon-d5100-lossless", true)]
+    public async Task The_preview_source_tells_whether_the_raw_data_can_be_decoded(string sample, bool decodable)
+    {
+        await using var exifTool = ExifToolFixture.Start();
+        var raw = await PublicSamples.RequireAsync(sample);
+
+        var previews = await new ExifToolPreviewSource(exifTool).ExtractLargestAsync(raw, Ct);
+
+        Assert.NotNull(previews.Largest);
+        Assert.Equal(decodable, previews.FullDecodingSupported);
+    }
+
+    [Fact]
+    public async Task A_high_efficiency_nef_keeps_even_a_small_preview_and_never_reaches_libraw()
+    {
+        // LibRaw turns High Efficiency NEFs into stripes without an error (Z5 II, 14 Oct 2026): its picture must never be used.
+        using var temp = new TempFolder("pf-he");
+        var jpeg = await File.ReadAllBytesAsync(SyntheticImages.WriteJpeg(Path.Combine(temp.Path, "preview.jpg"), 640, 424), Ct);
+        var decoder = new CountingDecoder();
+        var handler = new RawImageHandler(new FixedPreviews(new EmbeddedPreviews(new EmbeddedPreview(jpeg, "PreviewImage", 1), FullDecodingSupported: false)), decoder);
+
+        var preview = await handler.GetPreviewAsync(Path.Combine(temp.Path, "DSC_0001.NEF"), 1280, Ct);
+
+        Assert.True(preview.IsEmbeddedPreview);
+        Assert.Equal((640, 424), (preview.Image.Width, preview.Image.Height));
+        Assert.Equal(0, decoder.Calls);
+    }
+
+    [Fact]
+    public async Task A_high_efficiency_nef_without_preview_is_reported_not_decoded()
+    {
+        var decoder = new CountingDecoder();
+        var handler = new RawImageHandler(new FixedPreviews(new EmbeddedPreviews(null, FullDecodingSupported: false)), decoder);
+
+        await Assert.ThrowsAsync<ImageDecodeException>(() => handler.GetPreviewAsync("DSC_0001.NEF", 800, Ct));
+        Assert.Equal(0, decoder.Calls);
+    }
+
     private static double MeanLuma(RgbImage image)
     {
         var p = image.Pixels.Span;
@@ -72,7 +112,23 @@ public sealed class RawHandlerTests
 
     private sealed class NoPreviews : IEmbeddedPreviewSource
     {
-        public Task<EmbeddedPreview?> ExtractLargestAsync(string rawPath, CancellationToken ct) => Task.FromResult<EmbeddedPreview?>(null);
+        public Task<EmbeddedPreviews> ExtractLargestAsync(string rawPath, CancellationToken ct) => Task.FromResult(new EmbeddedPreviews(null));
+    }
+
+    private sealed class FixedPreviews(EmbeddedPreviews previews) : IEmbeddedPreviewSource
+    {
+        public Task<EmbeddedPreviews> ExtractLargestAsync(string rawPath, CancellationToken ct) => Task.FromResult(previews);
+    }
+
+    private sealed class CountingDecoder : IRawDecoder
+    {
+        public int Calls { get; private set; }
+
+        public Task<RgbImage> DecodeAsync(string rawPath, int maxSize, CancellationToken ct)
+        {
+            Calls++;
+            return Task.FromResult(new RgbImage(2, 2, new byte[12]));
+        }
     }
 }
 

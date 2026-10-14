@@ -67,7 +67,7 @@ internal sealed class NoExifReader : IExifReader
 /// <summary>The scenario RAW files are twins of a JPEG (analyzed through it): their own preview is never needed.</summary>
 internal sealed class NoEmbeddedPreviews : IEmbeddedPreviewSource
 {
-    public Task<EmbeddedPreview?> ExtractLargestAsync(string rawPath, CancellationToken ct) => Task.FromResult<EmbeddedPreview?>(null);
+    public Task<EmbeddedPreviews> ExtractLargestAsync(string rawPath, CancellationToken ct) => Task.FromResult(new EmbeddedPreviews(null));
 }
 
 internal sealed class NoRawDecoder : IRawDecoder

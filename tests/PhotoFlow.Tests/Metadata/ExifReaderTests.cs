@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using PhotoFlow.Core.Catalog;
+using PhotoFlow.Core.Metadata;
+using PhotoFlow.Imaging;
 using PhotoFlow.Metadata.ExifTool;
 using PhotoFlow.Tests.Support;
 
@@ -57,4 +59,52 @@ public sealed class ExifReaderTests : IDisposable
     }
 
     public void Dispose() => _temp.Dispose();
+}
+
+[Trait(TestCategory.Name, TestCategory.Unit)]
+public sealed class AssetFormatTests
+{
+    [Theory]
+    [InlineData("NEF", "DSC_0001.NEF", "NEF")]
+    [InlineData("NRW", "DSC_0001.NEF", "NEF")] // Z5 II High Efficiency NEF, named NRW by exiftool
+    [InlineData("NRW", "DSCN0001.NRW", "NRW")]
+    [InlineData("JPEG", "DSC_0001.JPG", "JPEG")]
+    [InlineData(null, "clip.mov", "MOV")]
+    public void The_format_follows_exiftool_except_for_nefs_it_names_nrw(string? fileType, string path, string expected) =>
+        Assert.Equal(expected, AssetFormat.Of(fileType, path));
+}
+
+/// <summary>
+/// NEFs of the Nikon Z5 II (High Efficiency*), local only: <c>PHOTOFLOW_TESTDATA/z5ii</c> holds DSC_0035.NEF (AF area
+/// with coordinates) and DSC_0011.NEF (auto-area, AF points only). Checks of spec §13 for the Z5 II.
+/// </summary>
+[Trait(TestCategory.Name, TestCategory.Quality)]
+public sealed class NikonZ5IITests
+{
+    [Fact]
+    public async Task Z5_ii_high_efficiency_nefs_are_read_and_previewed_from_the_full_size_embedded_jpeg()
+    {
+        var folder = TestData.RequireDirectory("z5ii");
+        var files = new[] { Path.Combine(folder, "DSC_0035.NEF"), Path.Combine(folder, "DSC_0011.NEF") };
+        var ct = TestContext.Current.CancellationToken;
+        await using var exifTool = ExifToolFixture.Start();
+        var handler = new RawImageHandler(new ExifToolPreviewSource(exifTool), new MagickRawDecoder());
+
+        var infos = await new ExifToolExifReader(exifTool).ReadAsync(files, ct);
+
+        Assert.All(infos, i =>
+        {
+            Assert.Equal("NIKON Z5_2", i.Model);
+            Assert.True(i.IsHighEfficiencyRaw, i.RawCompression);
+            Assert.Equal("NEF", AssetFormat.Of(i.FileType, i.Path));
+        });
+        Assert.NotNull(infos[0].AfArea); // AF coordinates available
+        foreach (var file in files)
+        {
+            var preview = await handler.GetPreviewAsync(file, 2048, ct);
+            Assert.True(preview.IsEmbeddedPreview);
+            Assert.Equal((6048, 4032), (preview.SourceWidth, preview.SourceHeight)); // full size
+            Assert.Equal(2048, preview.Image.Width);
+        }
+    }
 }

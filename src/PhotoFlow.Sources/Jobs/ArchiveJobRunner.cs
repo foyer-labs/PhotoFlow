@@ -370,7 +370,7 @@ public sealed class ArchiveJobRunner : IJobRunner
             var existing = await catalog.Assets.FindByIdentityAsync(quick, captured, ct).ConfigureAwait(false);
             var assetId = existing?.Id ?? await catalog.Assets.AddAsync(new Asset(
                 0, quick, null,
-                (exif?.FileType ?? Path.GetExtension(item.SourcePath).TrimStart('.')).ToUpperInvariant(),
+                AssetFormat.Of(exif?.FileType, item.SourcePath),
                 kind.ToString().ToLowerInvariant(),
                 exif?.Width, exif?.Height, exif?.CapturedAt, exif?.CaptureDateSource ?? DateSource.Unknown, exif?.ToSummary(), AssetState.Active), ct).ConfigureAwait(false);
             await catalog.Assets.AddLocationAsync(new AssetLocation(0, assetId, library.Id, item.TargetRelativePath!, DateTimeOffset.UtcNow), CancellationToken.None).ConfigureAwait(false);

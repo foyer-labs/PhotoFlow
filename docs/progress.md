@@ -87,13 +87,13 @@ Memoria del progetto tra una sessione e l'altra. Aggiornato a fine sessione.
 | 2026-10-13 | Fase 5b e posizione del catalogo scelta dall'utente (al primo avvio; Sposta / Apri un catalogo esistente) unite in `main` (PR #8) |
 | 2026-10-13 | Richieste dell'utente dopo le prove (PR #9): pannello Filtri in Consultazione (persone, eventi, tag in gruppi AND/OR con conteggi, migrazione 0018); chiusura dell'anteprima grande; clic sulla copia da tenere nei Duplicati; Persone più chiare, «Sposta a…» con elenco, rinomina corretta, «Apri foto» con percorso, tag e riquadro; volti sulla foto con nomi, clic per dire chi è, volto aggiunto a mano (N). Corretta una gara tra salvataggi delle impostazioni vista in CI. spec §7, §12bis, §17 aggiornate |
 | 2026-10-13 | Release **0.1.0** (branch `release/0.1.0`): installer e aggiornamenti Velopack (id `FoyerLabs.PhotoFlow`, feed dalle release GitHub, spec §11); disinstallazione che toglie solo cache e temporanei; README, guida utente, FAQ e note di rilascio in italiano con 13 screenshot da un catalogo dimostrativo disegnato; licenze nel pacchetto e revisione R19. Report in `docs/reports/release-0.1.0.md` |
+| 2026-10-14 | NEF della Z5 II forniti dall'utente (High Efficiency*): chiuse le verifiche §13 (anteprima 6048×4032 a piena risoluzione, punto AF leggibile, HE). Trovato che LibRaw decodifica i NEF HE in un'immagine sbagliata senza errore: i NEF HE non le arrivano più. Il formato resta NEF anche se exiftool li chiama NRW. Analisi completa con i modelli dell'utente su copie dei file: tutto elaborato, didascalie e tag corretti. Test locale in `PHOTOFLOW_TESTDATA/z5ii` |
 
 ## Problemi aperti
 
 | # | Tema | Sintesi |
 |---|---|---|
 | N5-N6 | Modelli quantizzati | RAM++ int8/CLIP quantizzato non accelerano su GPU; RAM++ int8 non supera la parità (52 JPG reali: 12/52 insiemi identici, Jaccard 0,866) — fase 3 |
-| Z5 II | NEF Z5 II non disponibili | Prima attività della fase 1 (§13) da rinviare a dopo l'implementazione: proposta nel piano della fase 1 |
 | N1-N4 | Note per fasi successive | CLIP scheda modello (fase 2), DirectML (0.6→R3), GridSample fp16 CUDA (fase 1), YuNet ingresso fisso (fase 1) |
 | F2-auto | Costo della modalità automatica | +55% sul set locale per la rianalisi dei gruppi che cambiano profilo: classificare per foto prima dell'analisi (backlog §17) |
 
