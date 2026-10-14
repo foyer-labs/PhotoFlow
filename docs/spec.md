@@ -1232,6 +1232,8 @@ Decisioni emerse in Design (confermate), funzioni rinviate a dopo la stabilizzaz
 | Registro della sincronizzazione XMP consultabile nell'interfaccia (oggi nel catalogo e nel riepilogo delle Impostazioni) | Tappa 5.6 |
 | Area AF dai punti usati (`AFPointsUsed`) quando la Z5 II non registra le coordinate (area automatica): serve la griglia dei punti AF del modello | NEF Z5 II, 14 ott 2026 |
 | `FocusResult` di Nikon ("Out of Focus") come segnale in più per il culling | NEF Z5 II, 14 ott 2026 |
+| Esposizione misurata su una zona più rappresentativa del soggetto: il riquadro AF della Z5 II è ~0,4% della foto (DSC_0049: 0% di alte luci nel riquadro, 25% sulla foto intera). Proposta: zona minima intorno all'AF (25% del lato corto) o area del soggetto rilevato; cambia l'output dell'analizzatore (nuova versione, rianalisi). Dal 15 ott 2026 il pannello della Revisione mostra già zona e foto intera | Utente, 15 ott 2026 |
+| Segnale "sottoesposta / sovraesposta" dalla foto intera (luminosità media, alte luci e ombre del fotogramma), oggi solo mostrati: soglie da tarare sul set etichettato (§14) | Utente, 15 ott 2026 |
 
 ### Verifiche tecniche
 

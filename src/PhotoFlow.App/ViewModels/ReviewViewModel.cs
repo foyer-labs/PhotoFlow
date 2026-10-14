@@ -482,8 +482,21 @@ public sealed partial class ReviewViewModel : PageViewModel, IDisposable
             var t = profile.Thresholds;
             SelectedSignals.Add(new(Strings.Get("Signal.Sharpness." + s.Zone), s.ZoneSharpness, t.BlurReview, s.ZoneSharpness.ToString("0.00", CultureInfo.CurrentCulture)));
             SelectedSignals.Add(new(Strings.Get("Signal.SharpnessFrame"), s.FrameSharpness, t.BlurDiscard, s.FrameSharpness.ToString("0.00", CultureInfo.CurrentCulture)));
-            SelectedSignals.Add(new(Strings.Get("Signal.Highlights"), s.ZoneHighlights, t.HighlightsReview, s.ZoneHighlights.ToString("P0", CultureInfo.CurrentCulture)));
-            SelectedSignals.Add(new(Strings.Get("Signal.Shadows"), s.ZoneShadows, t.ShadowsReview, s.ZoneShadows.ToString("P0", CultureInfo.CurrentCulture)));
+            // Exposure: the zone the decision uses (named, as for sharpness), and the whole photo next to it — a small
+            // AF area can be well exposed in a photo full of blown highlights (Z5 II, 15 Oct 2026).
+            SelectedSignals.Add(new(Strings.Get("Signal.Highlights." + s.Zone), s.ZoneHighlights, t.HighlightsReview, s.ZoneHighlights.ToString("P0", CultureInfo.CurrentCulture)));
+            if (s.Zone != SharpnessZoneKind.Tiles)
+            {
+                SelectedSignals.Add(new(Strings.Get("Signal.Highlights.Frame"), s.FrameHighlights, null, s.FrameHighlights.ToString("P0", CultureInfo.CurrentCulture)));
+            }
+
+            SelectedSignals.Add(new(Strings.Get("Signal.Shadows." + s.Zone), s.ZoneShadows, t.ShadowsReview, s.ZoneShadows.ToString("P0", CultureInfo.CurrentCulture)));
+            if (s.Zone != SharpnessZoneKind.Tiles)
+            {
+                SelectedSignals.Add(new(Strings.Get("Signal.Shadows.Frame"), s.FrameShadows, null, s.FrameShadows.ToString("P0", CultureInfo.CurrentCulture)));
+            }
+
+            SelectedSignals.Add(new(Strings.Get("Signal.Brightness"), s.FrameBrightness, null, s.FrameBrightness.ToString("P0", CultureInfo.CurrentCulture)));
             if (s.MainFaceLeftEyeRatio is { } left && s.MainFaceRightEyeRatio is { } right)
             {
                 var eyes = Math.Min(left, right);

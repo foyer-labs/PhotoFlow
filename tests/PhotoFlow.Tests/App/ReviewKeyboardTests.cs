@@ -9,6 +9,7 @@ using Avalonia.Input;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using PhotoFlow.App.Localization;
 using PhotoFlow.App.Services;
 using PhotoFlow.App.ViewModels;
 using PhotoFlow.App.Views;
@@ -115,6 +116,7 @@ public sealed class ReviewKeyboardTests : IDisposable
         // Maiusc N starts a face by hand, ← → go on with the photo still large, Esc goes back to the grid.
         var photo = first;
         review.SelectCommand.Execute(photo);
+        await WaitAsync(() => review.SelectedSignals.Any(s => s.Label == Strings.Get("Signal.Brightness"))); // exposure of the whole photo too
         await host.Catalog.Analysis.ReplaceAutomaticFacesAsync(photo.AnalyzedAssetId,
             [new Face(0, photo.AnalyzedAssetId, new PhotoFlow.Core.Analysis.BoundingBox(0.3f, 0.2f, 0.6f, 0.7f), null, 0.9, EyeState.Open, EyeState.Open, null, null, null, null, "t")],
             CancellationToken.None);
