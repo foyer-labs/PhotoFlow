@@ -1032,4 +1032,6 @@
   <data name="Signal.Highlights.Frame" xml:space="preserve"><value>Alte luci (foto)</value></data>
   <data name="Signal.Shadows.Frame" xml:space="preserve"><value>Ombre (foto)</value></data>
   <data name="Signal.Brightness" xml:space="preserve"><value>Luminosità</value></data>
+  <data name="Reason.exposure.frame.highlights" xml:space="preserve"><value>molte alte luci bruciate nella foto</value></data>
+  <data name="Reason.exposure.frame.dark" xml:space="preserve"><value>foto molto scura (sottoesposta)</value></data>
 </root>

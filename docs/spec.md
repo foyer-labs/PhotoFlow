@@ -306,7 +306,7 @@ Fase 2 (13 ott 2026, `SequenceGrouper`): i raggruppamenti si calcolano per fotoc
 | Segnale | Misura | Affidabilità |
 | --- | --- | --- |
 | Nitidezza | Assoluta: 1 − *blur effect* (Crété-Roffet 2007) multi-scala (1×, ½, ¼) sulla zona del profilo e sull'intero fotogramma; relativa nella raffica: varianza del Laplaciano sulla zona, dopo leggera sfocatura anti-rumore | Alta per il mosso grave |
-| Esposizione | % alte luci/ombre perse nella zona del soggetto; soglie tolleranti (l'anteprima JPEG è più severa del RAW). Senza soggetto (zona = intero fotogramma) solo il fotogramma vuoto (≥ 95% bruciato o nero) | Media |
+| Esposizione | % alte luci/ombre perse nella zona del soggetto; soglie tolleranti (l'anteprima JPEG è più severa del RAW). Senza soggetto (zona = intero fotogramma) solo il fotogramma vuoto (≥ 95% bruciato o nero). **Anche sulla foto intera** (richiesta dell'utente, 15 ott 2026): "da rivedere" con molte alte luci bruciate (`frameHighlightsReview`, iniziale 15% del fotogramma con un canale ≥ 250) o foto molto scura (`frameBrightnessReview`, luminosità media iniziale < 20%), anche se la zona del soggetto è esposta bene; modalità tollerante ×1,5 (alte luci) e ÷1,5 (luminosità), spenta con esposizione Off (Notturna/Aurora). Soglie iniziali da tarare sul set etichettato (§14) | Media |
 | Occhi | Apertura (rapporto altezza/larghezza dei contorni 33-42 e 87-96) dagli 106 landmark, per volti rilevanti (≥ 40% del volto più grande); sconosciuto con occhiali da sole, volto piccolo, di profilo o rivolto verso il basso (gli occhi aperti sembrano chiusi). Con YuNet/SFace (solo 5 landmark): sempre sconosciuto | Alta su volti grandi (solo buffalo\_l) |
 | Soggetto | Presenza, dimensione, posizione (D-FINE) | Alta per auto e persone |
 | Estetica | Predittore LAION | Bassa: solo spareggi |
@@ -1233,7 +1233,7 @@ Decisioni emerse in Design (confermate), funzioni rinviate a dopo la stabilizzaz
 | Area AF dai punti usati (`AFPointsUsed`) quando la Z5 II non registra le coordinate (area automatica): serve la griglia dei punti AF del modello | NEF Z5 II, 14 ott 2026 |
 | `FocusResult` di Nikon ("Out of Focus") come segnale in più per il culling | NEF Z5 II, 14 ott 2026 |
 | Esposizione misurata su una zona più rappresentativa del soggetto: il riquadro AF della Z5 II è ~0,4% della foto (DSC_0049: 0% di alte luci nel riquadro, 25% sulla foto intera). Proposta: zona minima intorno all'AF (25% del lato corto) o area del soggetto rilevato; cambia l'output dell'analizzatore (nuova versione, rianalisi). Dal 15 ott 2026 il pannello della Revisione mostra già zona e foto intera | Utente, 15 ott 2026 |
-| Segnale "sottoesposta / sovraesposta" dalla foto intera (luminosità media, alte luci e ombre del fotogramma), oggi solo mostrati: soglie da tarare sul set etichettato (§14) | Utente, 15 ott 2026 |
+| ~~Segnale "sottoesposta / sovraesposta" dalla foto intera~~ fatto il 15 ott 2026 (§6, `frameHighlightsReview`, `frameBrightnessReview`); resta la taratura delle soglie sul set etichettato (§14) | Utente, 15 ott 2026 |
 
 ### Verifiche tecniche
 

@@ -1032,4 +1032,6 @@
   <data name="Signal.Highlights.Frame" xml:space="preserve"><value>Highlights (photo)</value></data>
   <data name="Signal.Shadows.Frame" xml:space="preserve"><value>Shadows (photo)</value></data>
   <data name="Signal.Brightness" xml:space="preserve"><value>Brightness</value></data>
+  <data name="Reason.exposure.frame.highlights" xml:space="preserve"><value>many blown highlights in the photo</value></data>
+  <data name="Reason.exposure.frame.dark" xml:space="preserve"><value>very dark photo (underexposed)</value></data>
 </root>
