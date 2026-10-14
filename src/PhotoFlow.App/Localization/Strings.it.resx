@@ -1013,4 +1013,25 @@
   <data name="Settings.Updates.JobRunning" xml:space="preserve"><value>C'è un job in corso: installa l'aggiornamento quando finisce.</value></data>
   <data name="Settings.Updates.Failed" xml:space="preserve"><value>Non è stato possibile controllare o installare l'aggiornamento: {0}</value></data>
   <data name="Settings.Updates.NotInstalled" xml:space="preserve"><value>PhotoFlow è avviato da una cartella di sviluppo: gli aggiornamenti funzionano con la versione installata.</value></data>
+  <data name="Review.Command.LargePhoto" xml:space="preserve"><value>foto grande</value></data>
+  <data name="Review.Mode.LargePhoto" xml:space="preserve"><value>Foto grande</value></data>
+  <data name="Review.Key.Space" xml:space="preserve"><value>Spazio</value></data>
+  <data name="Review.Key.AddFace" xml:space="preserve"><value>Maiusc N</value></data>
+  <data name="Review.ClickFaceHint" xml:space="preserve"><value>Clic su un volto per dire chi è · Maiusc N per aggiungere un volto non trovato</value></data>
+  <data name="Review.People.Hint" xml:space="preserve"><value>Spazio: la foto grande, per vedere i volti e dire chi sono.</value></data>
+  <data name="Signal.Highlights.AfArea" xml:space="preserve"><value>Alte luci (AF)</value></data>
+  <data name="Signal.Shadows.AfArea" xml:space="preserve"><value>Ombre (AF)</value></data>
+  <data name="Signal.Highlights.Eyes" xml:space="preserve"><value>Alte luci (occhi)</value></data>
+  <data name="Signal.Shadows.Eyes" xml:space="preserve"><value>Ombre (occhi)</value></data>
+  <data name="Signal.Highlights.Faces" xml:space="preserve"><value>Alte luci (volti)</value></data>
+  <data name="Signal.Shadows.Faces" xml:space="preserve"><value>Ombre (volti)</value></data>
+  <data name="Signal.Highlights.Subject" xml:space="preserve"><value>Alte luci (soggetto)</value></data>
+  <data name="Signal.Shadows.Subject" xml:space="preserve"><value>Ombre (soggetto)</value></data>
+  <data name="Signal.Highlights.Tiles" xml:space="preserve"><value>Alte luci</value></data>
+  <data name="Signal.Shadows.Tiles" xml:space="preserve"><value>Ombre</value></data>
+  <data name="Signal.Highlights.Frame" xml:space="preserve"><value>Alte luci (foto)</value></data>
+  <data name="Signal.Shadows.Frame" xml:space="preserve"><value>Ombre (foto)</value></data>
+  <data name="Signal.Brightness" xml:space="preserve"><value>Luminosità</value></data>
+  <data name="Reason.exposure.frame.highlights" xml:space="preserve"><value>molte alte luci bruciate nella foto</value></data>
+  <data name="Reason.exposure.frame.dark" xml:space="preserve"><value>foto molto scura (sottoesposta)</value></data>
 </root>
