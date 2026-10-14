@@ -28,6 +28,10 @@ No. PhotoFlow non elimina mai un tuo file, né da solo né per errore di un'anal
 
 I RAW non vengono **mai** modificati: stelle, parole chiave e persone vanno in un file `.xmp` accanto (il "sidecar"). Per le librerie create da un import, nei JPEG, TIFF e PNG i metadati vengono scritti dentro il file, così li vedono anche Esplora risorse e Photoshop; per gli archivi esistenti che aggiungi in Librerie, di default si scrive solo il file `.xmp` accanto e gli originali restano intatti.
 
+### Legge i NEF «High Efficiency» delle Nikon Z (per esempio Z5 II, Z8)?
+
+Sì. Per analizzarli e mostrarli PhotoFlow usa il JPEG che la fotocamera salva dentro il NEF, a piena risoluzione (sulla Z5 II 6048×4032). I dati RAW compressi in High Efficiency non vengono decodificati, e il file non viene mai modificato. Altri programmi (il visualizzatore di Windows, Photoshop/Camera Raw) li aprono solo se le loro versioni supportano già questo formato.
+
 ### Scrive qualcosa sulla scheda SD?
 
 No: la scheda o la cartella da cui importi viene solo letta, mai modificata né svuotata. Ogni foto copiata viene riletta e confrontata con l'originale (controllo xxHash3), e nessuna analisi parte su un file la cui copia non è stata verificata. Se l'import si interrompe, riprende da dove era arrivato.

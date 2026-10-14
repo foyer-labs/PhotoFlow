@@ -76,7 +76,8 @@ public sealed class JpegImageHandler(IFileSystem fileSystem) : IImageHandler
 
 /// <summary>
 /// RAW files: the largest embedded JPEG (fast, camera rendering); full decoding with LibRaw only when the preview is
-/// missing or too small. A preview is kept even if small when full decoding is impossible (e.g. Nikon High Efficiency).
+/// missing or too small. Nikon High Efficiency NEFs are never given to LibRaw, which decodes them into a wrong image
+/// without an error (R15): their preview is used whatever its size, and without one they are reported as undecodable.
 /// </summary>
 public sealed class RawImageHandler(IEmbeddedPreviewSource previews, IRawDecoder decoder) : IImageHandler
 {
@@ -90,14 +91,14 @@ public sealed class RawImageHandler(IEmbeddedPreviewSource previews, IRawDecoder
     public async Task<PreviewImage> GetPreviewAsync(string path, int maxSize, CancellationToken ct)
     {
         PreviewImage? fromPreview = null;
-        var preview = await previews.ExtractLargestAsync(path, ct).ConfigureAwait(false);
-        if (preview is not null)
+        var embedded = await previews.ExtractLargestAsync(path, ct).ConfigureAwait(false);
+        if (embedded.Largest is { } preview)
         {
             try
             {
                 var (image, width, height) = JpegDecoder.Decode(preview.Jpeg, maxSize, preview.Orientation);
                 fromPreview = new PreviewImage(image, width, height, IsEmbeddedPreview: true);
-                if (Math.Max(width, height) >= Math.Min(maxSize, MinimumUsablePreview))
+                if (!embedded.FullDecodingSupported || Math.Max(width, height) >= Math.Min(maxSize, MinimumUsablePreview))
                 {
                     return fromPreview;
                 }
@@ -106,6 +107,11 @@ public sealed class RawImageHandler(IEmbeddedPreviewSource previews, IRawDecoder
             {
                 // Damaged preview: try the full decoding.
             }
+        }
+
+        if (!embedded.FullDecodingSupported)
+        {
+            throw new ImageDecodeException("Nikon High Efficiency NEF without a readable embedded preview: its RAW data cannot be decoded.");
         }
 
         try

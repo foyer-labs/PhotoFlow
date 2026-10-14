@@ -1143,7 +1143,7 @@ Il rischio principale è l'allargamento continuo dell'ambito; questa specifica e
 | --- | --- | --- | --- | --- |
 | R1 | Allargamento continuo dell'ambito | Alta | Alto | Fasi con criteri di chiusura; nuove idee nel backlog salvo che cambino le fondamenta |
 | R2 | Culling poco affidabile | Media | Alto | Modalità prudente, metriche misurate, invarianti |
-| R3 | Anteprime Z5 II non a piena risoluzione o NEF High Efficiency non decodificabili | Media | Medio | Verifica come prima attività della fase 1; fallback di decodifica |
+| R3 | Anteprime Z5 II non a piena risoluzione o NEF High Efficiency non decodificabili | Media | Medio | Verifica come prima attività della fase 1; fallback di decodifica. **Chiuso il 14 ott 2026**: anteprima della Z5 II a piena risoluzione (6048×4032); NEF HE gestiti dall'anteprima (R15) |
 | R4 | Export ONNX non fedele (RAM++, D-FINE) | Bassa | Medio | Test di parità; alternative CLIP zero-shot e RF-DETR |
 | R5 | Futuro di DirectML (spinta verso Windows ML) | Chiuso | — | DirectML escluso (F1-2); Windows ML nel backlog con la parità come condizione |
 | R6 | Librerie piccole abbandonate | Media | Medio-basso | Interfacce; sostituzione o fork |
@@ -1155,7 +1155,7 @@ Il rischio principale è l'allargamento continuo dell'ambito; questa specifica e
 | R12 | Cambio di licenza di un modello | Bassa | Medio | Versioni fissate con SHA-256, licenza registrata |
 | R13 | exiftool bloccato o lento | Bassa | Medio | `-stay_open`, controllo di salute, riavvio automatico |
 | R14 | Durata del progetto con impegno serale | Alta | Medio | Ogni fase produce un applicativo utilizzabile |
-| R15 | NEF High Efficiency (HE/HE*) non decodificabili da LibRaw pubblica (0.22.2); Z5 II non in elenco | Alta | Medio | Anteprima incorporata via exiftool, stato "RAW HE: solo anteprima"; aggiornare allo snapshot LibRaw annunciato per l'autunno 2026 |
+| R15 | NEF High Efficiency (HE/HE*) non decodificabili da LibRaw pubblica (0.22.2); Z5 II non in elenco | Alta | Medio | Anteprima incorporata via exiftool, stato "RAW HE: solo anteprima"; aggiornare allo snapshot LibRaw annunciato per l'autunno 2026. Verificato sui NEF della Z5 II (14 ott 2026): anteprima a piena risoluzione; LibRaw restituisce un'immagine sbagliata senza errore, quindi i NEF HE non le vengono mai passati |
 | R16 | Una sola distribuzione di ONNX Runtime per processo | Bassa | Medio | Scelto ORT 1.31 (CUDA + CPU, F1-2): compatibile con RapidOcrNet (≥ 1.29); ogni nuovo backend o libreria con ORT propria va verificato |
 | R17 | CUDA in migrazione verso un plugin EP di ONNX Runtime; dimensione del pacchetto GPU (CUDA/cuDNN ~1-1,5 GB) | Media | Medio | `IInferenceProvider`; pacchetto GPU separato e facoltativo, con SHA-256; CPU sempre disponibile |
 | R18 | Clustering volti: HdbscanSharp O(n²) non scala a ~100.000 volti | Alta | Medio | HDBSCAN su grafo k-NN dietro interfaccia di Core, validato contro Python in `tools/lab` |
@@ -1228,12 +1228,14 @@ Decisioni emerse in Design (confermate), funzioni rinviate a dopo la stabilizzaz
 | Didascalie più veloci: cache dell'encoder sulla GPU (IO binding) invece di ricopiarla a ogni passo del decoder; Florence-2 large come alternativa | Tappa 5.1 |
 | Rigenerazione: scambio dell'indice embedding quando ci sarà un secondo modello di embedding | Tappa 5.4 |
 | Registro della sincronizzazione XMP consultabile nell'interfaccia (oggi nel catalogo e nel riepilogo delle Impostazioni) | Tappa 5.6 |
+| Area AF dai punti usati (`AFPointsUsed`) quando la Z5 II non registra le coordinate (area automatica): serve la griglia dei punti AF del modello | NEF Z5 II, 14 ott 2026 |
+| `FocusResult` di Nikon ("Out of Focus") come segnale in più per il culling | NEF Z5 II, 14 ott 2026 |
 
 ### Verifiche tecniche
 
-- [ ] Risoluzione dell'anteprima incorporata nei NEF della Z5 II
-- [ ] Decodifica dei NEF High Efficiency (LibRaw) e scelta del binding .NET di LibRaw (12 ott 2026: nessuna LibRaw pubblica decodifica HE/HE*, Z5 II non in elenco — R15; binding proposto: P/Invoke sottile sui binari ufficiali 0.22.x, Sdcb.LibRaw fermo a 0.21.1)
-- [ ] Punto AF Nikon leggibile con exiftool per la Z5 II
+- [x] Risoluzione dell'anteprima incorporata nei NEF della Z5 II (14 ott 2026, NEF forniti dall'utente: `JpgFromRaw` 6048×4032, a piena risoluzione rispetto ai 6064×4040 del sensore; anche `OtherImage` 1620×1080 e `PreviewImage` 640×424)
+- [x] Decodifica dei NEF High Efficiency (LibRaw) e scelta del binding .NET di LibRaw (12 ott 2026: nessuna LibRaw pubblica decodifica HE/HE*, Z5 II non in elenco — R15; binding proposto: P/Invoke sottile sui binari ufficiali 0.22.x, Sdcb.LibRaw fermo a 0.21.1). **14 ott 2026**: la LibRaw di Magick.NET 15.0.0 "decodifica" i NEF HE* della Z5 II **senza errore ma in un'immagine sbagliata** (bande colorate); i NEF HE non arrivano più a LibRaw: si usa sempre l'anteprima incorporata, e senza anteprima il file è segnalato come non decodificabile. Binding di LibRaw non più necessario finché non esiste una LibRaw pubblica con TicoRAW
+- [x] Punto AF Nikon leggibile con exiftool per la Z5 II (14 ott 2026: `AFAreaXPosition/YPosition/Width/Height` su `AFImageWidth/Height` quando `AFCoordinatesAvailable` = Yes; in area automatica senza coordinate solo `AFPointsUsed`, e PhotoFlow ripiega su soggetto e centro). exiftool chiama questi NEF "NRW": il formato registrato resta NEF
 - [ ] Lettura dei sidecar/incorporati in Esplora risorse, Photoshop/Camera Raw, Bridge, Lightroom
 - [x] Stato di Velopack e di DirectML rispetto a Windows ML (12 ott 2026: Velopack attivo; DirectML in sustained engineering, NuGet fermo a 1.24.4; Windows ML GA con ORT 1.27.1 — R16, R17)
 - [ ] Licenze aperte: Qwen2.5-VL, predittore estetico (chiuse il 12 ott 2026: HdbscanSharp MIT, codice RapidOcrNet Apache 2.0, decoder HEIC in Magick.NET LGPL statici)

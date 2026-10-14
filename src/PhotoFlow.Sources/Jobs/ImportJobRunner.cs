@@ -279,7 +279,7 @@ public sealed class ImportJobRunner : IJobRunner
                 0,
                 quick,
                 QuickHash.Format(verified.Hash),
-                (exif?.FileType ?? Path.GetExtension(item.SourcePath).TrimStart('.')).ToUpperInvariant(),
+                AssetFormat.Of(exif?.FileType, item.SourcePath),
                 kind switch { MediaKind.Raw => "raw", MediaKind.Jpeg => "jpeg", MediaKind.Video => "video", _ => kind.ToString().ToLowerInvariant() },
                 exif?.Width,
                 exif?.Height,
