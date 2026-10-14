@@ -6,7 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.ML.OnnxRuntimeGenAI;
 
-// Level D captions (phase 5b, decision U4): Qwen2.5-VL-7B (ONNX Runtime GenAI, CUDA) in a process of its own.
+// Level D captions (phase 5b, decision U4): Qwen3.5-9B or Qwen2.5-VL-7B (ONNX Runtime GenAI, CUDA) in a process of its own.
 // Protocol, one JSON object per line (UTF-8):
 //   start:    PhotoFlow.Vlm --model <folder>   → {"type":"ready"} or {"type":"error","message":...}
 //   request:  {"id":1,"image":"<jpeg>","prompt":"...","maxTokens":128}
@@ -28,13 +28,15 @@ if (modelPath is null || !Directory.Exists(modelPath))
 Model model;
 Tokenizer tokenizer;
 MultiModalProcessor processor;
+bool qwen35;
 try
 {
+    qwen35 = IsQwen35(modelPath);
     model = new Model(modelPath);
     tokenizer = new Tokenizer(model);
     processor = new MultiModalProcessor(model);
 }
-catch (Exception e) when (e is OnnxRuntimeGenAIException or IOException or DllNotFoundException or BadImageFormatException)
+catch (Exception e) when (e is OnnxRuntimeGenAIException or IOException or DllNotFoundException or BadImageFormatException or JsonException)
 {
     Write(new JsonObject { ["type"] = "error", ["message"] = e.Message });
     return 3;
@@ -53,7 +55,7 @@ while ((line = Console.ReadLine()) is not null && line != "quit")
         var prompt = request["prompt"]!.GetValue<string>();
         var maxTokens = request["maxTokens"]?.GetValue<int>() ?? 128;
         var clock = Stopwatch.StartNew();
-        var (text, tokens) = Caption(model, tokenizer, processor, image, prompt, maxTokens);
+        var (text, tokens) = Caption(model, tokenizer, processor, image, Chat(prompt, qwen35), maxTokens);
         Write(new JsonObject { ["id"] = id, ["text"] = text, ["tokens"] = tokens, ["ms"] = clock.ElapsedMilliseconds });
     }
     catch (Exception e) when (e is OnnxRuntimeGenAIException or IOException or JsonException or InvalidOperationException or NullReferenceException or FormatException)
@@ -67,13 +69,26 @@ tokenizer.Dispose();
 model.Dispose();
 return 0;
 
-// Greedy generation on one image with Qwen2.5-VL's chat format. The KV cache is sized for MaxLength tokens: an image of
-// at most 1024 px is at most ~1,370 image tokens, plus the prompt and the caption.
-static (string Text, int Tokens) Caption(Model model, Tokenizer tokenizer, MultiModalProcessor processor, string imagePath, string prompt, int maxTokens)
+// The model type written by the Model Builder in genai_config.json ("qwen3_5…" or "qwen2_5_vl").
+static bool IsQwen35(string modelPath)
 {
-    var chat = "<|im_start|>system\nYou are a helpful assistant.<|im_end|>\n"
+    var config = JsonNode.Parse(File.ReadAllText(Path.Combine(modelPath, "genai_config.json")));
+    return config?["model"]?["type"]?.GetValue<string>().StartsWith("qwen3_5", StringComparison.Ordinal) == true;
+}
+
+// The chat of one image and the prompt. Qwen3.5 thinks before answering unless the assistant turn opens with an empty
+// think block (its chat template with enable_thinking=false): a caption needs no reasoning. Qwen2.5-VL has its system line.
+static string Chat(string prompt, bool qwen35) => qwen35
+    ? "<|im_start|>user\n<|vision_start|><|image_pad|><|vision_end|>" + prompt + "<|im_end|>\n"
+        + "<|im_start|>assistant\n<think>\n\n</think>\n\n"
+    : "<|im_start|>system\nYou are a helpful assistant.<|im_end|>\n"
         + "<|im_start|>user\n<|vision_start|><|image_pad|><|vision_end|>" + prompt + "<|im_end|>\n"
         + "<|im_start|>assistant\n";
+
+// Greedy generation on one image. The KV cache is sized for MaxLength tokens: an image of at most 1024 px is at most
+// ~1,370 image tokens with Qwen2.5-VL (28 px each) and ~1,000 with Qwen3.5 (32 px), plus the prompt and the caption.
+static (string Text, int Tokens) Caption(Model model, Tokenizer tokenizer, MultiModalProcessor processor, string imagePath, string chat, int maxTokens)
+{
     using var images = Images.Load([imagePath]);
     using var inputs = processor.ProcessImages(chat, images);
     using var parameters = new GeneratorParams(model);

@@ -58,6 +58,9 @@ public sealed partial class ModelRowViewModel(ModelInfo model, bool available) :
     /// <summary>The files to put in the source folder.</summary>
     public string SourceFilesText => string.Join(", ", Model.Files.Select(f => f.Path));
 
+    /// <summary>Where the original files come from and how big they are, then what the conversion needs.</summary>
+    public string ManualNote => Strings.Format("Settings.Models.ManualNote", Model.License.Source.Replace("https://huggingface.co/", string.Empty, StringComparison.Ordinal), SizeText);
+
     /// <summary>Where the user puts the original files.</summary>
     [ObservableProperty]
     private string _sourceFolder = string.Empty;
@@ -869,11 +872,11 @@ public sealed partial class SettingsViewModel : PageViewModel
     private void UpdateModelsInUse()
     {
         var setup = _host.DescribeAnalysis();
-        var inUse = new HashSet<string?>(StringComparer.Ordinal) { setup.ObjectDetector, setup.FaceDetector, setup.FaceRecognizer };
+        var inUse = new HashSet<string?>(StringComparer.Ordinal) { setup.ObjectDetector, setup.FaceDetector, setup.FaceRecognizer, _host.ActiveVlmModelId };
         foreach (var row in Models)
         {
             row.IsInUse = inUse.Contains(row.Model.Id);
-            row.HasAlternative = row.Model.Function is ModelFunction.ObjectDetection
+            row.HasAlternative = row.Model.Function is ModelFunction.ObjectDetection or ModelFunction.Vlm
                 || (row.Model.Function == ModelFunction.Faces && row.Model.Id != PhotoFlowHost.SFaceModelId
                     && (row.Model.Id != "insightface-buffalo-l" || _host.Settings.AcceptedModelLicenses.Contains(row.Model.Id)));
         }
@@ -893,7 +896,11 @@ public sealed partial class SettingsViewModel : PageViewModel
 
         var loaded = await _host.ChooseModelAsync(row.Model.Function, row.Model.Id, CancellationToken.None);
         UpdateModelsInUse();
-        var parts = row.Model.Function == ModelFunction.Faces ? ReanalysisParts.Faces | ReanalysisParts.Culling : ReanalysisParts.Culling | ReanalysisParts.Faces;
+        var parts = row.Model.Function switch
+        {
+            ModelFunction.Vlm => ReanalysisParts.Captions, // the Italian captions of level D, never the user's (I5)
+            _ => ReanalysisParts.Culling | ReanalysisParts.Faces,
+        };
         var note = Strings.Format(loaded ? "Regeneration.NewModel" : "Regeneration.NewModelAtRestart", row.Name);
         if (Navigator is not null && loaded)
         {

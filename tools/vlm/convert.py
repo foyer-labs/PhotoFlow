@@ -1,9 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Conversion of Qwen2.5-VL-7B-Instruct for ONNX Runtime GenAI (level D, phase 5b, decisions U2-U4).
+"""Conversion of the level D model for ONNX Runtime GenAI (phase 5b, decisions U2-U4): Qwen3.5-9B or Qwen2.5-VL-7B.
 
-Runs Microsoft's Olive recipe (recipe/, MIT) on the local folder of the original weights: embedding and vision encoder
-exported and optimized by Olive, text decoder built as int4 by the ONNX Runtime GenAI Model Builder, then the GenAI
-runtime configuration. Only reads the weights; writes the models in --output (a new folder).
+Runs Microsoft's Olive recipe of the model (recipes/<model_type>/, MIT), chosen from the model_type of the weights, on
+the local folder of the original weights: embedding and vision encoder exported and optimized by Olive, text decoder
+built as int4 by the ONNX Runtime GenAI Model Builder, then the GenAI runtime configuration. Only reads the weights;
+writes the models in --output (a new folder).
 
 Progress for PhotoFlow on stdout: "PF-PROGRESS <step>/<steps> <name>", then "PF-DONE" or "PF-ERROR <message>".
 
@@ -23,6 +24,9 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 PARTS = ("embedding", "text", "vision")
+
+# model_type of the weights → folder of its recipe.
+RECIPES = {"qwen3_5": "qwen3_5", "qwen2_5_vl": "qwen2_5_vl"}
 
 
 def progress(step: int, steps: int, name: str) -> None:
@@ -50,14 +54,17 @@ def prepare_onnxruntime() -> None:
     ort.register_execution_provider_library = register_needed
 
 
-def check_weights(weights: Path) -> None:
+def check_weights(weights: Path) -> str:
+    """The recipe of the weights; they must be complete."""
     config = json.loads((weights / "config.json").read_text(encoding="utf-8"))
-    if config.get("model_type") != "qwen2_5_vl":
-        raise ValueError(f"{weights} does not hold Qwen2.5-VL weights (model_type {config.get('model_type')!r}).")
+    model_type = config.get("model_type")
+    if model_type not in RECIPES:
+        raise ValueError(f"{weights} does not hold Qwen3.5 or Qwen2.5-VL weights (model_type {model_type!r}).")
     index = json.loads((weights / "model.safetensors.index.json").read_text(encoding="utf-8"))
     missing = sorted({f for f in index["weight_map"].values() if not (weights / f).exists()})
     if missing:
         raise FileNotFoundError(f"Missing weight files: {', '.join(missing)}")
+    return RECIPES[model_type]
 
 
 def check_embedding(models: Path, weights: Path) -> None:
@@ -89,7 +96,7 @@ def main() -> int:
     try:
         steps = len(PARTS) + 2
         progress(0, steps, "check")
-        check_weights(weights)
+        recipe_name = check_weights(weights)
         if output.exists() and any(output.iterdir()):
             raise FileExistsError(f"{output} is not empty.")
 
@@ -98,7 +105,7 @@ def main() -> int:
         if recipe.exists():
             # PhotoFlow empties the work folder before (only its own cleaner deletes files, decision B1).
             raise FileExistsError(f"{recipe} already exists: remove it first.")
-        shutil.copytree(HERE / "recipe", recipe)
+        shutil.copytree(HERE / "recipes" / recipe_name, recipe, ignore=shutil.ignore_patterns("__pycache__"))
         os.environ["PF_QWEN_WEIGHTS"] = str(weights)
         for part in PARTS:
             path = recipe / "cuda" / f"{part}.json"
@@ -124,6 +131,8 @@ def main() -> int:
         models = recipe / "cuda" / "models"
         check_embedding(models, weights)
         optimize.update_genai_config(output_dir=str(models), device="gpu")
+        if hasattr(optimize, "fix_tokenizer"):
+            optimize.fix_tokenizer(output_dir=str(models))  # Qwen3.5: regular expressions the GenAI tokenizer reads
         output.mkdir(parents=True, exist_ok=True)
         for item in models.iterdir():
             shutil.move(str(item), output / item.name)
