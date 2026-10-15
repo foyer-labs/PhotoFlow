@@ -37,6 +37,12 @@ Files:
   under their checkpoint names (transformers would leave them at random with only a warning). In `cuda/text.json` the
   text model is built with `exclude_embeds` (ONNX Runtime GenAI 0.17 needs the separate embedding model).
 - After the export `convert.py` checks that the embedding model gives the checkpoint's own vectors, and stops otherwise.
+- `recipes/adaface_ir101/export.py` — the optional face recognizer AdaFace IR-101 WebFace12M (P22,
+  <https://huggingface.co/minchul/cvlface_adaface_ir101_webface12m>, non-commercial): PhotoFlow's own IR-101 network
+  (the CVLFace layout, weights loaded strictly from `model.safetensors`), exported on the CPU to `adaface_ir101.onnx`
+  (opset 17, input `input` [N,3,112,112], output `embedding` [N,512]) and checked against PyTorch (cosine ≥ 0.9999).
+  `convert.py` picks it when `config.json` names the network `ir101`; no GPU and no Olive needed. The parity with the
+  authors' own network is in `tools/lab/adaface_refs.py`.
 - `parity.py` — approximate parity (decision D5b-7, not shipped with the app): the converted model and the original
   PyTorch model caption the same photos, greedy (Qwen3.5 without thinking, as in PhotoFlow); the report counts identical
   captions, tokens in common and times.

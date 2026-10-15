@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using PhotoFlow.Core.Inference;
 using PhotoFlow.Core.Paths;
 using PhotoFlow.Inference.Models;
 
@@ -45,7 +46,8 @@ public interface IVlmToolchain
 }
 
 /// <summary>
-/// Conversion of the level D model on the user's PC (phase 5b, decisions U2-U3, D5b-1, D5b-2). The original weights the
+/// Conversion of a manual model on the user's PC: the level D model (phase 5b, decisions U2-U3, D5b-1, D5b-2) or the
+/// AdaFace face recognizer (P22, ONNX file instead of the GenAI configuration, <see cref="ModelInfo.ConvertedFile"/>). The original weights the
 /// user put in the source folder are verified (SHA-256 of the manifest), then a private Python environment is made with
 /// the Python already installed (in the cache folder), the pinned packages are installed, and <c>vlm/convert.py</c>
 /// writes the ONNX Runtime GenAI model; only when it succeeds the model is moved in place and marked installed. Every
@@ -109,13 +111,15 @@ public sealed class VlmConversion(ModelRegistry models, IAppPaths paths, IVlmToo
         Directory.CreateDirectory(paths.ModelsDirectory);
         Directory.CreateDirectory(paths.CacheDirectory);
         Directory.CreateDirectory(paths.TempDirectory);
-        var needs = new[] { (paths.ModelsDirectory, ModelBytesNeeded), (paths.TempDirectory, WorkBytesNeeded), (paths.CacheDirectory, File.Exists(VenvPython) ? 0 : EnvironmentBytesNeeded) }
+        // A VLM needs the measured space of the 7B; another model (a face recognizer) about twice its weights.
+        var (modelBytes, workBytes) = model.Function == ModelFunction.Vlm ? (ModelBytesNeeded, WorkBytesNeeded) : (2 * model.DownloadBytes, model.DownloadBytes);
+        var needs = new[] { (paths.ModelsDirectory, modelBytes), (paths.TempDirectory, workBytes), (paths.CacheDirectory, File.Exists(VenvPython) ? 0 : EnvironmentBytesNeeded) }
             .GroupBy(n => DriveOf(n.Item1), StringComparer.OrdinalIgnoreCase)
             .Select(g => (Folder: g.First().Item1, Bytes: g.Sum(n => n.Item2)));
         if (needs.FirstOrDefault(n => (freeBytes ?? FreeBytes)(n.Folder) < n.Bytes) is { Folder: not null } lacking)
         {
             throw Fail(VlmConversionStage.Space,
-                $"Not enough free space on {DriveOf(lacking.Folder)}: {lacking.Bytes / (1024 * 1024 * 1024)} GB needed during the conversion (about 7 GB stay).");
+                $"Not enough free space on {DriveOf(lacking.Folder)}: {Math.Max(1, lacking.Bytes / (1024 * 1024 * 1024))} GB needed during the conversion.");
         }
 
         // 4. The private environment, then the pinned packages (again only when the requirements changed).
@@ -192,7 +196,7 @@ public sealed class VlmConversion(ModelRegistry models, IAppPaths paths, IVlmToo
             }
         }
 
-        if (exit != 0 || !done || !File.Exists(Path.Combine(partial, ModelRegistry.ConvertedConfig)))
+        if (exit != 0 || !done || !File.Exists(Path.Combine(partial, model.ConvertedFile)))
         {
             throw Fail(VlmConversionStage.Convert, error ?? $"The conversion stopped (exit code {exit}).");
         }

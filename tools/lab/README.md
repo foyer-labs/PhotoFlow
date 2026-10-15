@@ -28,6 +28,7 @@ uv sync --extra ram     # + original RAM++ (PyTorch) for verify_ramplus.py
 | `verify_ramplus.py --images <dir>` | Community RAM++ int8 ONNX vs original PyTorch RAM++: probabilities and tag sets | `lab/ramplus/<timestamp>/` |
 | `florence_refs.py --photos <dir>` | Florence-2 caption references from the original PyTorch model (native transformers, run with `uv run --with "transformers==4.57.1"`): input tensor, generated token ids, caption | `parity/florence/` |
 | `export_florence_vision.py` | Export of the Florence-2 vision encoder from the original weights (the onnx-community one does not match), checked against PyTorch; run like `florence_refs.py` | `models/florence2-base-ft/vision_encoder_pf.onnx` |
+| `adaface_refs.py --snapshot <dir>` | AdaFace IR-101 fingerprint references from the authors' own CVLFace network (its `models/iresnet/model.py` and `model.safetensors` from the pinned snapshot) on the ArcFace crops of `face_embed_refs.py`; run with the Python of the conversion environment or `uv run --script` | `parity/faces/*.ada_emb.bin`, `parity/faces/adaface_index.json` |
 
 `exiftool` for the benchmark is downloaded once (13.59, SHA-256 verified) into `tools/`.
 

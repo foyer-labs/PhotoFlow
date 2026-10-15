@@ -18,6 +18,12 @@ public static class FaceMatching
     /// <summary>SFace: OpenCV's recommended cosine threshold.</summary>
     public const double SFaceThreshold = 0.363;
 
+    /// <summary>
+    /// AdaFace IR-101 (P22): the false-match rate of ArcFace at 0.45, measured on LFW (13,215 faces, 3 million pairs of
+    /// different people, 15 Oct 2026): 0.42 (with it 99.79% of the pairs of the same person match, ArcFace 99.56%).
+    /// </summary>
+    public const double AdaFaceThreshold = 0.42;
+
     /// <summary>The best person must lead the second by this much, otherwise the face is only suggested.</summary>
     public const double AmbiguityMargin = 0.05;
 
@@ -34,7 +40,9 @@ public static class FaceMatching
     public const int PrototypesPerYear = 5;
 
     public static double Threshold(string embeddingModel) =>
-        embeddingModel.EndsWith("/sface", StringComparison.Ordinal) ? SFaceThreshold : ArcFaceThreshold;
+        embeddingModel.EndsWith("/sface", StringComparison.Ordinal) ? SFaceThreshold
+        : embeddingModel.EndsWith("/adaface", StringComparison.Ordinal) ? AdaFaceThreshold
+        : ArcFaceThreshold;
 }
 
 /// <summary>

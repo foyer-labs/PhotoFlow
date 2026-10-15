@@ -68,11 +68,16 @@ public sealed class XmpPublisher(ICatalog catalog, IMetadataWriter writer, bool 
         };
     }
 
-    /// <summary>Adds the named people of the photo to the changes (or makes changes for them alone).</summary>
-    public static MetadataChanges? WithPeople(MetadataChanges? changes, IReadOnlyList<(string Name, BoundingBox Box)> people, (int Width, int Height)? size, IReadOnlyCollection<string> managedNames)
+    /// <summary>
+    /// Adds the named people of the photo to the changes (or makes changes for them alone). With
+    /// <paramref name="clearRegions"/> (after a reset of the people, P22) a photo without people still gets its regions,
+    /// empty: the writer takes out those of the managed names and keeps the others.
+    /// </summary>
+    public static MetadataChanges? WithPeople(MetadataChanges? changes, IReadOnlyList<(string Name, BoundingBox Box)> people, (int Width, int Height)? size,
+        IReadOnlyCollection<string> managedNames, bool clearRegions = false)
     {
         ArgumentNullException.ThrowIfNull(people);
-        if (people.Count == 0)
+        if (people.Count == 0 && !(clearRegions && size is not null))
         {
             return changes;
         }
@@ -138,7 +143,14 @@ public sealed class XmpPublisher(ICatalog catalog, IMetadataWriter writer, bool 
             : baseChanges with { RemovedFlatKeywords = flat, RemovedHierarchicalKeywords = hierarchical };
     }
 
-    public async Task<XmpWriteSummary> WriteAsync(IReadOnlyList<long> assetIds, bool prudentMode, IProgress<int>? progress, CancellationToken ct)
+    public Task<XmpWriteSummary> WriteAsync(IReadOnlyList<long> assetIds, bool prudentMode, IProgress<int>? progress, CancellationToken ct) =>
+        WriteAsync(assetIds, prudentMode, progress, null, ct);
+
+    /// <param name="formerNames">
+    /// Names of people removed from the catalog (reset, P22): still PhotoFlow's in the files, so their regions go.
+    /// </param>
+    public async Task<XmpWriteSummary> WriteAsync(IReadOnlyList<long> assetIds, bool prudentMode, IProgress<int>? progress, IReadOnlyCollection<string>? formerNames,
+        CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(assetIds);
         int written = 0, skipped = 0, done = 0;
@@ -147,6 +159,7 @@ public sealed class XmpPublisher(ICatalog catalog, IMetadataWriter writer, bool 
         var libraries = (await catalog.Libraries.ListAsync(ct).ConfigureAwait(false)).ToDictionary(l => l.Id);
         var persons = (await catalog.People.ListPersonsAsync(ct).ConfigureAwait(false)).Select(p => p.Person).ToDictionary(p => p.Id);
         var managed = persons.Values.Where(p => p.Name is not null).Select(p => p.Name!).ToHashSet(StringComparer.Ordinal);
+        managed.UnionWith(formerNames ?? []);
 
         // What other programs changed is imported first, so it is not overwritten.
         var external = reader is null ? null : new ExternalXmpSync(catalog, reader);
@@ -174,7 +187,7 @@ public sealed class XmpPublisher(ICatalog catalog, IMetadataWriter writer, bool 
                     .Where(f => f.PersonId is { } id && persons.TryGetValue(id, out var person) && person.Name is not null && !person.Ignored)
                     .Select(f => (persons[f.PersonId!.Value].Name!, f.Box))
                     .ToList();
-                changes = WithPeople(changes, people, asset.Width is { } w && asset.Height is { } h ? (w, h) : null, managed);
+                changes = WithPeople(changes, people, asset.Width is { } w && asset.Height is { } h ? (w, h) : null, managed, formerNames is { Count: > 0 });
 
                 // Tags live on the analyzed photo too.
                 var tags = await catalog.Tags.GetForAssetAsync(assetId, ct).ConfigureAwait(false);

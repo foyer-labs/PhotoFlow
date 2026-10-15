@@ -150,6 +150,41 @@
       "notes": ""
     },
     {
+      "id": "adaface-ir101-webface12m",
+      "function": "FaceRecognition",
+      "name": "AdaFace IR-101 (WebFace12M), person recognition, converted on this PC",
+      "version": "minchul/cvlface_adaface_ir101_webface12m@54f602a",
+      "phase": 2,
+      "adapter": "adaface-ir101-v1",
+      "install": "manual-convert",
+      "output": "adaface_ir101.onnx",
+      "license": {
+        "spdx": "LicenseRef-AdaFace-WebFace-NonCommercial",
+        "source": "https://huggingface.co/minchul/cvlface_adaface_ir101_webface12m",
+        "commercialUse": false,
+        "requiresAcceptance": true,
+        "notes": "AdaFace code: MIT (github.com/mk-minchul/AdaFace). The model card has no license of its own and asks to follow the license of the training dataset (WebFace12M, a subset of WebFace260M, distributed for non-commercial research): treated as non-commercial, accepted explicitly by the user (P22)."
+      },
+      "files": [
+        {
+          "path": "config.json",
+          "url": "https://huggingface.co/minchul/cvlface_adaface_ir101_webface12m/resolve/54f602a0737bd1ee4a4e7e9fd089a485f397fefd/config.json",
+          "sha256": "6311d95b23368f06932e6c04b52431c29857e1fcbf5e1d41a2e05f5e4b946d10",
+          "size": 479,
+          "mirrors": []
+        },
+        {
+          "path": "model.safetensors",
+          "url": "https://huggingface.co/minchul/cvlface_adaface_ir101_webface12m/resolve/54f602a0737bd1ee4a4e7e9fd089a485f397fefd/model.safetensors",
+          "sha256": "2ea535a43877bd3de8091903935c783ce335be66a9f8917fae9a7a18ae4bbf56",
+          "size": 260980552,
+          "mirrors": []
+        }
+      ],
+      "io": "Aligned face 112x112 RGB, (x - 127.5) / 127.5, NCHW float32 -> 512 values, L2-normalized by PhotoFlow (same crop as ArcFace). ONNX exported on this PC by tools/vlm (recipes/adaface_ir101).",
+      "notes": "P22 (15 Oct 2026): optional recognizer, better on small and blurred faces (LFW lab: 16 px faces 1.65% -> 0.80% errors). Thresholds calibrated at the false-match rate of ArcFace: assign 0.42, suggest 0.32."
+    },
+    {
       "id": "clip-vit-b32",
       "function": "Embedding",
       "name": "CLIP ViT-B/32",

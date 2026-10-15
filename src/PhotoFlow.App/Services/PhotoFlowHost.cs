@@ -55,7 +55,7 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     public static readonly IReadOnlySet<string> ImplementedAdapters = new HashSet<string>(StringComparer.Ordinal)
     {
         "dfine-hf-v1", "insightface-buffalo-v1", "yunet-v1", "clip-hf-v1", "sface-v1", "ramplus-v1", "ppocr-v1", "florence2-v1", "qwen2.5-vl-genai",
-        "qwen3.5-genai",
+        "qwen3.5-genai", "adaface-ir101-v1",
     };
 
     public const string ClipModelId = "clip-vit-b32";
@@ -63,6 +63,8 @@ public sealed class PhotoFlowHost : IAsyncDisposable
     public const string OcrModelId = "ppocr-en";
     public const string CaptionModelId = "florence2-base-ft";
     public const string SFaceModelId = "opencv-sface-2021dec";
+    public const string BuffaloModelId = "insightface-buffalo-l";
+    public const string AdaFaceModelId = "adaface-ir101-webface12m";
 
     /// <summary>
     /// Level D models (spec §5, U1 revised on 15 Oct 2026): Qwen3.5-9B for a new installation; Qwen2.5-VL-7B stays in
@@ -273,8 +275,17 @@ public sealed class PhotoFlowHost : IAsyncDisposable
 
     public Task<ReanalysisPreview> PreviewReanalysisAsync(long jobId, CancellationToken ct) => Reanalysis.PreviewAsync(Catalog, jobId, ct);
 
-    public Task<ReanalysisApplied> ApplyReanalysisAsync(long jobId, CancellationToken ct) =>
-        Reanalysis.ApplyAsync(Catalog, jobId, () => FingerprintKeys.Protector, CreatePublisher(), Settings.PrudentMode, ct);
+    public async Task<ReanalysisApplied> ApplyReanalysisAsync(long jobId, CancellationToken ct)
+    {
+        // P22: a backup of the catalog before the people are reset, so the user can go back.
+        if (await Catalog.Jobs.GetAsync(jobId, ct).ConfigureAwait(false) is { } job
+            && ReanalysisJobRunner.DeserializeSettings(job.SettingsSnapshotJson) is { ResetPeople: true, Sample: null })
+        {
+            await Maintenance.BackupAsync(Catalog, "people-reset", ct).ConfigureAwait(false);
+        }
+
+        return await Reanalysis.ApplyAsync(Catalog, jobId, () => FingerprintKeys.Protector, CreatePublisher(), Settings.PrudentMode, ct).ConfigureAwait(false);
+    }
 
     public Task DiscardReanalysisAsync(long jobId, CancellationToken ct) => Reanalysis.DiscardAsync(Catalog, jobId, ct);
 
@@ -534,10 +545,10 @@ public sealed class PhotoFlowHost : IAsyncDisposable
         }
 
         FingerprintKeys.Reset(password);
-        var session = await Inference.CreateSessionAsync(Models.Resolve(recognizer, recognizer == SFaceModelId ? SFaceEmbedder.File : ArcFaceEmbedder.File), ExecutionTarget.Auto, ct).ConfigureAwait(false);
+        var session = await Inference.CreateSessionAsync(Models.Resolve(recognizer, RecognizerFile(recognizer)), ExecutionTarget.Auto, ct).ConfigureAwait(false);
         try
         {
-            IFaceEmbedder embedder = recognizer == SFaceModelId ? new SFaceEmbedder(session) : new ArcFaceEmbedder(session);
+            var embedder = CreateFaceEmbedder(recognizer, session);
             return await new FingerprintRecompute(Catalog, FileSystem, Previews, embedder, FingerprintKeys.Protector).RunAsync(progress, ct).ConfigureAwait(false);
         }
         finally
@@ -546,11 +557,34 @@ public sealed class PhotoFlowHost : IAsyncDisposable
         }
     }
 
-    /// <summary>Models the analysis would use now (installed and, where needed, accepted).</summary>
     /// <summary>The tagging levels of the last import, or by hardware: RAM++ only with a GPU (spec §5).</summary>
     public TagLevels DefaultTagLevels => Settings.Import.Tags
         ?? (Inference.Detected.AvailableBackends.Contains(ExecutionBackend.Cuda) ? TagLevels.Default : TagLevels.ZeroShot);
 
+    /// <summary>The models that can make the fingerprints (P22): ArcFace in buffalo_l, SFace, AdaFace IR-101.</summary>
+    public static readonly IReadOnlyList<string> FaceRecognizers = [BuffaloModelId, SFaceModelId, AdaFaceModelId];
+
+    /// <summary>Installed and, when its license needs it, accepted.</summary>
+    public bool ModelUsable(string id) =>
+        Models.Models.FirstOrDefault(m => m.Id == id) is { } model && Models.IsInstalled(id)
+        && (!model.License.RequiresAcceptance || Settings.AcceptedModelLicenses.Contains(id));
+
+    /// <summary>The fingerprint model of a recognizer id, on its ONNX session.</summary>
+    public static string RecognizerFile(string id) => id switch
+    {
+        SFaceModelId => SFaceEmbedder.File,
+        AdaFaceModelId => AdaFaceEmbedder.File,
+        _ => ArcFaceEmbedder.File,
+    };
+
+    public static IFaceEmbedder CreateFaceEmbedder(string id, IInferenceSession session) => id switch
+    {
+        SFaceModelId => new SFaceEmbedder(session),
+        AdaFaceModelId => new AdaFaceEmbedder(session),
+        _ => new ArcFaceEmbedder(session),
+    };
+
+    /// <summary>Models the analysis would use now (installed and, where needed, accepted).</summary>
     public AnalysisSetup DescribeAnalysis()
     {
         var gpu = Inference.Detected.AvailableBackends.Contains(ExecutionBackend.Cuda);
@@ -563,6 +597,14 @@ public sealed class PhotoFlowHost : IAsyncDisposable
             && !(chosenFaces == "opencv-yunet-2023mar" && Models.IsInstalled(chosenFaces));
         var faces = buffalo ? "insightface-buffalo-l" : Models.IsInstalled("opencv-yunet-2023mar") ? "opencv-yunet-2023mar" : null;
         var recognizer = buffalo ? "insightface-buffalo-l" : faces is not null && Models.IsInstalled(SFaceModelId) ? SFaceModelId : null;
+
+        // The recognizer chosen apart from the detector (P22): any of them works on the 5 keypoints of both detectors.
+        if (faces is not null && Settings.ModelChoices.GetValueOrDefault(nameof(ModelFunction.FaceRecognition)) is { } chosen
+            && FaceRecognizers.Contains(chosen) && ModelUsable(chosen))
+        {
+            recognizer = chosen;
+        }
+
         return new AnalysisSetup(detector, faces, buffalo, gpu ? ExecutionBackend.Cuda : ExecutionBackend.Cpu,
             Models.IsInstalled(ClipModelId) ? ClipModelId : null, recognizer);
     }
@@ -650,12 +692,9 @@ public sealed class PhotoFlowHost : IAsyncDisposable
             IImageEmbedder? embedder = setup.Embedder is { } clip
                 ? new ClipImageEmbedder(await Open(clip, "vision_model.onnx").ConfigureAwait(false), operations)
                 : null;
-            IFaceEmbedder? fingerprints = setup.FaceRecognizer switch
-            {
-                "insightface-buffalo-l" => new ArcFaceEmbedder(await Open("insightface-buffalo-l", ArcFaceEmbedder.File).ConfigureAwait(false)),
-                SFaceModelId => new SFaceEmbedder(await Open(SFaceModelId, SFaceEmbedder.File).ConfigureAwait(false)),
-                _ => null,
-            };
+            IFaceEmbedder? fingerprints = setup.FaceRecognizer is { } recognizer
+                ? CreateFaceEmbedder(recognizer, await Open(recognizer, RecognizerFile(recognizer)).ConfigureAwait(false))
+                : null;
             IImageTagger? tagger = null;
             if (Models.IsInstalled(RamPlusModelId))
             {

@@ -15,7 +15,8 @@ namespace PhotoFlow.Tests.Parity;
 
 /// <summary>
 /// Face fingerprints against insightface 2.1 (ArcFace) and OpenCV 5.0 (FaceRecognizerSF): alignment matrix,
-/// warpAffine port, aligned crops and embeddings (references from tools/lab/face_embed_refs.py).
+/// warpAffine port, aligned crops and embeddings (references from tools/lab/face_embed_refs.py); AdaFace IR-101 (P22,
+/// ONNX exported on the PC) against the authors' PyTorch network on the same crops (tools/lab/adaface_refs.py).
 /// </summary>
 [Trait(TestCategory.Name, TestCategory.Parity)]
 public sealed class FaceEmbeddingParityTests
@@ -57,9 +58,16 @@ public sealed class FaceEmbeddingParityTests
     [InlineData("arcface", ExecutionTarget.Cpu)]
     [InlineData("arcface", ExecutionTarget.Gpu)]
     [InlineData("sface", ExecutionTarget.Cpu)]
+    [InlineData("adaface", ExecutionTarget.Cpu)]
+    [InlineData("adaface", ExecutionTarget.Gpu)]
     public async Task Crops_and_embeddings_match_the_references(string model, ExecutionTarget target)
     {
         var (folder, index) = References();
+        if (model == "adaface" && !File.Exists(Path.Combine(folder, "adaface_index.json")))
+        {
+            Assert.Skip($"References missing: run tools/lab/adaface_refs.py ({folder}).");
+        }
+
         var faces = JsonNode.Parse(File.ReadAllText(Path.Combine(folder, "index.json")))!["photos"]!.AsArray();
         var provider = new OnnxRuntimeInferenceProvider(new InferenceOptions(GpuRuntime.Directory));
         if (target == ExecutionTarget.Gpu && !provider.Detected.AvailableBackends.Contains(ExecutionBackend.Cuda))
@@ -67,10 +75,26 @@ public sealed class FaceEmbeddingParityTests
             Assert.Skip($"CUDA not available: {provider.GpuError}");
         }
 
-        var (id, file) = model == "arcface" ? ("insightface-buffalo-l", ArcFaceEmbedder.File) : ("opencv-sface-2021dec", SFaceEmbedder.File);
+        var (id, file) = model switch
+        {
+            "arcface" => ("insightface-buffalo-l", ArcFaceEmbedder.File),
+            "adaface" => ("adaface-ir101-webface12m", AdaFaceEmbedder.File),
+            _ => ("opencv-sface-2021dec", SFaceEmbedder.File),
+        };
         using var session = await provider.CreateSessionAsync(
             new ModelDescriptor(id, ModelFunction.Faces, model, "test", Path.Combine(TestData.RequireDirectory("models", id), file), string.Empty, model), target, Ct);
-        IFaceEmbedder embedder = model == "arcface" ? new ArcFaceEmbedder(session) : new SFaceEmbedder(session);
+        IFaceEmbedder embedder = model switch
+        {
+            "arcface" => new ArcFaceEmbedder(session),
+            "adaface" => new AdaFaceEmbedder(session),
+            _ => new SFaceEmbedder(session),
+        };
+        var (cropName, embeddingName) = model switch
+        {
+            "arcface" => ("arc_crop", "arc_emb"),
+            "adaface" => ("arc_crop", "ada_emb"), // the same alignment as ArcFace
+            _ => ("sface_crop", "sface_emb"),
+        };
         var failures = new List<string>();
         double minCosine = 1, worstCrop = 0, maxMatrix = 0;
         var images = new Dictionary<string, RgbImage>();
@@ -96,10 +120,10 @@ public sealed class FaceEmbeddingParityTests
             }
 
             var crop = FaceAlignment.AlignedCrop(image, keypoints);
-            var (maxDiff, fraction) = Compare(crop, File.ReadAllBytes(Path.Combine(folder, $"{stem}.f{k}.{(model == "arcface" ? "arc" : "sface")}_crop.rgb")));
+            var (maxDiff, fraction) = Compare(crop, File.ReadAllBytes(Path.Combine(folder, $"{stem}.f{k}.{cropName}.rgb")));
             worstCrop = Math.Max(worstCrop, fraction);
             var detected = new DetectedFace(new PixelBox(0, 0, 1, 1), 1, keypoints, null, null, null);
-            var reference = Vectors.Normalize(ReadFloats(folder, $"{stem}.f{k}.{(model == "arcface" ? "arc" : "sface")}_emb"));
+            var reference = Vectors.Normalize(ReadFloats(folder, $"{stem}.f{k}.{embeddingName}"));
             var cosine = Vectors.Cosine(await embedder.EmbedAsync(image, detected, Ct), reference);
             minCosine = Math.Min(minCosine, cosine);
             if (cosine < MinCosine || maxDiff > 2 * MaxPixelDifference)

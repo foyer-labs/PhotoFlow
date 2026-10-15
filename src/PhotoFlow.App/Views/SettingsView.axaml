@@ -99,6 +99,20 @@
             <TextBlock Classes="label secondary" VerticalAlignment="Center" TextWrapping="Wrap" Text="{Binding ModelsFolderText}" />
             <Button Grid.Column="1" Classes="secondary" Command="{Binding RequestOfflinePackageCommand}" IsEnabled="{Binding !IsBusy}" Content="{l:Tr Settings.Models.ImportOffline}" />
           </Grid>
+          <Border Classes="card" Padding="16" IsVisible="{Binding HasRecognizerChoice}">
+            <StackPanel Spacing="8">
+              <TextBlock Classes="sectionTitle" Text="{l:Tr Settings.Models.Recognizer}" />
+              <TextBlock Classes="micro secondary" TextWrapping="Wrap" Text="{l:Tr Settings.Models.RecognizerNote}" />
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <ComboBox Width="260" ItemsSource="{Binding Recognizers}" SelectedItem="{Binding SelectedRecognizer}">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate><TextBlock Text="{Binding Label}" /></DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+                <Button Classes="secondary" Command="{Binding UseRecognizerCommand}" IsEnabled="{Binding CanChangeRecognizer}" Content="{l:Tr Settings.Models.RecognizerUse}" />
+              </StackPanel>
+            </StackPanel>
+          </Border>
           <ItemsControl ItemsSource="{Binding Models}">
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="vm:ModelRowViewModel">
@@ -110,7 +124,7 @@
                       <HyperlinkButton Padding="0" NavigateUri="{Binding LicenseUrl}">
                         <TextBlock Classes="micro secondary" TextDecorations="Underline" Text="{Binding LicenseText}" />
                       </HyperlinkButton>
-                      <CheckBox IsVisible="{Binding RequiresAcceptance}" IsEnabled="{Binding CanInstall}" IsChecked="{Binding LicenseAccepted}">
+                      <CheckBox IsVisible="{Binding RequiresAcceptance}" IsEnabled="{Binding CanAcceptLicense}" IsChecked="{Binding LicenseAccepted}">
                         <TextBlock Classes="micro" TextWrapping="Wrap" Text="{l:Tr Settings.Models.AcceptLicense}" />
                       </CheckBox>
                       <StackPanel Spacing="4" IsVisible="{Binding IsManualConvert}">
@@ -129,6 +143,10 @@
                       <Button Classes="ghost" IsVisible="{Binding CanVerify}"
                               Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).VerifyModelCommand}" CommandParameter="{Binding}"
                               Content="{l:Tr Settings.Models.Verify}" />
+                      <Button Classes="secondary" IsVisible="{Binding CanDownloadSource}"
+                              IsEnabled="{Binding !$parent[UserControl].((vm:SettingsViewModel)DataContext).IsBusy}"
+                              Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).DownloadSourceCommand}" CommandParameter="{Binding}"
+                              Content="{l:Tr Settings.Models.DownloadSource}" />
                       <Button Classes="ghost" IsVisible="{Binding IsManualConvert}"
                               Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).OpenSourceFolderCommand}" CommandParameter="{Binding}"
                               Content="{l:Tr Settings.Models.OpenFolder}" />

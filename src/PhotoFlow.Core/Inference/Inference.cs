@@ -64,6 +64,9 @@ public enum ModelFunction
     Vlm,
     Ocr,
     Aesthetic,
+
+    /// <summary>A face recognizer alone (fingerprints), chosen apart from the face detector (P22).</summary>
+    FaceRecognition,
 }
 
 /// <summary>A model resolved to a local, SHA-256 verified file.</summary>

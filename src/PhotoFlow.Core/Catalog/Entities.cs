@@ -428,6 +428,15 @@ public sealed record Person(long Id, string? Name, bool Ignored, long? CoverFace
 /// <summary>An encrypted fingerprint representing a person in a year (P12: the face changes over time).</summary>
 public sealed record PersonPrototype(long Id, long PersonId, long FaceId, int? Year, byte[] EncryptedEmbedding, string ModelVersion);
 
+/// <summary>
+/// The people of the catalog removed by a reset (P22): persons, named ones, faces assigned by the user, faces drawn by
+/// the user; the former names and the photos whose faces had a person or were drawn.
+/// </summary>
+public sealed record PeopleReset(int Persons, int NamedPersons, int ManualAssignments, int DrawnFaces, IReadOnlyList<string> Names, IReadOnlyList<long> AssetIds)
+{
+    public bool IsEmpty => Persons == 0 && ManualAssignments == 0 && DrawnFaces == 0;
+}
+
 /// <summary>A person with the size of its gallery (Persone, 4a): unnamed persons are clusters ("Persona N").</summary>
 public sealed record PersonSummary(Person Person, int FaceCount, int PhotoCount, int? FirstYear, int? LastYear, int ManualFaces);
 
