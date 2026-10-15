@@ -164,11 +164,19 @@ Sì. Apri l'anteprima grande in Consultazione (Spazio o doppio clic), premi **N*
 
 ### Un volto ha il nome sbagliato. Come lo correggo?
 
-Nell'anteprima grande fai clic sul riquadro del volto (un «?» o un nome sbagliato) e scegli la persona giusta. Dalla pagina di una persona puoi usare anche **Canc** («non è questa persona») o **Ctrl M** («Sposta a…»). La tua correzione è definitiva: nessuna analisi la cambierà.
+Nell'anteprima grande fai clic sul riquadro del volto (un «?» o un nome sbagliato) e scegli la persona giusta. Dalla pagina di una persona puoi usare anche **Canc** («non è questa persona») o **Ctrl M** («Sposta a…»). La tua correzione è definitiva: nessuna analisi la cambierà. Solo tu puoi toglierla, con «Riparti da zero con le persone».
 
 ### Che differenza c'è tra buffalo_l e YuNet/SFace?
 
 Sono due modelli per i volti, da scegliere in **Impostazioni › Modelli**. **buffalo_l** è consentito solo per uso **non commerciale** e si scarica solo dopo che hai accettato la sua licenza; **YuNet + SFace** hanno licenze permissive (MIT e Apache 2.0) e vanno bene anche per lavoro, ma non rilevano gli occhi chiusi. Se cambi modello con «Usa questo modello», PhotoFlow rifà l'analisi dei volti e i nomi che hai dato restano.
+
+### Posso usare un modello migliore per riconoscere le persone?
+
+Sì: in **Impostazioni › Modelli** c'è **AdaFace IR-101**, opzionale. Nelle prove sbaglia circa la metà delle volte rispetto ad ArcFace sui volti piccoli o sfocati; sui volti normali i due modelli si equivalgono. È solo per uso non commerciale e si converte sul tuo PC: accetta la licenza, premi «Scarica i file originali» e poi «Verifica e converti». Poi sceglilo in **«Riconoscimento delle persone»** e premi «Usa e rigenera i volti». Il rilevamento dei volti e degli occhi resta quello di prima.
+
+### Voglio ricominciare da zero con le persone. Come faccio?
+
+Nella rigenerazione dei volti spunta **«Riparti da zero con le persone»**. PhotoFlow ti dice quante persone, assegnazioni fatte a mano e volti disegnati eliminerà, in tutto il catalogo, e ti chiede di confermare. L'eliminazione avviene quando applichi la rigenerazione completa. Prima viene fatto un backup del catalogo, così puoi tornare indietro da «Ripristina…». I volti vengono poi raggruppati di nuovo e puoi ridare i nomi.
 
 ---
 

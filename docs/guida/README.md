@@ -524,6 +524,7 @@ Apri le Impostazioni con `Ctrl ,`. Le schede sono: Hardware, Modelli, Catalogo, 
 - I file vengono **verificati** (SHA-256).
 - **«Importa pacchetto offline…»** installa modelli e pacchetto GPU da una cartella copiata da un altro PC.
 - **«Usa questo modello»** cambia il modello in uso per una funzione.
+- **Riconoscimento delle persone.** Qui scegli il modello che crea le impronte dei volti: ArcFace (in buffalo_l), SFace oppure **AdaFace IR-101**, opzionale e più preciso sui volti piccoli o sfocati. AdaFace è solo per uso **non commerciale**: spunta l'accettazione della licenza, premi **«Scarica i file originali»** e poi **«Verifica e converti»** (pochi minuti, anche senza GPU; serve Python 3.10-3.13 già installato). Scelto il modello, **«Usa e rigenera i volti»** apre la rigenerazione dei volti su tutto il catalogo.
 
 **Rigenerare i risultati.** Quando cambi modello, PhotoFlow può rifare le analisi.
 
@@ -533,6 +534,11 @@ Apri le Impostazioni con `Ctrl ,`. Le schede sono: Hardware, Modelli, Catalogo, 
 4. Scegli **«Applica»** o **«Scarta»**.
 
 Le tue decisioni, i tuoi tag e i nomi che hai dato restano sempre.
+
+Nel perimetro puoi scegliere anche **«Tutto il catalogo»**. Se rigeneri i volti puoi spuntare **«Riparti da zero con le persone»**: PhotoFlow ti mostra quante persone, assegnazioni fatte a mano e volti disegnati verranno eliminati, e devi confermare con **«Sì, elimina tutte le persone»**.
+
+> ⚠️ **Attenzione**
+> L'azzeramento vale per **tutto il catalogo**, anche per le persone con nome e le assegnazioni fatte a mano. Avviene solo quando applichi la rigenerazione completa, mai con la prova su campione. Prima PhotoFlow fa un backup del catalogo: per tornare indietro usa **Impostazioni › Catalogo › «Ripristina…»**. Dagli XMP già scritti spariscono i nomi e le aree dei volti messi da PhotoFlow; quelli di altri programmi restano.
 
 ### Catalogo
 
