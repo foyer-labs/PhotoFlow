@@ -224,7 +224,7 @@ Tutti i modelli girano in ONNX Runtime; ogni funzione ha un modello attivo selez
 | Funzione | Default | Alternative | Peso indicativo | Disponibilità ONNX |
 | --- | --- | --- | --- | --- |
 | Rilevamento oggetti | D-FINE S (CPU) / M (GPU), pesi `obj2coco` fp32 | RF-DETR Nano-Large | 10-19M parametri | Conversioni `onnx-community` fissate per commit + SHA-256, verificate con test di parità contro il nostro export (`tools/lab`); riserva: nostro export su GitHub Releases |
-| Volti (rilevamento, landmark, impronte) | InsightFace buffalo\_l | buffalo\_s; YuNet/SFace (Apache 2.0) | 326 MB | Nativo |
+| Volti (rilevamento, landmark, impronte) | InsightFace buffalo\_l | buffalo\_s; YuNet/SFace (Apache 2.0); impronte AdaFace IR-101 opzionali (P22, non commerciale, convertito sul PC) | 326 MB (AdaFace +249 MB) | Nativo |
 | Embedding (raffiche, ricerca, duplicati, zero-shot) | CLIP ViT-B/32 fp32 (F2-1) | — | 606 MB (immagine 352 MB + testo 254 MB) | Disponibile (Xenova, fissato per commit + SHA-256); la conversione quantizzata è esclusa (coseno 0,87-0,97 con l'originale) |
 | Tagger | RAM++ fp32 (F3-1) | — | 1,86 GB | Export `CannotFindObject/RAM_ONNX` fissato per commit + SHA-256 (mirror `imagent/ram-plus-onnx`); stessi tag dell'originale su 52/52 foto; la int8 è esclusa |
 | Didascalie | Florence-2 base-ft fp32 (F5-1) | Florence-2 large (da adattare) | 1,09 GB | Encoder del testo, decoder e tokenizer `onnx-community` fissati per commit; encoder visivo esportato da noi (`tools/lab/export_florence_vision.py`) perché quello della conversione non corrisponde all'originale (coseno 0,94); adattatori nostri su `IInferenceProvider`, parità esatta delle didascalie con PyTorch su CPU e CUDA |
@@ -441,6 +441,13 @@ Scrittura (fase 2): solo le persone con nome e non ignorate, solo per foto confe
 - **Dire chi è un volto.** Nell'anteprima grande un clic su un riquadro (un "?" o un nome sbagliato) apre la stessa scelta della persona. L'assegnazione diventa manuale (I5). Le due persone, la nuova e l'eventuale precedente, rifanno i campioni: l'impronta del volto aiuta a riconoscere la persona nelle altre foto.
 - **Aggiungere un volto a mano.** Serve quando il rilevamento non ha trovato un volto. Nell'anteprima grande della Consultazione si preme N e si trascina un riquadro sul volto. Poi si sceglie la persona da un elenco: quelle con nome, in ordine alfabetico, oppure "+ Nuova persona…".
 - **Come viene salvato.** Il volto è dell'utente: assegnazione manuale, versione `manual`, nessuna impronta. Per I5 nessuna analisi lo cancella o lo riassegna. Se una rigenerazione con un altro modello trova lo stesso volto (IoU ≥ 0,5, come F5-3), il volto rilevato prende il posto del riquadro disegnato e tiene la persona e l'assegnazione manuale. Va nell'XMP come regione MWG con il nome, come gli altri volti con nome. Senza impronta non contribuisce ai campioni della persona, quindi non aiuta a riconoscerla altrove.
+
+**Modello di riconoscimento e azzeramento delle persone** (15 ott 2026, su richiesta dell'utente, P22):
+
+- **Scelta del riconoscimento.** Il modello delle impronte si sceglie a parte dal rilevatore (Impostazioni › Modelli › "Riconoscimento delle persone"): ArcFace w600k\_r50 (in buffalo\_l), SFace, oppure **AdaFace IR-101** (WebFace12M, opzionale). Senza una scelta vale l'abbinamento di prima (buffalo\_l → ArcFace, YuNet → SFace). Il rilevatore e gli occhi restano quelli scelti (buffalo\_l o YuNet): tutti forniscono i 5 punti per l'allineamento.
+- **AdaFace IR-101.** Migliore sui volti piccoli e sfocati: su LFW (6.000 coppie, laboratorio del 15 ott 2026) errori da 1,65% a 0,80% con volti di 16 px e da 1,23% a 0,72% con sfocatura forte, pari sui volti normali. Stesso ritaglio e stessa normalizzazione di ArcFace, 512 valori. Soglie tarate su LFW a parità di falsi riconoscimenti con ArcFace (3 milioni di coppie diverse): assegnazione **0,42**, suggerimento 0,32 (fascia di 0,10). I pesi (Hugging Face `minchul/cvlface_adaface_ir101_webface12m`, revisione fissa, SHA-256) si scaricano dall'app e si convertono in ONNX sul PC con l'ambiente Python della conversione del livello D (`tools/vlm`), su CPU; parità con la rete PyTorch degli autori (coseno minimo 0,99999 su 200 volti, CPU e CUDA; `tools/lab/adaface_refs.py`). La scheda non ha una licenza propria e rimanda a quella del set di addestramento (WebFace): come buffalo\_l, **solo uso non commerciale, con accettazione esplicita**.
+- **Cambio di modello.** Impronte incompatibili tra modelli: dopo la scelta la rigenerazione dei volti rifà rilevamento e impronte (F5-3: assegnazioni trasferite per sovrapposizione, I5), con ambito anche **"Tutto il catalogo"**.
+- **Ripartire da zero con le persone.** Nella rigenerazione dei volti un'opzione esplicita, spenta di default, cancella in **tutto il catalogo** le persone (anche con nome), tutte le assegnazioni (anche manuali), i suggerimenti, i campioni e i volti disegnati a mano; si applica con la rigenerazione completa (mai con la prova su campione), dopo una conferma con i conteggi, ricontati nell'anteprima prima di "Applica"; prima dell'applicazione PhotoFlow fa un backup del catalogo e dopo raggruppa di nuovo i volti di tutti gli anni. Non è un processo automatico che sovrascrive le scelte dell'utente (I5) ma una sua azione esplicita, come "Elimina persona". Gli XMP già scritti vengono riscritti: spariscono regioni e keyword delle persone cancellate; le regioni scritte da altri programmi restano.
 
 ### Regole di qualità
 
@@ -1134,6 +1141,7 @@ Il progetto è Apache 2.0; l'unico componente non commerciale (buffalo\_l) è op
 | [InsightFace buffalo\_l](https://pypi.org/project/insightface/) | Solo ricerca non commerciale | No |
 | YuNet (OpenCV Zoo) | MIT (LICENSE in opencv\_zoo, verificato il 12 ott 2026) | Sì |
 | SFace (OpenCV Zoo) | Apache 2.0 (LICENSE in opencv\_zoo, verificato il 12 ott 2026) | Sì |
+| AdaFace IR-101 WebFace12M (CVLFace) | Codice AdaFace MIT; la scheda dei pesi rimanda alla licenza del set di addestramento (WebFace, termini non verificabili il 15 ott 2026) | Trattato come non commerciale, con accettazione |
 | YOLO Ultralytics | AGPL-3.0 | Escluso dal progetto |
 
 ## 16. Registro dei rischi
@@ -1191,6 +1199,7 @@ Decisioni emerse in Design (confermate), funzioni rinviate a dopo la stabilizzaz
 | P18 | Impostazioni | Cambio lingua applicato al riavvio della finestra (non a caldo) | Semplifica la localizzazione |
 | P19 | Catalogo | Estensione del file catalogo `.pfdb` |  |
 | P20 | Import | Variabili del template percorsi: `{yyyy}` `{MM}` `{evento}` `{seq}` `{camera}` `{nomeoriginale}` `{ext}`; caratteri non validi sostituiti con "-" |  |
+| P22 | Persone | Richiesta dell'utente (15 ott 2026): modello di riconoscimento scelto a parte (ArcFace, SFace, AdaFace IR-101 opzionale); rigenerazione dei volti su tutto il catalogo; opzione esplicita per ripartire da zero con le persone (persone, nomi, assegnazioni anche manuali, volti disegnati a mano, in tutto il catalogo, dopo conferma con i conteggi) — §7 | L'azzeramento è un'azione dell'utente, non una sovrascrittura automatica (I5) |
 
 ### Backlog post-stabilità
 
