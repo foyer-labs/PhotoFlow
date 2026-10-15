@@ -1013,4 +1013,26 @@
   <data name="Settings.Updates.JobRunning" xml:space="preserve"><value>A job is running: install the update when it ends.</value></data>
   <data name="Settings.Updates.Failed" xml:space="preserve"><value>Could not check or install the update: {0}</value></data>
   <data name="Settings.Updates.NotInstalled" xml:space="preserve"><value>PhotoFlow runs from a build folder: updates come with the installed version.</value></data>
+  <data name="Models.Function.FaceRecognition" xml:space="preserve"><value>People recognition</value></data>
+  <data name="Settings.Models.ManualNoteSmall" xml:space="preserve"><value>Original files from Hugging Face ({0}, about {1}): "Download the original files" puts them in the folder below once the license is accepted (or copy them yourself). Then "Verify and convert": PhotoFlow checks them and converts them with Python 3.10-3.13 already installed, without a GPU too, in a few minutes; the first time it prepares the Python environment of the conversion (about 5 GB, the same as the description model). The original files are only read.</value></data>
+  <data name="Settings.Models.DownloadSource" xml:space="preserve"><value>Download the original files</value></data>
+  <data name="Settings.Models.SourceReady" xml:space="preserve"><value>Original files of {0} downloaded and verified: now "Verify and convert".</value></data>
+  <data name="Settings.Models.Converted" xml:space="preserve"><value>Model converted and ready: choose it above, in "People recognition".</value></data>
+  <data name="Settings.Models.Recognizer" xml:space="preserve"><value>People recognition</value></data>
+  <data name="Settings.Models.RecognizerNote" xml:space="preserve"><value>The model that makes the face fingerprints PhotoFlow recognizes people with. When you change it, PhotoFlow proposes to regenerate the faces of the whole catalog: the assignments move to the new faces, or you can start again from zero with the people.</value></data>
+  <data name="Settings.Models.RecognizerUse" xml:space="preserve"><value>Use and regenerate the faces</value></data>
+  <data name="Settings.Models.Recognizer.insightface-buffalo-l" xml:space="preserve"><value>ArcFace (buffalo_l)</value></data>
+  <data name="Settings.Models.Recognizer.opencv-sface-2021dec" xml:space="preserve"><value>SFace (OpenCV)</value></data>
+  <data name="Settings.Models.Recognizer.adaface-ir101-webface12m" xml:space="preserve"><value>AdaFace IR-101</value></data>
+  <data name="Regeneration.Scope.AllCatalog" xml:space="preserve"><value>The whole catalog</value></data>
+  <data name="Regeneration.Reset" xml:space="preserve"><value>Start again from zero with the people</value></data>
+  <data name="Regeneration.Reset.Note" xml:space="preserve"><value>Deletes every person, name and assignment, manual ones included, and the drawn faces, in the whole catalog; then the faces are grouped again.</value></data>
+  <data name="Regeneration.Reset.Counts" xml:space="preserve"><value>{0} people ({1} with a name), {2} manual assignments and {3} drawn faces will be deleted.</value></data>
+  <data name="Regeneration.Reset.Warning" xml:space="preserve"><value>It happens only when you apply the complete regeneration, never with the trial on a sample, and PhotoFlow backs up the catalog first (Settings › Catalog). Names and face areas also leave the XMP already written by PhotoFlow; those of other programs stay.</value></data>
+  <data name="Regeneration.Reset.Confirm" xml:space="preserve"><value>Yes, delete every person</value></data>
+  <data name="Regeneration.Reset.Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Regeneration.Reset.Confirmed" xml:space="preserve"><value>Confirmed: the people will be deleted when you apply the regeneration.</value></data>
+  <data name="Regeneration.Reset.ConfirmFirst" xml:space="preserve"><value>Confirm the reset of the people first, or clear the choice.</value></data>
+  <data name="Regeneration.Reset.Preview" xml:space="preserve"><value>Reset of the people:</value></data>
+  <data name="Regeneration.Reset.Done" xml:space="preserve"><value>People reset: {0} people, {1} manual assignments and {2} drawn faces deleted.</value></data>
 </root>

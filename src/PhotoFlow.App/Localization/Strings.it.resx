@@ -1013,4 +1013,26 @@
   <data name="Settings.Updates.JobRunning" xml:space="preserve"><value>C'è un job in corso: installa l'aggiornamento quando finisce.</value></data>
   <data name="Settings.Updates.Failed" xml:space="preserve"><value>Non è stato possibile controllare o installare l'aggiornamento: {0}</value></data>
   <data name="Settings.Updates.NotInstalled" xml:space="preserve"><value>PhotoFlow è avviato da una cartella di sviluppo: gli aggiornamenti funzionano con la versione installata.</value></data>
+  <data name="Models.Function.FaceRecognition" xml:space="preserve"><value>Riconoscimento persone</value></data>
+  <data name="Settings.Models.ManualNoteSmall" xml:space="preserve"><value>File originali da Hugging Face ({0}, circa {1}): «Scarica i file originali» li mette nella cartella qui sotto dopo l'accettazione della licenza (oppure copiali tu). Poi «Verifica e converti»: PhotoFlow li controlla e li converte con Python 3.10-3.13 già installato, anche senza GPU, in pochi minuti; la prima volta prepara l'ambiente Python della conversione (circa 5 GB, lo stesso del modello delle descrizioni). I file originali vengono solo letti.</value></data>
+  <data name="Settings.Models.DownloadSource" xml:space="preserve"><value>Scarica i file originali</value></data>
+  <data name="Settings.Models.SourceReady" xml:space="preserve"><value>File originali di {0} scaricati e verificati: ora «Verifica e converti».</value></data>
+  <data name="Settings.Models.Converted" xml:space="preserve"><value>Modello convertito e pronto: sceglilo qui sopra, in «Riconoscimento delle persone».</value></data>
+  <data name="Settings.Models.Recognizer" xml:space="preserve"><value>Riconoscimento delle persone</value></data>
+  <data name="Settings.Models.RecognizerNote" xml:space="preserve"><value>Il modello che crea le impronte dei volti con cui PhotoFlow riconosce le persone. Cambiandolo, PhotoFlow propone di rigenerare i volti di tutto il catalogo: le assegnazioni passano ai nuovi volti, oppure puoi ripartire da zero con le persone.</value></data>
+  <data name="Settings.Models.RecognizerUse" xml:space="preserve"><value>Usa e rigenera i volti</value></data>
+  <data name="Settings.Models.Recognizer.insightface-buffalo-l" xml:space="preserve"><value>ArcFace (buffalo_l)</value></data>
+  <data name="Settings.Models.Recognizer.opencv-sface-2021dec" xml:space="preserve"><value>SFace (OpenCV)</value></data>
+  <data name="Settings.Models.Recognizer.adaface-ir101-webface12m" xml:space="preserve"><value>AdaFace IR-101</value></data>
+  <data name="Regeneration.Scope.AllCatalog" xml:space="preserve"><value>Tutto il catalogo</value></data>
+  <data name="Regeneration.Reset" xml:space="preserve"><value>Riparti da zero con le persone</value></data>
+  <data name="Regeneration.Reset.Note" xml:space="preserve"><value>Elimina tutte le persone, i nomi e le assegnazioni, anche quelle fatte a mano, e i volti disegnati, in tutto il catalogo; poi i volti vengono raggruppati di nuovo.</value></data>
+  <data name="Regeneration.Reset.Counts" xml:space="preserve"><value>Verranno eliminate {0} persone ({1} con un nome), {2} assegnazioni fatte a mano e {3} volti disegnati.</value></data>
+  <data name="Regeneration.Reset.Warning" xml:space="preserve"><value>Avviene solo quando applichi la rigenerazione completa, mai con la prova su campione, e prima PhotoFlow fa un backup del catalogo (Impostazioni › Catalogo). I nomi e le aree dei volti spariscono anche dagli XMP già scritti da PhotoFlow; quelli di altri programmi restano.</value></data>
+  <data name="Regeneration.Reset.Confirm" xml:space="preserve"><value>Sì, elimina tutte le persone</value></data>
+  <data name="Regeneration.Reset.Cancel" xml:space="preserve"><value>Annulla</value></data>
+  <data name="Regeneration.Reset.Confirmed" xml:space="preserve"><value>Confermato: le persone verranno eliminate quando applichi la rigenerazione.</value></data>
+  <data name="Regeneration.Reset.ConfirmFirst" xml:space="preserve"><value>Conferma prima l'azzeramento delle persone, oppure togli la scelta.</value></data>
+  <data name="Regeneration.Reset.Preview" xml:space="preserve"><value>Azzeramento delle persone:</value></data>
+  <data name="Regeneration.Reset.Done" xml:space="preserve"><value>Persone azzerate: eliminate {0} persone, {1} assegnazioni fatte a mano e {2} volti disegnati.</value></data>
 </root>

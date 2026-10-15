@@ -306,6 +306,16 @@ public interface IPeopleStore
 
     /// <summary>Drops every fingerprint and prototype (key reset): assignments and names stay.</summary>
     Task ClearFingerprintsAsync(CancellationToken ct);
+
+    /// <summary>What <see cref="ResetAsync"/> would remove, for the confirmation (P22).</summary>
+    Task<PeopleReset> CountResetAsync(CancellationToken ct);
+
+    /// <summary>
+    /// "Ripartire da zero con le persone" (P22), only on the user's explicit request: every person, every assignment
+    /// (manual ones included), suggestion and prototype, and the faces drawn by the user, in the whole catalog. The
+    /// detected faces and their fingerprints stay. Returns what was removed (the former names, for the XMP).
+    /// </summary>
+    Task<PeopleReset> ResetAsync(CancellationToken ct);
 }
 
 /// <summary>The labelled set of the culling metrics (spec §14).</summary>

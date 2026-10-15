@@ -45,8 +45,14 @@ public sealed class ExifToolMetadataWriter : IMetadataWriter
         {
             var sidecar = SidecarPath(target.FilePath);
             var source = (target.IsRaw || policy == WritePolicy.SidecarOnly) && _fileSystem.FileExists(sidecar) ? sidecar : target.FilePath;
-            // The MWG module gives the regions their tag names; a long-running session may not have loaded it yet.
-            tags = ["-use", "MWG", .. tags, RegionArgument(regions, await ReadRegionsAsync(source, ct).ConfigureAwait(false))];
+            var existing = await ReadRegionsAsync(source, ct).ConfigureAwait(false);
+
+            // No face of PhotoFlow to write or to take away: the regions in the file are left as they are.
+            if (regions.Regions.Count > 0 || existing.Any(e => e.Name is { } name && regions.ManagedNames.Contains(name)))
+            {
+                // The MWG module gives the regions their tag names; a long-running session may not have loaded it yet.
+                tags = ["-use", "MWG", .. tags, RegionArgument(regions, existing)];
+            }
         }
 
         if (target.IsRaw || policy == WritePolicy.SidecarOnly)

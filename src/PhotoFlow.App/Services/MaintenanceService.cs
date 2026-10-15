@@ -49,10 +49,13 @@ public sealed class MaintenanceService(IAppPaths paths, InternalFileCleaner clea
     }
 
     /// <summary>Backup requested by the user (board 5h), then rotation.</summary>
-    public async Task<string> BackupNowAsync(ICatalog catalog, CancellationToken ct)
+    public Task<string> BackupNowAsync(ICatalog catalog, CancellationToken ct) => BackupAsync(catalog, "manual", ct);
+
+    /// <summary>Backup before an operation the user cannot undo otherwise (the reset of the people, P22), then rotation.</summary>
+    public async Task<string> BackupAsync(ICatalog catalog, string label, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(catalog);
-        var backup = await catalog.BackupAsync(paths.BackupsDirectory, "manual", ct).ConfigureAwait(false);
+        var backup = await catalog.BackupAsync(paths.BackupsDirectory, label, ct).ConfigureAwait(false);
         RotateBackups();
         return backup;
     }

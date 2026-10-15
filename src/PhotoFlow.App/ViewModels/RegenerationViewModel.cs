@@ -12,6 +12,7 @@ using PhotoFlow.App.Localization;
 using PhotoFlow.App.Services;
 using PhotoFlow.Core.Catalog;
 using PhotoFlow.Core.Pipeline;
+using PhotoFlow.Sources.Jobs;
 
 namespace PhotoFlow.App.ViewModels;
 
@@ -31,7 +32,8 @@ public sealed partial class RegenerationPartViewModel(ReanalysisParts part, bool
 /// <summary>
 /// Regeneration (spec §5, D14; board 5g "Prova su campione → anteprima differenze → rianalisi"): perimeter (a library and
 /// a folder of it, the photos of a job, a search result), the parts to compute again, "only older models" or "force
-/// all", leaving out what was reviewed. A trial on a sample or the whole perimeter runs as a low-priority job; the new
+/// all", leaving out what was reviewed; the whole catalog too, and, with the faces, "Riparti da zero con le persone"
+/// (P22: every person and assignment goes, manual ones included, after a confirmation with the counts). A trial on a sample or the whole perimeter runs as a low-priority job; the new
 /// results wait; the preview shows the differences; "Applica" confirms them (the user's decisions stay, I5), "Scarta"
 /// keeps the catalog as it was.
 /// </summary>
@@ -50,15 +52,18 @@ public sealed partial class RegenerationViewModel : PageViewModel, IDisposable
     private readonly IShellNavigator? _navigator;
     private readonly long? _sourceJobId;
     private readonly IReadOnlyList<long>? _assetIds;
+    private readonly bool _allCatalog;
 
     /// <param name="libraryId">Perimeter: a library (and a folder of it).</param>
     /// <param name="sourceJobId">Perimeter: the photos of a job.</param>
     /// <param name="assetIds">Perimeter: chosen photos (a search result, one photo).</param>
     /// <param name="reanalysisJobId">A regeneration already run: its preview.</param>
     /// <param name="parts">Parts proposed (a new model: the parts it makes).</param>
+    /// <param name="allCatalog">Perimeter proposed: the whole catalog (a new face recognizer, P22).</param>
     public RegenerationViewModel(PhotoFlowHost host, IShellNavigator? navigator, long? libraryId = null, long? sourceJobId = null, IReadOnlyList<long>? assetIds = null,
-        long? reanalysisJobId = null, ReanalysisParts? parts = null, string? note = null)
+        long? reanalysisJobId = null, ReanalysisParts? parts = null, string? note = null, bool allCatalog = false)
     {
+        _allCatalog = allCatalog;
         _host = host;
         _navigator = navigator;
         _sourceJobId = sourceJobId;
@@ -78,7 +83,19 @@ public sealed partial class RegenerationViewModel : PageViewModel, IDisposable
         };
         foreach (var (part, isAvailable) in available)
         {
-            Parts.Add(new RegenerationPartViewModel(part, isAvailable) { IsChecked = isAvailable && (parts is null || parts.Value.HasFlag(part)) });
+            var row = new RegenerationPartViewModel(part, isAvailable) { IsChecked = isAvailable && (parts is null || parts.Value.HasFlag(part)) };
+            if (part == ReanalysisParts.Faces)
+            {
+                row.PropertyChanged += (_, e) =>
+                {
+                    if (e.PropertyName == nameof(RegenerationPartViewModel.IsChecked))
+                    {
+                        OnPropertyChanged(nameof(CanResetPeople));
+                    }
+                };
+            }
+
+            Parts.Add(row);
         }
 
         _host.Jobs.StatusChanged += OnJobStatus;
@@ -118,7 +135,28 @@ public sealed partial class RegenerationViewModel : PageViewModel, IDisposable
     private long? _libraryId;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsAllCatalog))]
     private OptionItem<long?>? _library;
+
+    /// <summary>The perimeter is the whole catalog (the last choice of the list, P22).</summary>
+    public bool IsAllCatalog => !HasFixedScope && Library is { Value: null };
+
+    /// <summary>The faces are computed again: the people can start from zero (P22).</summary>
+    public bool CanResetPeople => Parts.Any(p => p.Part == ReanalysisParts.Faces && p.IsChecked && p.IsAvailable);
+
+    /// <summary>"Riparti da zero con le persone": asked, then confirmed after the counts.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(AsksResetConfirmation))]
+    private bool _resetPeople;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(AsksResetConfirmation))]
+    private bool _resetConfirmed;
+
+    [ObservableProperty]
+    private string? _resetText;
+
+    public bool AsksResetConfirmation => ResetPeople && !ResetConfirmed;
 
     [ObservableProperty]
     private string? _folder;
@@ -165,7 +203,8 @@ public sealed partial class RegenerationViewModel : PageViewModel, IDisposable
             Libraries.Add(new OptionItem<long?>(library.Id, library.Name));
         }
 
-        Library = Libraries.FirstOrDefault(l => l.Value == LibraryId) ?? Libraries.FirstOrDefault();
+        Libraries.Add(new OptionItem<long?>(null, Strings.Get("Regeneration.Scope.AllCatalog")));
+        Library = _allCatalog ? Libraries[^1] : Libraries.FirstOrDefault(l => l.Value is not null && l.Value == LibraryId) ?? Libraries[0];
         if (JobId is { } jobId)
         {
             Running = _host.Jobs.IsRunning(jobId);
@@ -179,6 +218,35 @@ public sealed partial class RegenerationViewModel : PageViewModel, IDisposable
 
     partial void OnLibraryChanged(OptionItem<long?>? value) => LibraryId = value?.Value;
 
+    partial void OnResetPeopleChanged(bool value)
+    {
+        ResetConfirmed = false;
+        ResetText = null;
+        if (value)
+        {
+            _ = ShowResetCountsAsync();
+        }
+    }
+
+    private async Task ShowResetCountsAsync()
+    {
+        var counts = await Task.Run(() => _host.Catalog.People.CountResetAsync(CancellationToken.None));
+        ResetText = ResetCountsText(counts);
+    }
+
+    private static string ResetCountsText(PeopleReset counts)
+    {
+        string N(int value) => value.ToString("N0", CultureInfo.CurrentCulture);
+        return Strings.Format("Regeneration.Reset.Counts", N(counts.Persons), N(counts.NamedPersons), N(counts.ManualAssignments), N(counts.DrawnFaces));
+    }
+
+    /// <summary>The second, explicit step of the reset: the counts were shown.</summary>
+    [RelayCommand]
+    private void ConfirmReset() => ResetConfirmed = ResetPeople;
+
+    [RelayCommand]
+    private void CancelReset() => ResetPeople = false;
+
     private ReanalysisSettings Settings(int? sample) => new(
         Parts.Where(p => p.IsChecked && p.IsAvailable).Aggregate(ReanalysisParts.None, (all, p) => all | p.Part),
         ForceAll ? ReanalysisMode.ForceAll : ReanalysisMode.OlderModelOnly,
@@ -188,7 +256,9 @@ public sealed partial class RegenerationViewModel : PageViewModel, IDisposable
         _assetIds,
         ExcludeReviewed,
         sample,
-        _host.Settings.Import.ProfileId);
+        _host.Settings.Import.ProfileId,
+        AllCatalog: IsAllCatalog,
+        ResetPeople: ResetPeople && ResetConfirmed && CanResetPeople && sample is null);
 
     /// <summary>Ctrl P: a trial on a sample of the perimeter.</summary>
     [RelayCommand]
@@ -206,9 +276,15 @@ public sealed partial class RegenerationViewModel : PageViewModel, IDisposable
         }
 
         var settings = Settings(sample);
-        if (settings.Parts == ReanalysisParts.None || (settings.LibraryId is null && settings.SourceJobId is null && settings.AssetIds is null))
+        if (settings.Parts == ReanalysisParts.None || (settings.LibraryId is null && settings.SourceJobId is null && settings.AssetIds is null && !settings.AllCatalog))
         {
             ResultText = Strings.Get("Regeneration.NothingChosen");
+            return;
+        }
+
+        if (sample is null && AsksResetConfirmation && CanResetPeople)
+        {
+            ResultText = Strings.Get("Regeneration.Reset.ConfirmFirst");
             return;
         }
 
@@ -293,6 +369,14 @@ public sealed partial class RegenerationViewModel : PageViewModel, IDisposable
             PreviewLines.Add(Strings.Format("Regeneration.Preview.Ocr", N(preview.OcrChanged)));
         }
 
+        // P22: what the reset will remove, counted again right before "Applica".
+        if (await _host.Catalog.Jobs.GetAsync(jobId, CancellationToken.None) is { } job
+            && ReanalysisJobRunner.DeserializeSettings(job.SettingsSnapshotJson) is { ResetPeople: true, Sample: null })
+        {
+            var counts = await Task.Run(() => _host.Catalog.People.CountResetAsync(CancellationToken.None));
+            PreviewLines.Add(Strings.Get("Regeneration.Reset.Preview") + " " + ResetCountsText(counts));
+        }
+
         foreach (var example in preview.Examples)
         {
             Examples.Add(example);
@@ -317,6 +401,13 @@ public sealed partial class RegenerationViewModel : PageViewModel, IDisposable
             var applied = await Task.Run(() => _host.ApplyReanalysisAsync(jobId, CancellationToken.None));
             ResultText = Strings.Format("Regeneration.Applied", applied.Photos.ToString("N0", CultureInfo.CurrentCulture),
                 applied.Transferred.ToString("N0", CultureInfo.CurrentCulture), applied.XmpWritten.ToString("N0", CultureInfo.CurrentCulture));
+            if (applied.Reset is { } reset)
+            {
+                ResultText += " " + Strings.Format("Regeneration.Reset.Done", reset.Persons.ToString("N0", CultureInfo.CurrentCulture),
+                    reset.ManualAssignments.ToString("N0", CultureInfo.CurrentCulture), reset.DrawnFaces.ToString("N0", CultureInfo.CurrentCulture));
+                ResetPeople = false;
+            }
+
             Preview = null;
             PreviewLines.Clear();
             Examples.Clear();

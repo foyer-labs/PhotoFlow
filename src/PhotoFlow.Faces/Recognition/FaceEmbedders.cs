@@ -27,7 +27,10 @@ public sealed class ArcFaceEmbedder(IInferenceSession session) : IFaceEmbedder
         return Vectors.Normalize(outputs[0].AsFloat32().Span);
     }
 
-    public static NamedTensor PrepareInput(RgbImage crop)
+    public static NamedTensor PrepareInput(RgbImage crop) => PrepareInput(crop, InputName);
+
+    /// <summary>The ArcFace input under another tensor name (AdaFace takes the same crop and normalization).</summary>
+    public static NamedTensor PrepareInput(RgbImage crop, string inputName)
     {
         ArgumentNullException.ThrowIfNull(crop);
         const int plane = FaceAlignment.CropSize * FaceAlignment.CropSize;
@@ -41,7 +44,30 @@ public sealed class ArcFaceEmbedder(IInferenceSession session) : IFaceEmbedder
             }
         }
 
-        return NamedTensor.Float32(InputName, data, 1, 3, FaceAlignment.CropSize, FaceAlignment.CropSize);
+        return NamedTensor.Float32(inputName, data, 1, 3, FaceAlignment.CropSize, FaceAlignment.CropSize);
+    }
+}
+
+/// <summary>
+/// AdaFace IR-101 WebFace12M (P22, optional, non-commercial, accepted by the user; ONNX exported on this PC by
+/// tools/vlm/recipes/adaface_ir101): the ArcFace crop and normalization → 512 values, L2-normalized. Better than ArcFace
+/// on small and blurred faces; its own thresholds (<see cref="FaceMatching.AdaFaceThreshold"/>).
+/// </summary>
+public sealed class AdaFaceEmbedder(IInferenceSession session) : IFaceEmbedder
+{
+    public const string File = "adaface_ir101.onnx";
+    public const string InputName = "input";
+
+    public string ModelVersion => $"{session.Model.Id}@{session.Model.Version}/adaface";
+
+    public int Dimensions => 512;
+
+    public async Task<float[]> EmbedAsync(RgbImage image, DetectedFace face, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(face);
+        var crop = FaceAlignment.AlignedCrop(image, face.Keypoints);
+        var outputs = await session.RunAsync([ArcFaceEmbedder.PrepareInput(crop, InputName)], ct).ConfigureAwait(false);
+        return Vectors.Normalize(outputs[0].AsFloat32().Span);
     }
 }
 

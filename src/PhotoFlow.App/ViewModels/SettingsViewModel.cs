@@ -55,18 +55,25 @@ public sealed partial class ModelRowViewModel(ModelInfo model, bool available) :
 
     public bool CanConvert => IsManualConvert && !IsConverting;
 
+    /// <summary>The license can be ticked until the model is there (a converted model is accepted before its download).</summary>
+    public bool CanAcceptLicense => IsAvailable && !IsInstalled;
+
+    /// <summary>PhotoFlow fetches the original files of a model to convert into its source folder (pinned, SHA-256 checked).</summary>
+    public bool CanDownloadSource => IsManualConvert && !IsInstalled && !IsConverting;
+
     /// <summary>The files to put in the source folder.</summary>
     public string SourceFilesText => string.Join(", ", Model.Files.Select(f => f.Path));
 
     /// <summary>Where the original files come from and how big they are, then what the conversion needs.</summary>
-    public string ManualNote => Strings.Format("Settings.Models.ManualNote", Model.License.Source.Replace("https://huggingface.co/", string.Empty, StringComparison.Ordinal), SizeText);
+    public string ManualNote => Strings.Format(Model.Function == ModelFunction.Vlm ? "Settings.Models.ManualNote" : "Settings.Models.ManualNoteSmall",
+        Model.License.Source.Replace("https://huggingface.co/", string.Empty, StringComparison.Ordinal), SizeText);
 
     /// <summary>Where the user puts the original files.</summary>
     [ObservableProperty]
     private string _sourceFolder = string.Empty;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CanConvert), nameof(CanRemoveEnvironment))]
+    [NotifyPropertyChangedFor(nameof(CanConvert), nameof(CanRemoveEnvironment), nameof(CanDownloadSource))]
     private bool _isConverting;
 
     /// <summary>The private Python environment of the conversion is there (~5 GB, removable once converted).</summary>
@@ -86,7 +93,7 @@ public sealed partial class ModelRowViewModel(ModelInfo model, bool available) :
     private string? _conversionText;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CanInstall), nameof(CanVerify), nameof(Status))]
+    [NotifyPropertyChangedFor(nameof(CanInstall), nameof(CanVerify), nameof(Status), nameof(CanAcceptLicense), nameof(CanDownloadSource), nameof(CanUse))]
     private bool _isInstalled;
 
     [ObservableProperty]
@@ -262,6 +269,23 @@ public sealed partial class SettingsViewModel : PageViewModel
 
     [ObservableProperty]
     private string _modelsFolderText = string.Empty;
+
+    /// <summary>The models that can make the fingerprints of the people now (P22): installed and accepted.</summary>
+    public ObservableCollection<SettingChoice<string>> Recognizers { get; } = [];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanChangeRecognizer))]
+    private SettingChoice<string>? _selectedRecognizer;
+
+    /// <summary>The recognizer the analysis uses now.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanChangeRecognizer), nameof(HasRecognizerChoice))]
+    private string? _recognizerInUse;
+
+    /// <summary>There is a face detector and more than one recognizer to pick.</summary>
+    public bool HasRecognizerChoice => RecognizerInUse is not null && Recognizers.Count > 1;
+
+    public bool CanChangeRecognizer => SelectedRecognizer is { } choice && choice.Value != RecognizerInUse;
 
     // Catalog (5h)
 
@@ -613,6 +637,38 @@ public sealed partial class SettingsViewModel : PageViewModel
 
     private CancellationTokenSource? _conversion;
 
+    /// <summary>The license is recorded as accepted only when the user ticked it and asked for the model.</summary>
+    private Task RecordAcceptanceAsync(ModelRowViewModel row) => row.RequiresAcceptance && row.LicenseAccepted
+        ? _host.UpdateSettingsAsync(s => s with { AcceptedModelLicenses = s.AcceptedModelLicenses.Append(row.Model.Id).Distinct().ToList() }, CancellationToken.None)
+        : Task.CompletedTask;
+
+    /// <summary>
+    /// "Scarica i file originali" (P22): the original files of a model to convert go into its source folder (pinned
+    /// addresses, SHA-256 checked, files already there and intact kept), after the license when it needs acceptance.
+    /// </summary>
+    [RelayCommand]
+    private async Task DownloadSourceAsync(ModelRowViewModel? row)
+    {
+        if (row is not { CanDownloadSource: true })
+        {
+            return;
+        }
+
+        if (row.RequiresAcceptance && !row.LicenseAccepted)
+        {
+            Message = Strings.Format("FirstRun.AcceptModelLicense", row.Name);
+            return;
+        }
+
+        await RunAsync(async progress =>
+        {
+            await RecordAcceptanceAsync(row);
+            Message = Strings.Format("FirstRun.Downloading", row.Name);
+            await _host.Models.DownloadSourceAsync(row.Model.Id, row.RequiresAcceptance && row.LicenseAccepted, progress, CancellationToken.None);
+            Message = Strings.Format("Settings.Models.SourceReady", row.Name);
+        });
+    }
+
     /// <summary>Opens the folder where the user puts the original files of a model to convert (made when missing).</summary>
     [RelayCommand]
     private void OpenSourceFolder(ModelRowViewModel? row)
@@ -645,12 +701,20 @@ public sealed partial class SettingsViewModel : PageViewModel
             return;
         }
 
-        if (!_host.VlmGpuReady)
+        if (row.RequiresAcceptance && !row.LicenseAccepted)
+        {
+            row.ConversionText = Strings.Format("FirstRun.AcceptModelLicense", row.Name);
+            return;
+        }
+
+        // The VLM converts and runs on the GPU only (P16); the face recognizer converts on the CPU.
+        if (row.Model.Function == ModelFunction.Vlm && !_host.VlmGpuReady)
         {
             row.ConversionText = Strings.Get("Vlm.GpuRequired");
             return;
         }
 
+        await RecordAcceptanceAsync(row);
         _conversion = new CancellationTokenSource();
         row.IsConverting = true;
         IsBusy = true;
@@ -661,7 +725,10 @@ public sealed partial class SettingsViewModel : PageViewModel
             var token = _conversion.Token;
             await Task.Run(() => conversion.ConvertAsync(row.Model.Id, progress, token), token);
             row.IsInstalled = _host.Models.IsInstalled(row.Model.Id);
-            row.ConversionText = Strings.Get(await _host.ReloadModelsAsync(CancellationToken.None) ? "Vlm.Ready" : "Settings.Models.Restart");
+            row.ConversionText = Strings.Get(await _host.ReloadModelsAsync(CancellationToken.None)
+                ? row.Model.Function == ModelFunction.Vlm ? "Vlm.Ready" : "Settings.Models.Converted"
+                : "Settings.Models.Restart");
+            UpdateModelsInUse();
         }
         catch (OperationCanceledException)
         {
@@ -877,9 +944,37 @@ public sealed partial class SettingsViewModel : PageViewModel
         {
             row.IsInUse = inUse.Contains(row.Model.Id);
             row.HasAlternative = row.Model.Function is ModelFunction.ObjectDetection or ModelFunction.Vlm
+                || (row.Model.Function == ModelFunction.FaceRecognition && _host.ModelUsable(row.Model.Id))
                 || (row.Model.Function == ModelFunction.Faces && row.Model.Id != PhotoFlowHost.SFaceModelId
                     && (row.Model.Id != "insightface-buffalo-l" || _host.Settings.AcceptedModelLicenses.Contains(row.Model.Id)));
         }
+
+        Recognizers.Clear();
+        foreach (var id in PhotoFlowHost.FaceRecognizers.Where(_host.ModelUsable))
+        {
+            Recognizers.Add(new SettingChoice<string>(id, Strings.Get("Settings.Models.Recognizer." + id)));
+        }
+
+        RecognizerInUse = setup.FaceDetector is null ? null : setup.FaceRecognizer;
+        SelectedRecognizer = Recognizers.FirstOrDefault(r => r.Value == RecognizerInUse);
+        OnPropertyChanged(nameof(HasRecognizerChoice));
+    }
+
+    /// <summary>
+    /// "Riconoscimento delle persone" (P22): the recognizer chosen apart from the detector; then the regeneration of the
+    /// faces on the whole catalog, where the user can also start again from zero with the people.
+    /// </summary>
+    [RelayCommand]
+    private async Task UseRecognizerAsync()
+    {
+        if (SelectedRecognizer is not { } choice || choice.Value == RecognizerInUse)
+        {
+            return;
+        }
+
+        var loaded = await _host.ChooseModelAsync(ModelFunction.FaceRecognition, choice.Value, CancellationToken.None);
+        UpdateModelsInUse();
+        await ShowRegenerationAsync(ModelFunction.FaceRecognition, choice.Label, loaded, null);
     }
 
     /// <summary>
@@ -896,20 +991,33 @@ public sealed partial class SettingsViewModel : PageViewModel
 
         var loaded = await _host.ChooseModelAsync(row.Model.Function, row.Model.Id, CancellationToken.None);
         UpdateModelsInUse();
-        var parts = row.Model.Function switch
+        await ShowRegenerationAsync(row.Model.Function, row.Name, loaded, row);
+    }
+
+    private async Task ShowRegenerationAsync(ModelFunction function, string name, bool loaded, ModelRowViewModel? row)
+    {
+        var parts = function switch
         {
             ModelFunction.Vlm => ReanalysisParts.Captions, // the Italian captions of level D, never the user's (I5)
+            ModelFunction.FaceRecognition => ReanalysisParts.Faces,
             _ => ReanalysisParts.Culling | ReanalysisParts.Faces,
         };
-        var note = Strings.Format(loaded ? "Regeneration.NewModel" : "Regeneration.NewModelAtRestart", row.Name);
+        var note = Strings.Format(loaded ? "Regeneration.NewModel" : "Regeneration.NewModelAtRestart", name);
         if (Navigator is not null && loaded)
         {
-            Navigator.ShowPage(new RegenerationViewModel(_host, Navigator, libraryId: (await _host.Catalog.Libraries.ListAsync(CancellationToken.None)).FirstOrDefault()?.Id,
-                parts: parts, note: note));
+            // A new recognizer makes new fingerprints for every face: the whole catalog (P22).
+            Navigator.ShowPage(function == ModelFunction.FaceRecognition
+                ? new RegenerationViewModel(_host, Navigator, parts: parts, note: note, allCatalog: true)
+                : new RegenerationViewModel(_host, Navigator, libraryId: (await _host.Catalog.Libraries.ListAsync(CancellationToken.None)).FirstOrDefault()?.Id,
+                    parts: parts, note: note));
+        }
+        else if (row is not null)
+        {
+            row.Verification = note;
         }
         else
         {
-            row.Verification = note;
+            Message = note;
         }
     }
 

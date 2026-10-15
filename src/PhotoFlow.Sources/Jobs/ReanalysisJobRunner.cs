@@ -43,6 +43,13 @@ public sealed class ReanalysisJobRunner(ICatalog catalog, IFileSystem fileSystem
         {
             assets.AddRange((await catalog.Assets.ListInLibraryAsync(libraryId, settings.Folder, ct).ConfigureAwait(false)).Select(a => a.AssetId));
         }
+        else if (settings.AllCatalog)
+        {
+            foreach (var library in await catalog.Libraries.ListAsync(ct).ConfigureAwait(false))
+            {
+                assets.AddRange((await catalog.Assets.ListInLibraryAsync(library.Id, null, ct).ConfigureAwait(false)).Select(a => a.AssetId));
+            }
+        }
 
         var scope = new List<long>();
         foreach (var assetId in assets.Distinct())

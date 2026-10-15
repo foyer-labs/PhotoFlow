@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Conversion of the level D model for ONNX Runtime GenAI (phase 5b, decisions U2-U4): Qwen3.5-9B or Qwen2.5-VL-7B.
+"""Conversions on the user's PC: the level D model for ONNX Runtime GenAI (phase 5b, decisions U2-U4: Qwen3.5-9B or
+Qwen2.5-VL-7B), and the AdaFace IR-101 face recognizer to ONNX (P22, recipes/adaface_ir101, recognized by its config).
 
 Runs Microsoft's Olive recipe of the model (recipes/<model_type>/, MIT), chosen from the model_type of the weights, on
 the local folder of the original weights: embedding and vision encoder exported and optimized by Olive, text decoder
@@ -86,6 +87,24 @@ def check_embedding(models: Path, weights: Path) -> None:
         raise RuntimeError(f"The embedding model does not match the weights (max difference {error:.3f}).")
 
 
+def is_adaface(weights: Path) -> bool:
+    """A CVLFace IR-101 checkpoint (AdaFace, P22): its config.json names the network in "conf"."""
+    config = json.loads((weights / "config.json").read_text(encoding="utf-8"))
+    return config.get("conf", {}).get("name") == "ir101"
+
+
+def convert_adaface(weights: Path, output: Path) -> int:
+    """The face recognizer: one ONNX exported from PyTorch on the CPU, checked against PyTorch."""
+    sys.path.insert(0, str(HERE / "recipes" / "adaface_ir101"))
+    import export  # noqa: PLC0415
+
+    if output.exists() and any(output.iterdir()):
+        raise FileExistsError(f"{output} is not empty.")
+    export.export(weights, output, progress)
+    print("PF-DONE", flush=True)
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--weights", type=Path, required=True)
@@ -94,6 +113,9 @@ def main() -> int:
     args = parser.parse_args()
     weights, output, work = args.weights.resolve(), args.output.resolve(), args.work.resolve()
     try:
+        if is_adaface(weights):
+            return convert_adaface(weights, output)
+
         steps = len(PARTS) + 2
         progress(0, steps, "check")
         recipe_name = check_weights(weights)

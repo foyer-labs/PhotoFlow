@@ -12,7 +12,8 @@ using PhotoFlow.Tagging.Ocr;
 namespace PhotoFlow.App.Services;
 
 /// <summary>What the confirmation of a regeneration changed.</summary>
-public sealed record ReanalysisApplied(int Photos, int Transferred, int XmpWritten);
+/// <param name="Reset">What "Ripartire da zero con le persone" removed (P22), when the user chose it.</param>
+public sealed record ReanalysisApplied(int Photos, int Transferred, int XmpWritten, PeopleReset? Reset = null);
 
 /// <summary>
 /// Preview and confirmation of a regeneration (spec §5): the staged results are compared with the catalog (counts and
@@ -126,6 +127,12 @@ public static class Reanalysis
         ArgumentNullException.ThrowIfNull(protector);
         var job = await catalog.Jobs.GetAsync(jobId, ct).ConfigureAwait(false) ?? throw new InvalidOperationException($"Job {jobId} not found.");
         var staged = await catalog.Reanalysis.ListAsync(jobId, ct).ConfigureAwait(false);
+        var settings = ReanalysisJobRunner.DeserializeSettings(job.SettingsSnapshotJson);
+
+        // P22: the people go first, so the new faces start from nothing (never on a sample, never without the faces).
+        var reset = settings.ResetPeople && settings.Sample is null && settings.Parts.HasFlag(ReanalysisParts.Faces)
+            ? await catalog.People.ResetAsync(ct).ConfigureAwait(false)
+            : null;
         int transferred = 0;
         var faces = false;
         var ocrAssets = new List<long>();
@@ -174,6 +181,11 @@ public static class Reanalysis
             await new FacesStage(catalog, protector).RunAsync(context, null, ct).ConfigureAwait(false);
         }
 
+        if (reset is not null)
+        {
+            await ClusterEveryYearAsync(catalog, protector(), ct).ConfigureAwait(false);
+        }
+
         if (ocrAssets.Count > 0)
         {
             // The numbers are matched in the job that imported the photos (its entry list).
@@ -196,12 +208,26 @@ public static class Reanalysis
         var photos = staged.Select(s => s.AssetId).Distinct().ToList();
         await catalog.Reanalysis.ClearAsync(jobId, ct).ConfigureAwait(false);
 
-        // The XMP already written follows the new results.
+        // The XMP already written follows the new results; after a reset, the photos of the removed people too (their
+        // names and regions leave the files, the regions of other programs stay).
         var written = 0;
         if (publisher is not null)
         {
+            var candidates = new List<long>(photos);
+            if (reset is not null)
+            {
+                foreach (var assetId in reset.AssetIds)
+                {
+                    candidates.Add(assetId);
+                    if (await catalog.Assets.GetTwinAsync(assetId, ct).ConfigureAwait(false) is { } twin)
+                    {
+                        candidates.Add(twin);
+                    }
+                }
+            }
+
             var toWrite = new List<long>();
-            foreach (var assetId in photos)
+            foreach (var assetId in candidates.Distinct())
             {
                 if ((await catalog.XmpSync.GetAsync(assetId, ct).ConfigureAwait(false))?.LastWrittenAt is not null)
                 {
@@ -212,11 +238,32 @@ public static class Reanalysis
 
             if (toWrite.Count > 0)
             {
-                written = (await publisher.WriteAsync(toWrite, prudentMode, null, ct).ConfigureAwait(false)).Written;
+                written = (await publisher.WriteAsync(toWrite, prudentMode, null, reset?.Names, ct).ConfigureAwait(false)).Written;
             }
         }
 
-        return new ReanalysisApplied(photos.Count, transferred, written);
+        return new ReanalysisApplied(photos.Count, transferred, written, reset);
+    }
+
+    /// <summary>After a reset the unassigned faces of every year are grouped again, not only those of the regenerated photos.</summary>
+    private static async Task ClusterEveryYearAsync(ICatalog catalog, IFingerprintProtector keys, CancellationToken ct)
+    {
+        if (!keys.IsAvailable)
+        {
+            return;
+        }
+
+        var years = (await catalog.People.ListAllFingerprintsAsync(ct).ConfigureAwait(false)).Select(f => f.Year).Distinct().ToList();
+        var touched = new HashSet<long>();
+        foreach (var year in years)
+        {
+            touched.UnionWith(await new PeopleEngine(catalog, keys).ClusterYearAsync(year, ct).ConfigureAwait(false));
+        }
+
+        foreach (var personId in touched)
+        {
+            await PeopleEngine.RefreshPrototypesAsync(catalog, personId, ct).ConfigureAwait(false);
+        }
     }
 
     /// <summary>The previous results stay; the staged ones go.</summary>

@@ -233,6 +233,46 @@ internal sealed class PeopleStore(SqliteCatalog catalog) : IPeopleStore
             transaction.Commit();
         }, ct);
 
+    public Task<PeopleReset> CountResetAsync(CancellationToken ct) =>
+        catalog.RunAsync(async c => await CountResetAsync(c, null, ct).ConfigureAwait(false), ct);
+
+    public Task<PeopleReset> ResetAsync(CancellationToken ct) =>
+        catalog.RunAsync(async c =>
+        {
+            using var transaction = c.BeginTransaction();
+            var reset = await CountResetAsync(c, transaction, ct).ConfigureAwait(false);
+            var args = new { ManualVersion = FaceDefaults.ManualModelVersion };
+            await c.ExecuteAsync(new CommandDefinition("DELETE FROM Faces WHERE ModelVersion = @ManualVersion;", args, transaction, cancellationToken: ct)).ConfigureAwait(false);
+            await c.ExecuteAsync(new CommandDefinition(
+                """
+                UPDATE Faces SET PersonId = NULL, AssignmentOrigin = NULL, Similarity = NULL, SuggestedPersonId = NULL
+                WHERE PersonId IS NOT NULL OR AssignmentOrigin IS NOT NULL OR SuggestedPersonId IS NOT NULL;
+                """, transaction: transaction, cancellationToken: ct)).ConfigureAwait(false);
+            await c.ExecuteAsync(new CommandDefinition("DELETE FROM PersonPrototypes;", transaction: transaction, cancellationToken: ct)).ConfigureAwait(false);
+            await c.ExecuteAsync(new CommandDefinition("DELETE FROM Persons;", transaction: transaction, cancellationToken: ct)).ConfigureAwait(false);
+            transaction.Commit();
+            return reset;
+        }, ct);
+
+    private static async Task<PeopleReset> CountResetAsync(System.Data.IDbConnection c, System.Data.IDbTransaction? transaction, CancellationToken ct)
+    {
+        var args = new { Manual, ManualVersion = FaceDefaults.ManualModelVersion };
+        var (persons, named) = (await c.QueryAsync<(long Persons, long Named)>(new CommandDefinition(
+            "SELECT COUNT(*), COUNT(Name) FROM Persons;", transaction: transaction, cancellationToken: ct)).ConfigureAwait(false)).Single();
+        var (manual, drawn) = (await c.QueryAsync<(long Manual, long Drawn)>(new CommandDefinition(
+            """
+            SELECT COALESCE(SUM(CASE WHEN AssignmentOrigin = @Manual AND ModelVersion <> @ManualVersion THEN 1 ELSE 0 END), 0),
+                   COALESCE(SUM(CASE WHEN ModelVersion = @ManualVersion THEN 1 ELSE 0 END), 0)
+            FROM Faces;
+            """, args, transaction, cancellationToken: ct)).ConfigureAwait(false)).Single();
+        var names = await c.QueryAsync<string>(new CommandDefinition(
+            "SELECT DISTINCT Name FROM Persons WHERE Name IS NOT NULL ORDER BY Name;", transaction: transaction, cancellationToken: ct)).ConfigureAwait(false);
+        var assets = await c.QueryAsync<long>(new CommandDefinition(
+            "SELECT DISTINCT AssetId FROM Faces WHERE PersonId IS NOT NULL OR ModelVersion = @ManualVersion ORDER BY AssetId;",
+            args, transaction, cancellationToken: ct)).ConfigureAwait(false);
+        return new PeopleReset((int)persons, (int)named, (int)manual, (int)drawn, [.. names], [.. assets]);
+    }
+
     private static FaceFingerprint Map(FingerprintRow r) =>
         new(r.FaceId, r.AssetId, (int?)r.Year, r.EncryptedEmbedding, r.EmbeddingModel ?? string.Empty, r.PersonId, Db.ParseOrNull<AssignmentOrigin>(r.AssignmentOrigin));
 

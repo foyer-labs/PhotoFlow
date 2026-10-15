@@ -556,7 +556,7 @@ public sealed partial class FaceTileViewModel(Face face, int? year) : Observable
     public string SimilarityText => (Face.Similarity ?? 1).ToString("0.00", CultureInfo.CurrentCulture);
 
     /// <summary>Low similarity: dashed border, to check (4b).</summary>
-    public bool IsDoubtful => Face.AssignmentOrigin != AssignmentOrigin.Manual && Face.Similarity is { } s && s < FaceMatching.ArcFaceThreshold + 0.1;
+    public bool IsDoubtful => Face.AssignmentOrigin != AssignmentOrigin.Manual && Face.Similarity is { } s && s < FaceMatching.Threshold(Face.EmbeddingModel ?? string.Empty) + 0.1;
 
     public bool IsConfirmed => Face.AssignmentOrigin == AssignmentOrigin.Manual;
 

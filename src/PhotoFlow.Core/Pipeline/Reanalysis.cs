@@ -38,10 +38,15 @@ public enum ReanalysisMode
 
 /// <summary>
 /// A regeneration (job <c>Reanalyze</c>, spec §5, D14). Perimeter: a library, a folder of it (relative path prefix),
-/// the photos of a job, or chosen photos (a search result, one photo).
+/// the photos of a job, chosen photos (a search result, one photo), or the whole catalog (P22).
 /// </summary>
 /// <param name="ExcludeReviewed">Leave out the photos already reviewed (a decision of the user or an XMP written).</param>
 /// <param name="Sample">A trial on that many photos of the perimeter, chosen at random (repeatable).</param>
+/// <param name="AllCatalog">Perimeter: every library of the catalog (when no library, job or photos are given).</param>
+/// <param name="ResetPeople">
+/// "Ripartire da zero con le persone" (P22, the user's explicit choice, confirmed with the counts): when the new faces
+/// are applied, every person and assignment of the catalog goes first, manual ones included. Never on a sample.
+/// </param>
 public sealed record ReanalysisSettings(
     ReanalysisParts Parts,
     ReanalysisMode Mode = ReanalysisMode.OlderModelOnly,
@@ -52,7 +57,9 @@ public sealed record ReanalysisSettings(
     bool ExcludeReviewed = false,
     int? Sample = null,
     string ProfileId = "events",
-    int Workers = 1);
+    int Workers = 1,
+    bool AllCatalog = false,
+    bool ResetPeople = false);
 
 /// <summary>New results of a photo waiting for confirmation (one JSON per part).</summary>
 public sealed record StagedCulling(Analysis.AnalyzerResult Analysis, string ProfileId, Analysis.DecisionProposal Decision, string DecisionVersion);

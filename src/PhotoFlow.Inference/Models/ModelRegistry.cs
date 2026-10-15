@@ -21,6 +21,9 @@ public sealed record ModelInfo(
     /// converts them (level D, phase 5b, decision U2). The files of the manifest are the originals.
     /// </summary>
     public bool ManualConvert { get; init; }
+
+    /// <summary>The file a conversion leaves in the model folder (<c>output</c> in the manifest): the GenAI configuration of a VLM, the ONNX of a face model.</summary>
+    public string ConvertedFile { get; init; } = ModelRegistry.ConvertedConfig;
 }
 
 /// <summary>A file of a manually downloaded model that is missing or not the expected one.</summary>
@@ -48,11 +51,11 @@ public sealed class ModelRegistry(HttpClient http, IReadOnlyList<ModelInfo> mode
     {
         var model = Get(id);
         return model.ManualConvert
-            ? File.Exists(MarkerPath(model)) && File.Exists(Path.Combine(ModelDirectory(model), ConvertedConfig))
+            ? File.Exists(MarkerPath(model)) && File.Exists(Path.Combine(ModelDirectory(model), model.ConvertedFile))
             : File.Exists(MarkerPath(model)) && LocalFiles(model).All(File.Exists);
     }
 
-    /// <summary>The file the conversion of a manual model leaves in its folder (ONNX Runtime GenAI configuration).</summary>
+    /// <summary>The file the conversion of a VLM leaves in its folder (ONNX Runtime GenAI configuration), the default of <see cref="ModelInfo.ConvertedFile"/>.</summary>
     public const string ConvertedConfig = "genai_config.json";
 
     /// <summary>Folder of an installed model (the converted one for a manual model).</summary>
@@ -88,6 +91,30 @@ public sealed class ModelRegistry(HttpClient http, IReadOnlyList<ModelInfo> mode
         }
 
         return problems;
+    }
+
+    /// <summary>
+    /// Downloads the original files of a manual model into <see cref="SourceDirectory"/> (pinned URLs, SHA-256 checked;
+    /// the files already there and intact are kept), after the license when it needs acceptance. The conversion follows.
+    /// </summary>
+    public async Task DownloadSourceAsync(string id, bool licenseAccepted, IProgress<DownloadProgress>? progress, CancellationToken ct)
+    {
+        var model = Get(id);
+        if (!model.ManualConvert)
+        {
+            throw new InvalidOperationException($"'{model.Name}' is installed with a download, not converted.");
+        }
+
+        if (model.License.RequiresAcceptance && !licenseAccepted)
+        {
+            throw new InvalidOperationException($"The license of '{model.Name}' ({model.License.Spdx}) must be accepted before downloading it.");
+        }
+
+        foreach (var file in model.Files)
+        {
+            await VerifiedDownload.FetchAsync(http, new Uri(file.Url), Path.Combine(SourceDirectory(id), file.Path), file.Sha256, file.Size,
+                $"{model.Id}/{file.Path}", progress, ct).ConfigureAwait(false);
+        }
     }
 
     /// <summary>Records a manual model as installed once its conversion left its files in <see cref="InstallDirectory"/>.</summary>
@@ -192,6 +219,11 @@ public sealed class ModelRegistry(HttpClient http, IReadOnlyList<ModelInfo> mode
 
         var file = model.Files.FirstOrDefault(f => f.Path == fileName);
         var path = Path.Combine(ModelDirectory(model), fileName);
+        if (model.ManualConvert && fileName == model.ConvertedFile)
+        {
+            return new ModelDescriptor(id, model.Function, model.Name, model.Version, path, string.Empty, model.Adapter); // made on this PC
+        }
+
         if (file is null && !model.Files.Any(f => f.Use.Contains(fileName)))
         {
             throw new KeyNotFoundException($"Model '{id}' has no file '{fileName}'.");
@@ -244,6 +276,7 @@ public sealed class ModelRegistry(HttpClient http, IReadOnlyList<ModelInfo> mode
                 f.TryGetProperty("use", out var u) ? u.EnumerateArray().Select(x => x.GetString()!).ToList() : [])).ToList())
         {
             ManualConvert = m.TryGetProperty("install", out var install) && install.GetString() == "manual-convert",
+            ConvertedFile = m.TryGetProperty("output", out var output) ? output.GetString()! : ConvertedConfig,
         };
     }
 }

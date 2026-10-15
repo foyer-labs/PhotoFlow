@@ -20,12 +20,67 @@ public sealed class ModelRegistryTests : IDisposable
     public void The_embedded_manifest_matches_the_repository_manifest()
     {
         var models = ModelRegistry.EmbeddedManifest();
-        Assert.Equal(11, models.Count);
+        Assert.Equal(12, models.Count);
         Assert.Equal(["qwen3.5-9b", "qwen2.5-vl-7b"], models.Where(m => m.Function == ModelFunction.Vlm).Select(m => m.Id));
         Assert.All(models.Where(m => m.Function == ModelFunction.Vlm), m => Assert.True(m.ManualConvert && !m.License.RequiresAcceptance));
         Assert.Equal(ModelFunction.Ocr, models.Single(m => m.Id == "ppocr-en").Function);
         Assert.True(models.Single(m => m.Id == "insightface-buffalo-l").License.RequiresAcceptance);
         Assert.Equal(ModelFunction.ObjectDetection, models.Single(m => m.Id == "dfine-s-obj2coco").Function);
+
+        // P22: AdaFace is converted on the PC from its original weights, after the acceptance of its license.
+        var adaface = models.Single(m => m.Function == ModelFunction.FaceRecognition);
+        Assert.Equal(("adaface-ir101-webface12m", true, true, false, "adaface_ir101.onnx"),
+            (adaface.Id, adaface.ManualConvert, adaface.License.RequiresAcceptance, adaface.License.CommercialUse, adaface.ConvertedFile));
+        Assert.Equal(["config.json", "model.safetensors"], adaface.Files.Select(f => f.Path));
+        Assert.All(models.Where(m => m.Function == ModelFunction.Vlm), m => Assert.Equal(ModelRegistry.ConvertedConfig, m.ConvertedFile));
+    }
+
+    [Fact]
+    public async Task The_original_files_of_a_model_to_convert_are_downloaded_only_after_the_license()
+    {
+        var payload = new byte[] { 5, 6, 7, 8 };
+        var file = new ModelFile("model.safetensors", "https://example.invalid/w", Convert.ToHexString(SHA256.HashData(payload)).ToLowerInvariant(), payload.Length, null, []);
+        var model = new ModelInfo("w", ModelFunction.FaceRecognition, "Weights", "1", 2, null, "test", new ModelLicense("X", "https://example.invalid", false, true, null), [file])
+        {
+            ManualConvert = true,
+            ConvertedFile = "w.onnx",
+        };
+        var server = new Server(payload);
+        var registry = new ModelRegistry(new HttpClient(server), [model], _temp.Path);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => registry.DownloadSourceAsync("w", licenseAccepted: false, null, Ct));
+        Assert.Equal(0, server.Requests);
+
+        await registry.DownloadSourceAsync("w", licenseAccepted: true, null, Ct);
+        await registry.DownloadSourceAsync("w", licenseAccepted: true, null, Ct);
+        Assert.Equal(1, server.Requests); // the file already there and intact is kept
+        Assert.Equal(payload, File.ReadAllBytes(Path.Combine(registry.SourceDirectory("w"), "model.safetensors")));
+
+        // Not installed until converted; then its converted file is what the session opens.
+        Assert.False(registry.IsInstalled("w"));
+        Directory.CreateDirectory(registry.InstallDirectory("w"));
+        File.WriteAllBytes(Path.Combine(registry.InstallDirectory("w"), "w.onnx"), [1]);
+        await registry.MarkConvertedAsync("w", Ct);
+        Assert.True(registry.IsInstalled("w"));
+        Assert.Equal(Path.Combine(registry.InstallDirectory("w"), "w.onnx"), registry.Resolve("w", "w.onnx").FilePath);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => registry.InstallAsync("w", licenseAccepted: true, null, Ct));
+    }
+
+    [Fact]
+    public async Task A_tampered_original_file_is_rejected()
+    {
+        var payload = new byte[] { 5, 6, 7, 8 };
+        var file = new ModelFile("model.safetensors", "https://example.invalid/w", Convert.ToHexString(SHA256.HashData(payload)).ToLowerInvariant(), payload.Length, null, []);
+        var model = new ModelInfo("w", ModelFunction.FaceRecognition, "Weights", "1", 2, null, "test", new ModelLicense("X", "https://example.invalid", false, false, null), [file])
+        {
+            ManualConvert = true,
+        };
+        var registry = new ModelRegistry(new HttpClient(new Server(payload) { Tamper = true }), [model], _temp.Path);
+
+        await Assert.ThrowsAsync<InvalidDataException>(() => registry.DownloadSourceAsync("w", licenseAccepted: false, null, Ct));
+
+        Assert.False(File.Exists(Path.Combine(registry.SourceDirectory("w"), "model.safetensors")));
     }
 
     [Fact]
